@@ -1,0 +1,37 @@
+name: Backup V26 Completo Final
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout versão completa
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Criar ZIP completo
+        run: |
+          zip -r MarquesMater_V26_COMPLETO_FINAL.zip . \
+            -x '.git/*' \
+               '.github/workflows/backup-v26-completo-final.yml' \
+               'MarquesMater_V26_COMPLETO_FINAL.zip'
+          test -s MarquesMater_V26_COMPLETO_FINAL.zip
+          unzip -t MarquesMater_V26_COMPLETO_FINAL.zip >/dev/null
+          echo "Backup criado: $(du -h MarquesMater_V26_COMPLETO_FINAL.zip | cut -f1)"
+
+      - name: Upload ZIP completo
+        uses: actions/upload-artifact@v4
+        with:
+          name: MarquesMater_V26_COMPLETO_FINAL
+          path: MarquesMater_V26_COMPLETO_FINAL.zip
+          if-no-files-found: error
+          retention-days: 90
