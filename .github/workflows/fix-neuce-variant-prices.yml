@@ -1,0 +1,62 @@
+name: Corrigir variantes e preços NEUCE
+on:
+  push:
+    branches: [main]
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Aplicar preços NEUCE e remover workflow
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('produto-wc.html')
+          s=p.read_text(encoding='utf-8')
+          marker='MM_NEUCE_VARIANT_PRICES_FINAL'
+          if marker not in s:
+              js=r'''<script id="MM_NEUCE_VARIANT_PRICES_FINAL">
+(function(){
+  const PR={
+    neucebel:[['1L','9,90 €'],['5L','39,90 €'],['15L','89,90 €']],
+    neucematt:[['5L','29,90 €'],['15L','69,90 €']],
+    neucesoft:[['1L','14,90 €'],['5L','39,90 €'],['15L','129,90 €']]
+  };
+  const key=(new URLSearchParams(location.search).get('slug')||'').toLowerCase();
+  const vals=PR[key]; if(!vals)return;
+  function apply(){
+    if(!window.P || !P.variants)return false;
+    P.variants=vals.map((x,i)=>Object.assign({},P.variants[i]||{}, {name:x[0],price:x[1]}));
+    variant=P.variants[0]||null;
+    const title=document.querySelector('.variant-title');
+    const grid=document.querySelector('.variant-grid');
+    const box=document.getElementById('priceBox');
+    if(!title||!grid||!box)return false;
+    title.textContent='Escolha a embalagem';
+    grid.innerHTML=P.variants.map((v,i)=>`<button class="variant-btn ${i===0?'active':''}" type="button" data-mm-neuce-i="${i}">${v.name}<span class="variant-price">${v.price}</span></button>`).join('');
+    const buttons=[...grid.querySelectorAll('[data-mm-neuce-i]')];
+    buttons.forEach(b=>b.onclick=()=>{
+      const i=Number(b.dataset.mmNeuceI); variant=P.variants[i];
+      buttons.forEach((x,k)=>x.classList.toggle('active',k===i));
+      box.innerHTML=`<div class="price">${variant.price}</div>`;
+    });
+    box.innerHTML=`<div class="price">${P.variants[0].price}</div>`;
+    return true;
+  }
+  let n=0;const t=setInterval(()=>{if(apply()||++n>100)clearInterval(t)},100);
+})();
+</script>'''
+              s=s.replace('</body>',js+'\n</body>')
+              p.write_text(s,encoding='utf-8')
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add produto-wc.html
+          git commit -m 'Corrigir preços e seleção de embalagens NEUCE' || true
+          git push
+          rm -f .github/workflows/fix-neuce-variant-prices.yml
+          git add -A
+          git commit -m 'Remover workflow temporário de preços NEUCE' || true
+          git push
