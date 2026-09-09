@@ -1,0 +1,59 @@
+name: Finalizar homepage e gestor de imagens
+on:
+  push:
+    branches: [main]
+
+jobs:
+  apply:
+    if: ${{ !contains(github.event.head_commit.message, 'Homepage final + Back Office imagens') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Aplicar layout final
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          idx=Path('index.html')
+          s=idx.read_text(encoding='utf-8')
+          marker='MM-FINAL-HOMEPAGE-20260909'
+          if marker not in s:
+              block=r'''<style id="MM-FINAL-HOMEPAGE-20260909">
+          .mm-final-carousel{position:relative;margin:10px 0 0;border-radius:16px;overflow:hidden;background:#092033;color:#fff;min-height:300px}
+          .mm-final-slide{display:none;position:relative;min-height:300px}.mm-final-slide.active{display:block}
+          .mm-final-slide>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.78}
+          .mm-final-slide:after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,#071824ef 0%,#071824b8 40%,#07182420 78%,transparent)}
+          .mm-final-copy{position:relative;z-index:2;max-width:650px;padding:54px 42px 58px}.mm-final-copy .tag{font-weight:950;color:#f58b00;text-transform:uppercase;letter-spacing:.12em;font-size:11px}.mm-final-copy h1{font-size:48px;line-height:1.04;margin:10px 0 14px;font-weight:950}.mm-final-copy p{font-size:17px;line-height:1.45;margin:0 0 14px}.mm-final-btn{display:inline-flex;background:#f58b00;color:#fff;border-radius:9px;padding:12px 18px;font-weight:900;text-decoration:none}
+          .mm-final-arrow{position:absolute;z-index:4;top:50%;transform:translateY(-50%);width:38px;height:38px;border:0;border-radius:50%;background:#fff;color:#17212b;font-size:22px;font-weight:900;box-shadow:0 4px 16px #0003}.mm-final-arrow.prev{left:14px}.mm-final-arrow.next{right:14px}.mm-final-dots{position:absolute;z-index:4;bottom:12px;left:50%;transform:translateX(-50%);display:flex;gap:7px}.mm-final-dot{width:9px;height:9px;border:0;border-radius:50%;background:#fff9;cursor:pointer}.mm-final-dot.active{background:#f58b00}
+          #mm-home-promos{display:none!important}#mm-home-featured{display:none!important}.mm-brand img{filter:none!important}
+          @media(max-width:700px){.mm-final-carousel,.mm-final-slide{min-height:270px}.mm-final-copy{padding:35px 22px 48px}.mm-final-copy h1{font-size:34px}.mm-final-copy p{font-size:14px}.mm-final-arrow{width:32px;height:32px;font-size:18px}}
+          </style>
+          <script id="MM-FINAL-HOMEPAGE-JS">
+          (function(){
+            let slides=[], current=0, timer=null;
+            const esc2=v=>String(v??'').replace(/[&<>\"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#039;'}[m]));
+            const iu=v=>{v=String(v||'').trim();if(!v)return '/assets/paint-placeholder.svg';if(v.startsWith('/'))return v;if(/^https?:\\/\\//i.test(v))return v;return '/'+v.replace(/^\\.\\//,'')};
+            function paint(a){const root=document.getElementById('mm-home-hero');if(!root)return;slides=(a||[]).filter(x=>x&&x.enabled!==false);if(!slides.length)slides=[{tag:'NEUCE',title:'Cores que dão vida aos seus projetos',text:'Qualidade, durabilidade e um acabamento perfeito para o seu espaço.',button:'Ver toda a gama NEUCE →',link:'catalogo.html?cat=Pinturas',image:'assets/paint-placeholder.svg'}];current=0;root.innerHTML='<div class="mm-final-carousel">'+slides.map((x,i)=>`<article class="mm-final-slide ${i===0?'active':''}"><img src="${esc2(iu(x.image))}" alt="${esc2(x.title||'MarquesMater')}"><div class="container"><div class="mm-final-copy"><div class="tag">${esc2(x.tag||'MarquesMater')}</div><h1>${esc2(x.title||'Tudo para os seus projetos').replace(/\\n/g,'<br>')}</h1><p>${esc2(x.text||'')}</p><a class="mm-final-btn" href="${esc2(x.link||'catalogo.html')}">${esc2(x.button||'Ver produtos →')}</a></div></div></article>`).join('')+'<button class="mm-final-arrow prev" aria-label="Anterior">‹</button><button class="mm-final-arrow next" aria-label="Seguinte">›</button><div class="mm-final-dots">'+slides.map((_,i)=>`<button class="mm-final-dot ${i===0?'active':''}" data-i="${i}" aria-label="Slide ${i+1}"></button>`).join('')+'</div></div>';const go=n=>{current=(n+slides.length)%slides.length;root.querySelectorAll('.mm-final-slide').forEach((e,i)=>e.classList.toggle('active',i===current));root.querySelectorAll('.mm-final-dot').forEach((e,i)=>e.classList.toggle('active',i===current));};root.querySelector('.prev').onclick=()=>go(current-1);root.querySelector('.next').onclick=()=>go(current+1);root.querySelectorAll('.mm-final-dot').forEach(e=>e.onclick=()=>go(Number(e.dataset.i)));clearInterval(timer);if(slides.length>1)timer=setInterval(()=>go(current+1),5500)}
+            async function boot(){try{const r=await fetch('/api/site',{cache:'no-store'});const d=await r.json();const h=d?.settings?.homepage||d?.homepage||{};paint(h.slides||h.hero_slides||[])}catch(e){paint([])}const promo=document.getElementById('mm-home-promos')?.closest('.mm-home-section');if(promo)promo.style.display='none';const featured=document.getElementById('mm-home-featured')?.closest('.mm-home-section');if(featured)featured.style.display='none';const banners=document.getElementById('mm-home-banners')?.closest('.mm-home-section');const brands=document.getElementById('mm-home-brands')?.closest('.mm-home-section');if(banners&&brands)brands.parentNode.insertBefore(banners,brands)}
+            if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
+          })();
+          </script>'''
+              s=s.replace('</body>',block+'\n</body>')
+              idx.write_text(s,encoding='utf-8')
+          adm=Path('admin.html')
+          a=adm.read_text(encoding='utf-8')
+          amarker='MM-MEDIA-SIDEBAR-20260909'
+          if amarker not in a:
+              inject=r'''<style id="MM-MEDIA-SIDEBAR-20260909">
+          .mm-media-panel{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.mm-media-box{border:1px solid #e0e5e9;border-radius:14px;padding:15px;background:#fff}.mm-media-box h3{margin:0 0 5px}.mm-media-preview{height:150px;border-radius:10px;background:#f5f7f8;display:flex;align-items:center;justify-content:center;overflow:hidden;margin:10px 0}.mm-media-preview img{max-width:100%;max-height:100%;object-fit:contain}.mm-media-box input[type=file]{display:none}.mm-media-actions{display:flex;gap:8px;flex-wrap:wrap}.mm-media-nav{color:#cbd4db!important}.mm-media-nav:hover{color:#fff!important}@media(max-width:700px){.mm-media-panel{grid-template-columns:1fr}}
+          </style>
+          <script id="MM-MEDIA-SIDEBAR-JS">
+          (function(){const items=[['mediaHero','🖼️ Carrossel principal','hero'],['mediaRida','🖼️ Banner RIDA','rida'],['mediaPromos','🖼️ Promoções','promos'],['mediaBrands','🏷️ Logótipos das marcas','brands']];function nav(){const n=document.querySelector('.side .nav');if(!n||n.querySelector('.mm-media-nav'))return;const title=document.createElement('div');title.className='nav-title mm-media-nav';title.textContent='Imagens da Homepage';n.appendChild(title);items.forEach(([id,label,key])=>{const b=document.createElement('button');b.className='mm-media-nav';b.textContent=label;b.type='button';b.onclick=()=>openMedia(key);n.appendChild(b)})}function openMedia(key){const app=document.getElementById('app');if(!app)return;app.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));let v=document.getElementById('mmMediaView');if(!v){v=document.createElement('section');v.id='mmMediaView';v.className='view active';v.innerHTML='<div class="panel"><div class="toolbar"><div><h2>Imagens da Homepage</h2><p class="muted">Altera cada área individualmente. As imagens ficam disponíveis na loja após guardar.</p></div></div><div id="mmMediaPanel" class="mm-media-panel"></div></div>';app.appendChild(v)}v.classList.add('active');renderMedia(key)}function renderMedia(key){const p=document.getElementById('mmMediaPanel');const defs={hero:['Carrossel principal','hero'],rida:['Banner RIDA','rida'],promos:['Promoções — 3 cartões','promos'],brands:['Marcas — logótipos a cores','brands']};const d=defs[key]||defs.hero;let html='<div class="mm-media-box"><h3>'+d[0]+'</h3><p class="muted">Escolhe uma imagem do dispositivo e guarda.</p><div class="mm-media-preview"><img id="mmPreview_'+key+'" src="/assets/paint-placeholder.svg"></div><div class="mm-media-actions"><label class="btn primary">🖼️ Escolher imagem<input type="file" accept="image/*" onchange="window.mmUploadImage(this.files[0],\''+key+'\')"></label><button class="btn" onclick="window.mmSaveMedia(\''+key+'\')">Guardar imagem</button></div><small id="mmStatus_'+key+'" class="muted"></small></div>';if(key==='promos'||key==='brands'){html='<div class="mm-media-box"><h3>'+d[0]+'</h3><p class="muted">Cada imagem é independente.</p>'+['1','2','3','4','5','6','7','8'].slice(0,key==='promos'?3:8).map(i=>`<div style="border-top:1px solid #e5e9ed;padding-top:10px;margin-top:10px"><b>${key==='promos'?'Cartão '+i:['RIDA','NEUCE','SOUDAL','VITO','BOSCH','Makita','STANLEY','DEWALT'][Number(i)-1]}</b><div class="mm-media-actions" style="margin-top:7px"><label class="btn">Escolher<input type="file" accept="image/*" onchange="window.mmUploadImage(this.files[0],'${key}${i}')"></label><button class="btn" onclick="window.mmSaveMedia('${key}${i}')">Guardar</button></div><small id="mmStatus_${key}${i}" class="muted"></small></div>`).join('')+'</div>'}p.innerHTML=html}let pending={};window.mmUploadImage=async(file,key)=>{if(!file)return;pending[key]=file;const img=document.getElementById('mmPreview_'+key);if(img)img.src=URL.createObjectURL(file);const st=document.getElementById('mmStatus_'+key);if(st)st.textContent='Imagem selecionada. Clica em Guardar.'};window.mmSaveMedia=async key=>{const f=pending[key];if(!f){const st=document.getElementById('mmStatus_'+key);if(st)st.textContent='Seleciona primeiro uma imagem.';return}const fd=new FormData();fd.append('file',f);try{const r=await fetch('/api/admin/upload',{method:'POST',body:fd});const j=await r.json();if(!j.url)throw new Error('Upload sem URL');const st=document.getElementById('mmStatus_'+key);if(st)st.textContent='Upload concluído: '+j.url;pending[key]=null}catch(e){const st=document.getElementById('mmStatus_'+key);if(st)st.textContent='Erro no upload: '+e.message}};if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',nav);else nav()})();
+          </script>'''
+              a=a.replace('</body>',inject+'\n</body>')
+              adm.write_text(a,encoding='utf-8')
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html admin.html
+          git diff --cached --quiet || git commit -m 'Homepage final + Back Office imagens'
+          git push
