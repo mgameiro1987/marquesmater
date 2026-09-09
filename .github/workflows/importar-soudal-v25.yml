@@ -1,0 +1,47 @@
+name: Importar catálogo Soudal V25
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'data/soudal_products.json'
+      - 'scripts/import_soudal_assets.py'
+      - '.github/workflows/importar-soudal-v25.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  importar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Preparar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Importar imagens, fichas e base de dados
+        run: python scripts/import_soudal_assets.py
+
+      - name: Verificar ficheiros importados
+        run: |
+          test -s data/soudal_products.json
+          test -s data/catalog.db
+          test "$(find assets/soudal -type f | wc -l)" -ge 10
+          test "$(find docs/soudal -type f | wc -l)" -ge 9
+          python -m py_compile server.py scripts/import_soudal_assets.py
+
+      - name: Guardar no repositório
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/soudal_products.json data/catalog.db assets/soudal docs/soudal
+          if git diff --cached --quiet; then
+            echo "Sem alterações para guardar."
+          else
+            git commit -m "Importar catálogo Soudal com imagens fichas e preços"
+            git push
+          fi
