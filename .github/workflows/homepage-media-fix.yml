@@ -1,0 +1,38 @@
+name: Homepage media manager
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Inject media manager
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('admin.html')
+          s=p.read_text(encoding='utf-8')
+          if 'MM-HOME-MEDIA-FIX' not in s:
+              css='''<style id="MM-HOME-MEDIA-FIX">#mmHomeMediaManager{margin-top:16px}#mmHomeMediaBody{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.mmhm-card{border:1px solid #e0e5e9;border-radius:12px;padding:13px;background:#fff}.mmhm-preview{height:120px;background:#f5f7f8;border-radius:10px;display:flex;align-items:center;justify-content:center;overflow:hidden;margin-bottom:9px}.mmhm-preview img{max-width:100%;max-height:100%;object-fit:contain}.mmhm-card input[type=file]{display:none}@media(max-width:700px){#mmHomeMediaBody{grid-template-columns:1fr}}</style>'''
+              panel='''<div class="panel" id="mmHomeMediaManager"><div class="toolbar"><div><h3>🖼️ Imagens da página inicial</h3><p class="muted">Troca aqui as imagens do Hero, banner RIDA, banners promocionais e logótipos das marcas.</p></div></div><div id="mmHomeMediaBody"></div><button class="btn primary" onclick="mmSaveHomeMedia()">Guardar imagens da homepage</button></div>'''
+              js='''<script id="MM-HOME-MEDIA-FIX">(function(){const E=id=>document.getElementById(id);const esc=v=>String(v||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));async function uploadMM(f){let d=new FormData();d.append('file',f);let r=await fetch('/api/admin/upload',{method:'POST',body:d,credentials:'same-origin'});let j=await r.json();if(!r.ok)throw Error(j.error||'Erro no upload');return j.url}async function loadMM(){try{let d=await api('/api/admin/state'),hp=d.settings?.homepage||{},slides=d.settings?.hero_slides||[],logos=hp.brand_logos||{},b=hp.promo_banners||[];let h=`<div class="mmhm-card"><b>Hero principal</b><div class="mmhm-preview"><img src="${esc(slides[0]?.image||'')}"></div><input id="mmhmHero" class="input" value="${esc(slides[0]?.image||'')}" placeholder="Imagem"><label class="btn">Carregar<input type="file" accept="image/*" onchange="mmPick(this,'mmhmHero')"></label></div><div class="mmhm-card"><b>Banner RIDA</b><div class="mmhm-preview"><img src="${esc(hp.rida_banner?.image||'')}"></div><input id="mmhmRida" class="input" value="${esc(hp.rida_banner?.image||'')}" placeholder="Imagem"><label class="btn">Carregar<input type="file" accept="image/*" onchange="mmPick(this,'mmhmRida')"></label></div>`;for(let i=1;i<=3;i++){let x=b[i-1]||{};h+=`<div class="mmhm-card"><b>Banner promocional ${i}</b><div class="mmhm-preview"><img src="${esc(x.image||'')}"></div><input id="mmhmP${i}" class="input" value="${esc(x.image||'')}" placeholder="Imagem"><label class="btn">Carregar<input type="file" accept="image/*" onchange="mmPick(this,'mmhmP${i}')"></label></div>`}for(let n of ['RIDA','NEUCE','SOUDAL','VITO','BOSCH','Makita','STANLEY','DEWALT'])h+=`<div class="mmhm-card"><b>Logo ${n}</b><div class="mmhm-preview" style="height:80px"><img src="${esc(logos[n]||'')}"></div><input id="mmhmB${n}" class="input" value="${esc(logos[n]||'')}" placeholder="Logo"><label class="btn">Carregar<input type="file" accept="image/*" onchange="mmPick(this,'mmhmB${n}')"></label></div>`;E('mmHomeMediaBody').innerHTML=h}catch(e){console.error(e)}}window.mmPick=async(i,t)=>{try{if(i.files?.[0])E(t).value=await uploadMM(i.files[0])}catch(e){alert(e.message)}};window.mmSaveHomeMedia=async()=>{try{let d=await api('/api/admin/state'),hp=d.settings?.homepage||{},slides=d.settings?.hero_slides||[];if(slides[0])slides[0].image=E('mmhmHero').value;hp.rida_banner={image:E('mmhmRida').value};hp.promo_banners=[1,2,3].map(i=>({image:E('mmhmP'+i).value}));hp.brand_logos=hp.brand_logos||{};for(let n of ['RIDA','NEUCE','SOUDAL','VITO','BOSCH','Makita','STANLEY','DEWALT'])hp.brand_logos[n]=E('mmhmB'+n).value;await api('/api/admin/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({hero_slides:slides,homepage:hp})});alert('Imagens guardadas.')}catch(e){alert(e.message)}};document.addEventListener('DOMContentLoaded',()=>setTimeout(loadMM,500));})();</script>'''
+              s=s.replace('</head>',css+'</head>',1)
+              s=s.replace('<div class="hero-editor">',panel+'<div class="hero-editor">',1)
+              s=s.replace('</body>',js+'</body>',1)
+              p.write_text(s,encoding='utf-8')
+          PY
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add admin.html
+          git diff --cached --quiet || git commit -m "Back Office: gestor de imagens da homepage" && git push origin main || true
