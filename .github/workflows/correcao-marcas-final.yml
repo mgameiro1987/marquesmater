@@ -44,7 +44,6 @@ jobs:
             {name:'BOSCH',logo:'https://upload.wikimedia.org/wikipedia/commons/c/c3/Bosch_logo.png',brand:'Bosch'},
             {name:'ASLO',logo:'/assets/brand-aslo.svg',brand:'ASLO'}
           ];
-          const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
           function safeText(name){const span=document.createElement('span');span.className='mm-brand-text';span.textContent=name;return span;}
           function makeCard(x){
             const a=document.createElement('a');
@@ -80,10 +79,8 @@ jobs:
           })();</script>'''
                   s = s[:start] + script + s[end:]
 
-          # Garantir que não ficam marcadores de conflito no ficheiro.
           for marker in ('<<<<<<< HEAD','=======','>>>>>>> parent of 3b6e403 (Aplicar correção final homepage)'):
               s = s.replace(marker, '')
-
           p.write_text(s, encoding='utf-8')
 
           # Remover workflows antigos que estavam a reintroduzir conflitos/layouts antigos.
@@ -109,3 +106,5 @@ jobs:
           git diff --cached --quiet && exit 0
           git commit -m 'CORREÇÃO FINAL HOMEPAGE E MARCAS [skip ci]'
           git push
+
+# trigger final fix
