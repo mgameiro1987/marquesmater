@@ -1,0 +1,17 @@
+name: Ensure clean
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          rm -f .github/workflows/fix-neuce-final2.yml .github/workflows/fix-neuce-product-final.yml .github/workflows/fix-related-price-final.yml .github/workflows/fix-neuce-real-images.yml .github/workflows/finalize-neuce.yml .github/workflows/final-check.yml .github/workflows/ensure-clean.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'Limpar workflows temporários' || true
+          git push
