@@ -1,0 +1,18 @@
+/* MM-HOMEPAGE-FINAL-FIX-20260909 */
+.mm-final-promos{padding:34px 0;background:#f5f7f8}
+.mm-final-promos .mm-promo-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.mm-promo-card{position:relative;min-height:245px;border-radius:16px;overflow:hidden;background:#16212b;color:#fff;text-decoration:none;display:flex;align-items:flex-end;box-shadow:0 8px 24px #16212b18;border:1px solid #e2e7eb}
+.mm-promo-card img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.mm-promo-card:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 25%,#07131ee8 100%)}
+.mm-promo-copy{position:relative;z-index:2;padding:22px;width:100%}
+.mm-promo-copy small{font-weight:900;text-transform:uppercase;letter-spacing:.12em;color:#f28c00;font-size:10px}
+.mm-promo-copy h3{font-size:25px;line-height:1.05;margin:7px 0 6px;font-weight:950}
+.mm-promo-copy span{font-size:13px;opacity:.9}
+.mm-final-brands{padding:34px 0;background:#fff}
+.mm-final-brand-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px}
+.mm-final-brand{min-height:86px;border:1px solid #e1e5e9;border-radius:13px;background:#fff;display:flex;align-items:center;justify-content:center;text-decoration:none;box-shadow:0 3px 12px #16212b0a;overflow:hidden}
+.mm-final-brand img{max-width:82%;max-height:55px;object-fit:contain}
+.mm-final-brand strong{font-size:23px;font-weight:950;letter-spacing:-.04em}
+.mm-final-brand.rida strong{color:#1e4f92}.mm-final-brand.neuce strong{color:#e21f26}.mm-final-brand.soudal strong{color:#e30613}.mm-final-brand.vito strong{color:#f28c00}.mm-final-brand.bosch strong{color:#0b58a2}.mm-final-brand.makita strong{color:#00a0df}.mm-final-brand.stanley strong{color:#f0a400}.mm-final-brand.dewalt strong{color:#f2c300}
+@media(max-width:800px){.mm-final-promos .mm-promo-grid{grid-template-columns:1fr}.mm-promo-card{min-height:210px}.mm-final-brand-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:480px){.mm-final-brand-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.mm-final-brand{min-height:72px}.mm-final-brand strong{font-size:19px}}
