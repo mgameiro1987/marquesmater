@@ -43,4 +43,60 @@ async function run(){try{const r=await fetch('/data/soudal_products.json?x='+Dat
   setTimeout(showNeuce,500);
 })();
 </script>
-<style id="MM-NEUCE-FINAL">body.mm-neuce-final .more{display:none!important}</style><script>(function(){function f(){var p=new URLSearchParams(location.search);if(p.get("cat")!=="Pinturas")return;document.body.classList.add("mm-neuce-final");document.querySelectorAll("#grid .product").forEach(function(c){var n=(c.querySelector("h3")||{}).textContent||"";var v={"NeuceBel":"89,90 €","NeuceMatt":"69,90 €","NeuceSoft":"129,90 €"}[n.trim()];if(v){var q=c.querySelector(".price");if(q)q.textContent=v;var m=c.querySelector(".more");if(m)m.remove()}})}if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",function(){setTimeout(f,200);setTimeout(f,1000)});else{setTimeout(f,200);setTimeout(f,1000)}})();</script></body></html>
+<style id="MM-NEUCE-FINAL">body.mm-neuce-final .more{display:none!important}</style><script>(function(){function f(){var p=new URLSearchParams(location.search);if(p.get("cat")!=="Pinturas")return;document.body.classList.add("mm-neuce-final");document.querySelectorAll("#grid .product").forEach(function(c){var n=(c.querySelector("h3")||{}).textContent||"";var v={"NeuceBel":"89,90 €","NeuceMatt":"69,90 €","NeuceSoft":"129,90 €"}[n.trim()];if(v){var q=c.querySelector(".price");if(q)q.textContent=v;var m=c.querySelector(".more");if(m)m.remove()}})}if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",function(){setTimeout(f,200);setTimeout(f,1000)});else{setTimeout(f,200);setTimeout(f,1000)}})();</script><!-- MM-NEUCE-DUAL-GALLERY -->
+<style>
+.mm-neuce-gallery{position:relative;width:100%;height:100%;min-height:190px;overflow:hidden;background:#f5f6f7}
+.mm-neuce-slide{position:absolute;inset:0;display:none;align-items:center;justify-content:center;padding:10px;box-sizing:border-box}
+.mm-neuce-slide.active{display:flex}
+.mm-neuce-slide.normal{background:#fff}
+.mm-neuce-slide.worked{background:radial-gradient(circle at 24% 70%,var(--mm-paint,#d9d9d9) 0 17%,transparent 18%),radial-gradient(circle at 74% 30%,var(--mm-paint2,#ececec) 0 20%,transparent 21%),linear-gradient(135deg,#fff 0%,#fafafa 100%)}
+.mm-neuce-slide.worked:before,.mm-neuce-slide.worked:after{content:"";position:absolute;border-radius:50%;filter:blur(1px);opacity:.72;pointer-events:none}
+.mm-neuce-slide.worked:before{width:150px;height:70px;background:var(--mm-paint,#d9d9d9);left:-20px;bottom:18px;transform:rotate(-13deg)}
+.mm-neuce-slide.worked:after{width:135px;height:62px;background:var(--mm-paint2,#ececec);right:-15px;top:20px;transform:rotate(17deg)}
+.mm-neuce-slide img{position:relative;z-index:2;max-width:88%;max-height:88%;width:auto;height:auto;object-fit:contain}
+.mm-neuce-slide.worked img{filter:drop-shadow(0 12px 12px rgba(0,0,0,.18));transform:scale(1.03)}
+.mm-neuce-badge{position:absolute;z-index:3;left:9px;top:9px;padding:4px 7px;border-radius:999px;background:#fff;border:1px solid #e2e5e8;font-size:9px;font-weight:900;color:#17212b;text-transform:uppercase;letter-spacing:.04em}
+.mm-neuce-switch{position:absolute;z-index:5;right:8px;bottom:8px;display:flex;gap:4px}
+.mm-neuce-dot{width:7px;height:7px;border-radius:50%;border:0;background:#c7cdd2;padding:0;cursor:pointer}
+.mm-neuce-dot.active{background:#f28c00;transform:scale(1.2)}
+.mm-neuce-gallery .mm-neuce-prev,.mm-neuce-gallery .mm-neuce-next{position:absolute;z-index:5;top:50%;transform:translateY(-50%);width:25px;height:25px;border-radius:50%;border:1px solid #dfe3e7;background:#fff;color:#17212b;line-height:20px;font-size:18px;padding:0;cursor:pointer;opacity:.9}
+.mm-neuce-gallery .mm-neuce-prev{left:6px}.mm-neuce-gallery .mm-neuce-next{right:6px}
+.mm-neuce-gallery .mm-neuce-prev:hover,.mm-neuce-gallery .mm-neuce-next:hover{border-color:#f28c00}
+@media(max-width:600px){.mm-neuce-gallery{min-height:170px}.mm-neuce-slide img{max-width:84%;max-height:84%}.mm-neuce-badge{font-size:8px}}
+</style>
+<script>
+(function(){
+  const PAINTS={
+    'NeuceBel':{normal:'https://www.marquesmater.pt/novo/wp-content/uploads/2024/03/Neucebel-600x638.png',paint:'#f0c9c9',paint2:'#f7e6b8'},
+    'NeuceMatt':{normal:'https://www.marquesmater.pt/novo/wp-content/uploads/2024/03/Neucematt-600x638.png',paint:'#d9a9bc',paint2:'#ead4df'},
+    'NeuceSoft':{normal:'https://www.marquesmater.pt/novo/wp-content/uploads/2024/03/Neucesoft-600x638.png',paint:'#b9c9d3',paint2:'#dce7ec'}
+  };
+  const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+  function gallery(name){
+    const p=PAINTS[name]; if(!p)return '';
+    return `<div class="mm-neuce-gallery" data-mm-gallery="${esc(name)}">
+      <div class="mm-neuce-slide worked active" style="--mm-paint:${p.paint};--mm-paint2:${p.paint2}"><span class="mm-neuce-badge">Imagem trabalhada</span><img src="${p.normal}" alt="${esc(name)}" loading="lazy"></div>
+      <div class="mm-neuce-slide normal"><span class="mm-neuce-badge">Imagem normal</span><img src="${p.normal}" alt="${esc(name)}" loading="lazy"></div>
+      <button class="mm-neuce-prev" type="button" aria-label="Imagem anterior">‹</button><button class="mm-neuce-next" type="button" aria-label="Imagem seguinte">›</button>
+      <div class="mm-neuce-switch"><button class="mm-neuce-dot active" type="button" aria-label="Imagem trabalhada"></button><button class="mm-neuce-dot" type="button" aria-label="Imagem normal"></button></div>
+    </div>`;
+  }
+  function apply(){
+    document.querySelectorAll('#grid .product').forEach(card=>{
+      const h=card.querySelector('h3'); const name=(h?.textContent||'').trim(); if(!PAINTS[name])return;
+      const host=card.querySelector('.pimg'); if(!host||host.dataset.mmDone)return;
+      host.dataset.mmDone='1'; host.innerHTML=gallery(name);
+      const slides=[...host.querySelectorAll('.mm-neuce-slide')],dots=[...host.querySelectorAll('.mm-neuce-dot')]; let i=0;
+      const go=n=>{i=(n+2)%2;slides.forEach((x,k)=>x.classList.toggle('active',k===i));dots.forEach((x,k)=>x.classList.toggle('active',k===i))};
+      host.querySelector('.mm-neuce-prev').onclick=e=>{e.preventDefault();e.stopPropagation();go(i-1)};
+      host.querySelector('.mm-neuce-next').onclick=e=>{e.preventDefault();e.stopPropagation();go(i+1)};
+      dots.forEach((d,k)=>d.onclick=e=>{e.preventDefault();e.stopPropagation();go(k)});
+      host.addEventListener('click',e=>{if(e.target.closest('button'))return;e.preventDefault();e.stopPropagation();go(i+1)});
+    });
+  }
+  function run(){apply();setTimeout(apply,300);setTimeout(apply,900);setTimeout(apply,1800)}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',run);else run();
+  const obs=new MutationObserver(apply); setTimeout(()=>obs.observe(document.getElementById('grid')||document.body,{childList:true,subtree:true}),500);
+})();
+</script>
+</body></html>
