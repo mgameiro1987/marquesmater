@@ -1,0 +1,54 @@
+name: Fix NEUCE runtime
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/fix-neuce-runtime.yml'
+permissions:
+  contents: write
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch catalog
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('catalogo.html')
+          s=p.read_text(encoding='utf-8')
+          old="let list=await r.json();const val=x=>parseFloat(String(x.price_display||'').replace(/[^0-9,.-]/g,'').replace(',','.'))||0;"
+          new="let list=await r.json();const localBySlug=Object.fromEntries(PAINTINGS.map(x=>[x.slug,x]));list=list.map(x=>localBySlug[x.slug]?{...x,...localBySlug[x.slug]}:x);const val=x=>parseFloat(String(x.price_display||'').replace(/[^0-9,.-]/g,'').replace(',','.'))||0;"
+          if old not in s:
+              raise SystemExit('catalog patch target not found')
+          s=s.replace(old,new,1)
+          p.write_text(s,encoding='utf-8')
+          PY
+      - name: Patch server cache policy
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('server.py')
+          s=p.read_text(encoding='utf-8')
+          old="class Handler(http.server.SimpleHTTPRequestHandler):\n def __init__(self,*a,**kw):super().__init__(*a,directory=str(ROOT),**kw)\n def log_message(self,f,*a):print('[SITE]',f%a)"
+          new="class Handler(http.server.SimpleHTTPRequestHandler):\n def __init__(self,*a,**kw):super().__init__(*a,directory=str(ROOT),**kw)\n def end_headers(self):\n  if self.path.split('?',1)[0].endswith(('.html','.js','.css')):\n   self.send_header('Cache-Control','no-store, no-cache, must-revalidate, max-age=0')\n   self.send_header('Pragma','no-cache')\n  super().end_headers()\n def log_message(self,f,*a):print('[SITE]',f%a)"
+          if old not in s:
+              raise SystemExit('server patch target not found')
+          s=s.replace(old,new,1)
+          p.write_text(s,encoding='utf-8')
+          PY
+      - name: Commit fix
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add catalogo.html server.py
+          git commit -m 'Corrigir NEUCE no catálogo em runtime' || exit 0
+          git push
+      - name: Remove temporary workflow
+        if: always()
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/fix-neuce-runtime.yml || true
+          git commit -m 'Remover workflow temporário NEUCE' || true
+          git push || true
