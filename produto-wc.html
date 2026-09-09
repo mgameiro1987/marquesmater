@@ -82,4 +82,27 @@ fetch('/api/product/slug/'+encodeURIComponent(slug||'')).then(r=>r.json()).then(
   function apply(){const app=document.getElementById('app');if(!app)return;const main=app.querySelector('#mainImg');const thumbs=app.querySelector('.thumbs');if(!main||!thumbs)return;if(app.dataset.mmNeuce==='1')return;app.dataset.mmNeuce='1';main.src=imgs[0];main.alt='NEUCE — imagem trabalhada';thumbs.innerHTML=imgs.map((src,i)=>`<button class="thumb ${i===0?'active':''}" type="button"><img src="${src}" alt=""></button>`).join('');const ts=[...thumbs.querySelectorAll('.thumb')];ts.forEach((b,i)=>b.onclick=()=>{main.src=imgs[i];main.alt=i===0?'NEUCE — imagem trabalhada':'NEUCE — imagem normal';ts.forEach(x=>x.classList.remove('active'));b.classList.add('active')});}
   const run=()=>{apply();setTimeout(apply,300);setTimeout(apply,900)};if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',run);else run();const obs=new MutationObserver(apply);obs.observe(document.getElementById('app')||document.body,{childList:true,subtree:true});
 })();
-</script></body></html>
+</script><script id="MM_NEUCE_PRICES_20260909">
+(function(){
+  const PR={
+    neucebel:[['1L','€9,90'],['5L','€39,90'],['15L','€89,90']],
+    neucematt:[['5L','€29,90'],['15L','€69,90']],
+    neucesoft:[['1L','€14,90'],['5L','€39,90'],['15L','€129,90']]
+  };
+  const key=(new URLSearchParams(location.search).get('slug')||'').toLowerCase();
+  if(!PR[key])return;
+  let done=false;
+  const apply=()=>{
+    if(done||!window.P)return;
+    P.variants=PR[key].map(x=>({name:x[0],price:x[1],stock:'Disponível'}));
+    P.capacity=PR[key].map(x=>x[0]);
+    P.price=PR[key][0][1]+' – '+PR[key][PR[key].length-1][1];
+    P.price_display=P.price;
+    done=true;
+    render();
+  };
+  const t=setInterval(()=>{if(window.P){apply();clearInterval(t)}},100);
+  setTimeout(()=>clearInterval(t),10000);
+})();
+</script>
+</body></html>
