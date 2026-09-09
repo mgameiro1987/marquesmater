@@ -1,4 +1,4 @@
-/* MarquesMater — estilos dos logotipos e carrossel */
+/* MarquesMater — carrossel de marcas */
 .brands-featured{background:#fff;padding:42px 0}
 .brands-featured .brands-grid{display:none!important}
 .brands-featured .section-link{display:none!important}
@@ -9,9 +9,16 @@
 .mm-brand-card:hover{border-color:#f28c00;transform:translateY(-1px)}
 .mm-brand-card img{display:block;max-width:100%;width:auto;height:auto;max-height:70px;object-fit:contain}
 .mm-brand-card img[src^="http"]{display:none!important}
-.mm-brand-card:not(:has(img[src^="/assets/"]))::after{content:attr(aria-label);display:block;font-size:22px;font-weight:900;letter-spacing:-.04em;text-transform:uppercase;color:#17212b}
-.mm-brand-text{display:block;font-size:22px;font-weight:900;letter-spacing:-.04em;text-transform:uppercase;color:#17212b;line-height:1}
+.mm-brand-card .mm-brand-text{display:none!important}
+.mm-brand-card::after{display:none!important;content:none!important}
+.mm-brand-card:nth-child(1)::before,.mm-brand-card:nth-child(2)::before,.mm-brand-card:nth-child(3)::before,.mm-brand-card:nth-child(4)::before,.mm-brand-card:nth-child(5)::before,.mm-brand-card:nth-child(6)::before{content:"";display:block;width:100%;height:72px;background-position:center;background-repeat:no-repeat;background-size:contain}
+.mm-brand-card:nth-child(1)::before{background-image:url('/assets/rida-logo.png')}
+.mm-brand-card:nth-child(2)::before{background-image:url('/assets/brand-neuce.svg')}
+.mm-brand-card:nth-child(3)::before{background-image:url('/assets/brand-soudal.svg')}
+.mm-brand-card:nth-child(4)::before{background-image:url('/assets/brand-vito.svg')}
+.mm-brand-card:nth-child(5)::before{background-image:url('/assets/brand-bosch.svg')}
+.mm-brand-card:nth-child(6)::before{background-image:url('/assets/brand-aslo.svg')}
 .mm-brand-arrow{width:30px;height:30px;flex:0 0 30px;border:1px solid #dfe3e7;border-radius:50%;background:#fff;color:#16212b;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:22px;line-height:1;box-shadow:0 2px 8px rgba(0,0,0,.08);z-index:2}
 .mm-brand-arrow:hover{border-color:#f28c00}
-@media(max-width:700px){.mm-brand-card{flex-basis:calc((100% - 10px)/2);min-height:96px;padding:12px}.mm-brand-card img{max-height:62px}.mm-brand-card:not(:has(img[src^="/assets/"]))::after,.mm-brand-text{font-size:19px}}
+@media(max-width:700px){.mm-brand-card{flex-basis:calc((100% - 10px)/2);min-height:96px;padding:12px}.mm-brand-card::before{height:62px!important}}
 @media(max-width:420px){.mm-brands-wrap{gap:6px}.mm-brand-arrow{width:28px;height:28px;flex-basis:28px}.mm-brand-card{flex-basis:calc((100% - 10px)/2)}}
