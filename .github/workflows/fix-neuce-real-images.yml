@@ -1,0 +1,41 @@
+name: Set real NEUCE images
+on:
+  push:
+    paths:
+      - '.github/workflows/fix-neuce-real-images.yml'
+permissions:
+  contents: write
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download real product images
+        run: |
+          mkdir -p assets
+          curl -L --fail --retry 3 'https://www.marquesmater.pt/novo/wp-content/uploads/2024/03/Neucebel-600x638.png' -o assets/neucebel-real.png
+          curl -L --fail --retry 3 'https://www.marquesmater.pt/novo/wp-content/uploads/2024/03/Neucematt-600x638.png' -o assets/neucematt-real.png
+          curl -L --fail --retry 3 'https://www.marquesmater.pt/novo/wp-content/uploads/2024/03/Neucesoft-600x638.png' -o assets/neucesoft-real.png
+      - name: Point catalog to real images
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('catalogo.html');s=p.read_text(encoding='utf-8')
+          s=s.replace('assets/neucebel-normal.svg','assets/neucebel-real.png').replace('assets/neucematt-normal.svg','assets/neucematt-real.png').replace('assets/neucesoft-normal.svg','assets/neucesoft-real.png')
+          p.write_text(s,encoding='utf-8')
+          for f in ['produto-wc.html']:
+            q=Path(f)
+            if q.exists():
+              x=q.read_text(encoding='utf-8').replace('assets/neucebel-normal.svg','assets/neucebel-real.png').replace('assets/neucematt-normal.svg','assets/neucematt-real.png').replace('assets/neucesoft-normal.svg','assets/neucesoft-real.png')
+              q.write_text(x,encoding='utf-8')
+          PY
+      - name: Commit and remove workflow
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add assets/neuce*-real.png catalogo.html produto-wc.html
+          git commit -m 'Usar imagens reais principais NEUCE' || true
+          git push
+          git rm .github/workflows/fix-neuce-real-images.yml || true
+          git commit -m 'Remover workflow temporário imagens NEUCE' || true
+          git push
