@@ -1,0 +1,17 @@
+name: Backup completo V26
+on:
+  workflow_dispatch:
+  push:
+    paths: ['.github/workflows/backup-v26-final.yml']
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
+      - run: git archive --format=zip --output=MarquesMater_V26_COMPLETO.zip HEAD
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MarquesMater_V26_COMPLETO
+          path: MarquesMater_V26_COMPLETO.zip
+          retention-days: 30
