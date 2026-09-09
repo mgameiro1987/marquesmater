@@ -1,0 +1,111 @@
+name: Correcao final homepage e marcas
+
+on:
+  push:
+    paths:
+      - '.github/workflows/correcao-marcas-final.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Corrigir index e carrossel de marcas
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+
+          # Remover blocos de conflito Git, mantendo sempre a versão HEAD.
+          s = re.sub(r'<<<<<<< HEAD\n(.*?)\n=======\n.*?\n>>>>>>>[^\n]*\n', r'\1\n', s, flags=re.S)
+          s = s.replace('<<<<<<< HEAD\n', '').replace('=======\n', '').replace('>>>>>>> parent of 3b6e403 (Aplicar correção final homepage)\n', '')
+
+          # Substituir o carrossel de marcas por uma versão segura:
+          # sem HTML dentro de atributos onerror e com fallback visual limpo.
+          start = s.find('<script id="MM-BRANDS-CAROUSEL-20260909">')
+          if start != -1:
+              end = s.find('</script>', start)
+              if end != -1:
+                  end += len('</script>')
+                  script = r'''<script id="MM-BRANDS-CAROUSEL-20260909">(function(){
+          const defaults=[
+            {name:'RIDA',logo:'/assets/rida-logo.png',brand:'RIDA'},
+            {name:'NEUCE',logo:'',brand:'NEUCE'},
+            {name:'SOUDAL',logo:'',brand:'Soudal'},
+            {name:'VITO',logo:'/assets/brand-vito.svg',brand:'VITO'},
+            {name:'BOSCH',logo:'https://upload.wikimedia.org/wikipedia/commons/c/c3/Bosch_logo.png',brand:'Bosch'},
+            {name:'ASLO',logo:'/assets/brand-aslo.svg',brand:'ASLO'}
+          ];
+          const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+          function safeText(name){const span=document.createElement('span');span.className='mm-brand-text';span.textContent=name;return span;}
+          function makeCard(x){
+            const a=document.createElement('a');
+            a.className='mm-brand-card';
+            a.href='catalogo.html?brand='+encodeURIComponent(x.brand||x.name);
+            a.setAttribute('aria-label',x.name);
+            if(x.logo){
+              const img=document.createElement('img');
+              img.src=x.logo; img.alt=x.name;
+              img.addEventListener('error',()=>{img.remove();a.appendChild(safeText(x.name));},{once:true});
+              a.appendChild(img);
+            } else a.appendChild(safeText(x.name));
+            return a;
+          }
+          function build(brands){
+            const sec=document.getElementById('brands-featured'); if(!sec)return;
+            const head=sec.querySelector('.section-head');
+            if(head){const old=head.querySelector('.section-link');if(old)old.remove();}
+            let data=(Array.isArray(brands)?brands:[]).filter(x=>x&&x.visible!==false&&x.name);
+            if(!data.length)data=defaults;
+            const oldWrap=sec.querySelector('.mm-brands-wrap');if(oldWrap)oldWrap.remove();
+            const wrap=document.createElement('div');wrap.className='mm-brands-wrap';
+            const prev=document.createElement('button');prev.className='mm-brand-arrow prev';prev.type='button';prev.textContent='‹';prev.setAttribute('aria-label','Marcas anteriores');
+            const next=document.createElement('button');next.className='mm-brand-arrow next';next.type='button';next.textContent='›';next.setAttribute('aria-label','Próximas marcas');
+            const track=document.createElement('div');track.className='mm-brands-track';
+            data.forEach(x=>track.appendChild(makeCard(x)));
+            wrap.append(prev,track,next);sec.querySelector('.container').appendChild(wrap);
+            prev.onclick=()=>track.scrollBy({left:-track.clientWidth*.82,behavior:'smooth'});
+            next.onclick=()=>track.scrollBy({left:track.clientWidth*.82,behavior:'smooth'});
+          }
+          async function boot(){try{const r=await fetch('/api/site',{cache:'no-store'});const d=await r.json();build(d?.settings?.homepage?.brands||[])}catch(e){build(defaults)}}
+          if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
+          })();</script>'''
+                  s = s[:start] + script + s[end:]
+
+          # Garantir que não ficam marcadores de conflito no ficheiro.
+          for marker in ('<<<<<<< HEAD','=======','>>>>>>> parent of 3b6e403 (Aplicar correção final homepage)'):
+              s = s.replace(marker, '')
+
+          p.write_text(s, encoding='utf-8')
+
+          # Remover workflows antigos que estavam a reintroduzir conflitos/layouts antigos.
+          old = [
+            '.github/workflows/final-homepage-layout.yml',
+            '.github/workflows/corrigir-layout-homepage.yml',
+            '.github/workflows/repor-layout-anterior.yml',
+            '.github/workflows/aplicar-logotipos-marcas.yml',
+            '.github/workflows/limpar-soudal-render.yml',
+            '.github/workflows/atualizar-marcas-backoffice.yml',
+            '.github/workflows/corrigir-conflito-marcas-final.yml'
+          ]
+          for f in old:
+              q=Path(f)
+              if q.exists(): q.unlink()
+
+      - name: Commit final
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html .github/workflows
+          git diff --cached --quiet && exit 0
+          git commit -m 'CORREÇÃO FINAL HOMEPAGE E MARCAS [skip ci]'
+          git push
