@@ -1,0 +1,39 @@
+name: Fix related cards
+on:
+  push:
+    paths:
+      - '.github/workflows/fix-related-price-final.yml'
+permissions:
+  contents: write
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch product page related cards
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('produto-wc.html'); s=p.read_text(encoding='utf-8')
+          marker='<!-- MM-RELATED-PRIMARY-FINAL -->'
+          if marker not in s:
+            block=r'''<!-- MM-RELATED-PRIMARY-FINAL -->
+<script>
+(function(){
+const MAP={NeuceBel:{img:'/assets/neucebel-normal.svg',price:'Desde 9,90 €'},NeuceMatt:{img:'/assets/neucematt-normal.svg',price:'Desde 29,90 €'},NeuceSoft:{img:'/assets/neucesoft-normal.svg',price:'Desde 14,90 €'}};
+function fix(){document.querySelectorAll('.product,.related-card,.card').forEach(c=>{const h=c.querySelector('h3,h4');const n=(h?.textContent||'').trim(),m=MAP[n];if(!m)return;const im=c.querySelector('img');if(im){im.src=m.img;im.onerror=null}const prices=c.querySelectorAll('.price');prices.forEach(x=>x.textContent=m.price);});}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',fix);else fix();setTimeout(fix,300);setTimeout(fix,1000);setTimeout(fix,2000);new MutationObserver(fix).observe(document.body,{childList:true,subtree:true});
+})();</script>
+'''
+            s=s.replace('</body>',block+'</body>');p.write_text(s,encoding='utf-8')
+          PY
+      - name: Commit and remove workflow
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add produto-wc.html
+          git commit -m 'Garantir imagem principal e Desde nos relacionados' || true
+          git push
+          git rm .github/workflows/fix-related-price-final.yml || true
+          git commit -m 'Remover workflow temporário relacionados' || true
+          git push
