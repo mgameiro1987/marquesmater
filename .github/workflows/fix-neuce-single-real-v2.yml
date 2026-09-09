@@ -1,0 +1,63 @@
+name: Fix NEUCE single real image v2
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/fix-neuce-single-real-v2.yml'
+permissions:
+  contents: write
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download real NEUCE images
+        run: |
+          curl -L --fail --retry 3 'https://www.marquesmater.pt/novo/wp-content/uploads/2024/03/Neucebel-600x638.png' -o assets/neucebel-real.png
+          curl -L --fail --retry 3 'https://wsrv.nl/?url=https%3A%2F%2Fwww.saniluz.pt%2Fcdn%2Fshop%2Ffiles%2F5602920000587.jpg%3Fv%3D1733586586&w=600&h=600&fit=inside' -o assets/neucematt-real.jpg
+          curl -L --fail --retry 3 'https://wsrv.nl/?url=https%3A%2F%2Fcdn-shopkit.com%2Fusercontent%2Ftintas-vital%2Fmedia%2Fimages%2Fsquare%2F37a3a6a-neucesoft.jpeg&w=600&h=600&fit=inside' -o assets/neucesoft-real.jpg
+      - name: Remove old NEUCE overrides and force one image
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          p=Path('catalogo.html')
+          s=p.read_text(encoding='utf-8')
+          s=re.sub(r'<!-- MM-PINTURAS-V26-OPEN-FIX -->.*?<script id="MM_NEUCE_LOCAL_GALLERY">.*?</script>', '', s, flags=re.S)
+          s=re.sub(r'<!-- MM-NEUCE-DUAL-GALLERY -->.*?</style>\s*<script>.*?</script>', '', s, flags=re.S)
+          s=re.sub(r'<script id="MM_NEUCE_LOCAL_GALLERY">.*?</script>', '', s, flags=re.S)
+          s=re.sub(r'<style id="MM-NEUCE-FINAL">.*?</script>', '', s, flags=re.S)
+          s=s.replace('"image":"assets/neucebel-trabalhada.svg"','"image":"assets/neucebel-real.png"')
+          s=s.replace('"image":"assets/neucematt-trabalhada.svg"','"image":"assets/neucematt-real.jpg"')
+          s=s.replace('"image":"assets/neucesoft-trabalhada.svg"','"image":"assets/neucesoft-real.jpg"')
+          old="const localBySlug=Object.fromEntries(PAINTINGS.map(x=>[x.slug,x]));list=list.map(x=>localBySlug[x.slug]?{...x,...localBySlug[x.slug]}:x);"
+          new="const localBySlug=Object.fromEntries(PAINTINGS.map(x=>[x.slug,x]));list=list.map(x=>{const p=localBySlug[x.slug];return p?{...x,...p,price_display:p.price,image:p.image}:x;});"
+          if old not in s:
+              raise SystemExit('runtime mapping target not found')
+          s=s.replace(old,new,1)
+          p.write_text(s,encoding='utf-8')
+          PY
+      - name: Verify
+        run: |
+          ! grep -q 'MM-NEUCE-DUAL-GALLERY' catalogo.html
+          ! grep -q 'MM_NEUCE_LOCAL_GALLERY' catalogo.html
+          ! grep -q 'MM-PINTURAS-V26-OPEN-FIX' catalogo.html
+          grep -q 'assets/neucebel-real.png' catalogo.html
+          grep -q 'assets/neucematt-real.jpg' catalogo.html
+          grep -q 'assets/neucesoft-real.jpg' catalogo.html
+          grep -q 'price_display:p.price' catalogo.html
+      - name: Commit and push
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add catalogo.html assets/neucebel-real.png assets/neucematt-real.jpg assets/neucesoft-real.jpg
+          git commit -m 'NEUCE: imagens reais locais e preço Desde' || exit 0
+          git push
+      - name: Remove temporary workflow
+        if: always()
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/fix-neuce-single-real-v2.yml || true
+          git commit -m 'Remover workflow temporário NEUCE v2' || true
+          git push || true
