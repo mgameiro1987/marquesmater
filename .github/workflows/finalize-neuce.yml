@@ -1,0 +1,34 @@
+name: Finalize NEUCE
+on:
+  push:
+    paths:
+      - '.github/workflows/finalize-neuce.yml'
+permissions:
+  contents: write
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Remove obsolete NEUCE image scripts
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          p=Path('catalogo.html');s=p.read_text(encoding='utf-8')
+          # Remove legacy injected gallery blocks that can overwrite the single-image card.
+          s=re.sub(r'<!-- MM-NEUCE-DUAL-GALLERY -->.*?</script>','',s,flags=re.S)
+          s=re.sub(r'<script id="MM_NEUCE_LOCAL_GALLERY">.*?</script>','',s,flags=re.S)
+          s=re.sub(r'<style>\s*\.mm-neuce-gallery.*?</style>\s*<script>.*?</script>','',s,flags=re.S)
+          p.write_text(s,encoding='utf-8')
+          PY
+      - name: Commit and remove workflow
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add catalogo.html
+          git commit -m 'Remover scripts antigos de galeria NEUCE' || true
+          git push
+          git rm .github/workflows/finalize-neuce.yml || true
+          git commit -m 'Remover workflow final NEUCE' || true
+          git push
