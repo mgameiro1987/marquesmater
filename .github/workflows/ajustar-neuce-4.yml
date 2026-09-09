@@ -1,0 +1,90 @@
+name: Ajustar NEUCE tópico 4
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/ajustar-neuce-4.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  ajustar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Atualizar base de dados NEUCE
+        run: |
+          python3 - <<'PY'
+          import sqlite3, json, os
+          db_path='data/catalog.db'
+          if not os.path.exists(db_path):
+              raise SystemExit('data/catalog.db não encontrado')
+          con=sqlite3.connect(db_path)
+          cur=con.cursor()
+          updates={
+              'neucebel': {'name':'NeuceBel','price':89.0,'price_display':'Desde 89,00 €','image':'https://www.marquesmater.pt/novo/wp-content/uploads/2024/03/Neucebel-600x638.png'},
+              'neucematt': {'name':'NeuceMatt','price':79.0,'price_display':'Desde 79,00 €','image':'https://www.marquesmater.pt/novo/wp-content/uploads/2024/03/Neucematt-600x638.png'},
+              'neucesoft': {'name':'NeuceSoft','price':129.0,'price_display':'Desde 129,00 €','image':'https://www.marquesmater.pt/novo/wp-content/uploads/2024/03/Neucesoft-600x638.png'},
+          }
+          cols=[r[1] for r in cur.execute('PRAGMA table_info(products)').fetchall()]
+          for slug,u in updates.items():
+              row=cur.execute('SELECT slug FROM products WHERE slug=?',(slug,)).fetchone()
+              if not row:
+                  continue
+              sets=[]; vals=[]
+              for k,v in u.items():
+                  if k in cols:
+                      sets.append(f'{k}=?'); vals.append(v)
+              if sets:
+                  vals.append(slug)
+                  cur.execute(f"UPDATE products SET {', '.join(sets)}, updated_at=CURRENT_TIMESTAMP WHERE slug=?",vals)
+          con.commit(); con.close()
+          print('NEUCE atualizado na base de dados.')
+          PY
+
+      - name: Simplificar cartões NEUCE no catálogo
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('catalogo.html')
+          s=p.read_text(encoding='utf-8')
+          marker='<!-- V26 NEUCE CARDS -->'
+          if marker not in s:
+              block='''\n<!-- V26 NEUCE CARDS -->\n<style>\n.neuce-simple-card .stock,.neuce-simple-card .desc,.neuce-simple-card .more{display:none!important}\n.neuce-simple-card .pbody{padding-bottom:18px!important}\n.neuce-simple-card .price{margin-top:7px;font-weight:900}\n</style>\n<script>\n(function(){\n const PR={\n  'NeuceBel':'Desde 89,00 €',\n  'NeuceMatt':'Desde 79,00 €',\n  'NeuceSoft':'Desde 129,00 €'\n };\n function apply(){\n  document.querySelectorAll('#grid .product').forEach(card=>{\n   const h=card.querySelector('h3'); const name=(h?.textContent||'').trim();\n   if(!PR[name]) return;\n   card.classList.add('neuce-simple-card');\n   const price=card.querySelector('.price'); if(price) price.textContent=PR[name];\n   card.querySelector('.stock')?.remove();\n   card.querySelector('.desc')?.remove();\n   card.querySelector('.more')?.remove();\n  });\n }\n const grid=document.getElementById('grid');\n if(grid) new MutationObserver(apply).observe(grid,{childList:true,subtree:true});\n document.addEventListener('DOMContentLoaded',apply);\n setTimeout(apply,700); setTimeout(apply,1800);\n})();\n</script>\n'''
+              s=s.replace('</body>',block+'</body>')
+              p.write_text(s,encoding='utf-8')
+          PY
+
+      - name: Tornar preços persistentes no arranque do Render
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('server.py')
+          s=p.read_text(encoding='utf-8')
+          marker='def ensure_v26_neuce_prices():'
+          if marker not in s:
+              block='''\n\ndef ensure_v26_neuce_prices():\n    """Mantém os preços/imagens NEUCE definidos no V26 na base persistente."""\n    c=db()\n    vals={\n      'neucebel':(89.0,'Desde 89,00 €','https://www.marquesmater.pt/novo/wp-content/uploads/2024/03/Neucebel-600x638.png'),\n      'neucematt':(79.0,'Desde 79,00 €','https://www.marquesmater.pt/novo/wp-content/uploads/2024/03/Neucematt-600x638.png'),\n      'neucesoft':(129.0,'Desde 129,00 €','https://www.marquesmater.pt/novo/wp-content/uploads/2024/03/Neucesoft-600x638.png'),\n    }\n    for slug,(price,display,image) in vals.items():\n        c.execute("UPDATE products SET price=?, price_display=?, image=?, updated_at=CURRENT_TIMESTAMP WHERE slug=?",(price,display,image,slug))\n    c.commit(); c.close()\n\n'''
+              pos=s.find('def ensure_v26_runtime_fixes():')
+              if pos>=0: s=s[:pos]+block+s[pos:]
+              else: s += block
+          call='ensure_v26_neuce_prices()'
+          if call not in s:
+              anchor='ensure_v26_runtime_fixes()'
+              if anchor in s: s=s.replace(anchor,anchor+'\nensure_v26_neuce_prices()',1)
+              else: s=s.replace('ensure_soudal_only_trex()','ensure_soudal_only_trex()\nensure_v26_neuce_prices()',1)
+          p.write_text(s,encoding='utf-8')
+          PY
+          python3 -m py_compile server.py
+
+      - name: Commit e push
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data/catalog.db catalogo.html server.py .github/workflows/ajustar-neuce-4.yml
+          if git diff --cached --quiet; then echo 'Sem alterações'; exit 0; fi
+          git commit -m 'MarquesMater V26 - NEUCE desde X e imagem NeuceMatt'
+          git push
