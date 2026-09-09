@@ -1,0 +1,84 @@
+name: Finalizar catálogo e variantes NEUCE
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/final-neuce-ui.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Corrigir catálogo, produto e Back Office
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import sqlite3, json
+          root=Path('.')
+          prices={
+            'neucebel':[('1L','9,90'),('5L','39,90'),('15L','89,90')],
+            'neucematt':[('5L','29,90'),('15L','69,90')],
+            'neucesoft':[('1L','14,90'),('5L','39,90'),('15L','129,90')]
+          }
+          db=root/'data/catalog.db'
+          if db.exists():
+            conn=sqlite3.connect(db); cur=conn.cursor()
+            for slug,vals in prices.items():
+              if not cur.execute('SELECT slug FROM products WHERE lower(slug)=?',(slug,)).fetchone(): continue
+              variants=[{'name':n,'price':'€'+p,'stock':'Disponível'} for n,p in vals]
+              cur.execute('UPDATE products SET variants_json=?,price=?,price_display=?,updated_at=CURRENT_TIMESTAMP WHERE lower(slug)=?',(json.dumps(variants,ensure_ascii=False,separators=(',',':')),float(vals[0][1].replace(',','.')),'Desde €'+vals[0][1],slug))
+            conn.commit(); conn.close()
+
+          cat=root/'catalogo.html'
+          if cat.exists() and '<!-- MM-FINAL-NEUCE-CATALOG -->' not in cat.read_text(encoding='utf-8'):
+            s=cat.read_text(encoding='utf-8')
+            block='''<!-- MM-FINAL-NEUCE-CATALOG -->
+<style>
+.product-grid .product .pimg [class*="arrow"],.product-grid .product .pimg [class*="dot"],.product-grid .product .pimg button,.product-grid .product .pimg .mm-neuce-extra{display:none!important}
+.product-grid .product .pimg img{display:block!important;width:100%;height:100%;object-fit:contain}
+</style>
+<script>
+(function(){const data={neucebel:'9,90',neucematt:'29,90',neucesoft:'14,90'};
+function clean(){document.querySelectorAll('.product-grid a.product').forEach(card=>{const h=card.getAttribute('href')||'';const m=h.match(/slug=([^&]+)/);const k=m?decodeURIComponent(m[1]).toLowerCase():'';if(!data[k])return;const box=card.querySelector('.pimg');if(box){const imgs=[...box.querySelectorAll('img')];imgs.slice(1).forEach(x=>x.remove());box.querySelectorAll('button,[class*="arrow"],[class*="dot"]').forEach(x=>x.remove())}const p=card.querySelector('.price');if(p)p.textContent='Desde '+data[k]+' €';card.removeAttribute('onclick')})}
+document.addEventListener('DOMContentLoaded',clean);new MutationObserver(clean).observe(document.documentElement,{subtree:true,childList:true})})();
+</script>
+'''
+            cat.write_text(s.replace('</body>',block+'</body>'),encoding='utf-8')
+
+          prod=root/'produto-wc.html'
+          if prod.exists() and '<!-- MM-FINAL-NEUCE-VARIANTS -->' not in prod.read_text(encoding='utf-8'):
+            s=prod.read_text(encoding='utf-8')
+            block='''<!-- MM-FINAL-NEUCE-VARIANTS -->
+<script>
+(function(){const M={neucebel:{'1L':'9,90 €','5L':'39,90 €','15L':'89,90 €'},neucematt:{'5L':'29,90 €','15L':'69,90 €'},neucesoft:{'1L':'14,90 €','5L':'39,90 €','15L':'129,90 €'}};
+function run(){const slug=(new URLSearchParams(location.search).get('slug')||'').toLowerCase(),map=M[slug];if(!map)return;function apply(){const els=[...document.querySelectorAll('button,label,[role="button"],.variant,.option,.capacity,.size')];els.forEach(el=>{const t=(el.textContent||el.value||'').replace(/\s/g,'').toUpperCase();const c=Object.keys(map).find(x=>t.includes(x));if(c&&!el.dataset.mmBound){el.dataset.mmBound='1';el.dataset.mmCap=c;el.addEventListener('click',()=>setTimeout(()=>price(c),20))}});const sel=els.find(x=>x.dataset.mmCap&&x.matches('.active,.selected,[aria-selected="true"]'));price(sel?sel.dataset.mmCap:Object.keys(map)[0])}function price(c){const v=map[c];document.querySelectorAll('.price,#price,.product-price').forEach(x=>{if(x.textContent.includes('Preço sob consulta')||x.dataset.mmPrice==='1'||x.matches('.price')){x.textContent=v;x.dataset.mmPrice='1'}})}apply();new MutationObserver(apply).observe(document.body,{subtree:true,childList:true})}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',run);else run()})();
+</script>
+'''
+            prod.write_text(s.replace('</body>',block+'</body>'),encoding='utf-8')
+
+          # Back Office: esconder 1L apenas quando NeuceMatt estiver selecionado.
+          for p in root.rglob('*.html'):
+            if p.name in ('catalogo.html','produto-wc.html') or 'backoffice' not in p.name.lower(): continue
+            s=p.read_text(encoding='utf-8')
+            if '<!-- MM-FINAL-NEUCE-BACKOFFICE -->' in s: continue
+            block='''<!-- MM-FINAL-NEUCE-BACKOFFICE -->
+<script>
+(function(){const P={neucebel:{'1L':'9,90','5L':'39,90','15L':'89,90'},neucematt:{'5L':'29,90','15L':'69,90'},neucesoft:{'1L':'14,90','5L':'39,90','15L':'129,90'}};function n(v){return String(v||'').toLowerCase().replace(/\\s/g,'')}function fix(){const body=n(document.body.innerText);let slug=null;for(const k of Object.keys(P)){if(body.includes(k))slug=k}if(!slug)return;if(slug==='neucematt'){document.querySelectorAll('button,label,input,[role="option"],.variant,.option').forEach(e=>{if(n(e.value||e.textContent||e.getAttribute('aria-label'))==='1l'){e.style.display='none';e.disabled=true;e.checked=false;const q=e.closest('label,.variant,.option');if(q)q.style.display='none'}})}}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',fix);else fix();new MutationObserver(fix).observe(document.body,{subtree:true,childList:true})})();
+</script>
+'''
+            p.write_text(s.replace('</body>',block+'</body>'),encoding='utf-8')
+          PY
+      - name: Commit alterações e remover workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet || git commit -m "Finalizar catálogo NEUCE e seleção de embalagens"
+          git rm -f .github/workflows/final-neuce-ui.yml || true
+          git commit -m "Remover workflow temporário NEUCE" || true
+          git push
