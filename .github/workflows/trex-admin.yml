@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - 'data/soudal_products.json'
+      - 'scripts/limpar_soudal.py'
 permissions:
   contents: write
 jobs:
