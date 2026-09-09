@@ -10,6 +10,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Descarregar imagens NEUCE para assets locais
         run: |
           set -e
@@ -22,12 +24,10 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          import re
 
-          cat = Path('catalogo.html')
-          s = cat.read_text(encoding='utf-8')
-          marker='MM-NEUCE-LOCAL-FIX'
-          if marker not in s:
+          cat=Path('catalogo.html')
+          s=cat.read_text(encoding='utf-8')
+          if 'MM-NEUCE-LOCAL-FIX' not in s:
               block=r'''<!-- MM-NEUCE-LOCAL-FIX -->
           <script>
           (function(){
@@ -36,9 +36,9 @@ jobs:
               if(p.get('cat')!=='Pinturas') return;
               const g=document.getElementById('grid'); if(!g) return;
               const items=[
-                {slug:'neucebel',name:'NeuceBel',price:'Desde 89,00 €',image:'assets/neuce/neucebel.png'},
-                {slug:'neucematt',name:'NeuceMatt',price:'Desde 79,00 €',image:'assets/neuce/neucematt.jpg'},
-                {slug:'neucesoft',name:'NeuceSoft',price:'Desde 129,00 €',image:'assets/neuce/neucesoft.jpeg'}
+                {slug:'neucebel',name:'NeuceBel',price:'89,90 €',image:'assets/neuce/neucebel.png'},
+                {slug:'neucematt',name:'NeuceMatt',price:'69,90 €',image:'assets/neuce/neucematt.jpg'},
+                {slug:'neucesoft',name:'NeuceSoft',price:'129,90 €',image:'assets/neuce/neucesoft.jpeg'}
               ];
               const esc=v=>String(v).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
               g.innerHTML=items.map(x=>`<a class="product" href="produto-wc.html?slug=${encodeURIComponent(x.slug)}"><div class="pimg"><img src="${x.image}" alt="${esc(x.name)}" loading="lazy"></div><div class="pbody"><small>NEUCE · PINTURAS</small><h3>${esc(x.name)}</h3><div class="price">${x.price}</div></div></a>`).join('');
@@ -55,11 +55,30 @@ jobs:
 
           idx=Path('index.html')
           h=idx.read_text(encoding='utf-8')
-          marker2='MM-RIDA-GRID-FIX'
-          if marker2 not in h:
-              css='''<!-- MM-RIDA-GRID-FIX --><style>.rida-section .product-grid-home{grid-template-columns:repeat(4,minmax(0,1fr))!important}.rida-section .product-grid-home .product{min-width:0}@media(max-width:900px){.rida-section .product-grid-home{grid-template-columns:repeat(2,minmax(0,1fr))!important}}@media(max-width:520px){.rida-section .product-grid-home{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:12px}}</style>'''
+          if 'MM-RIDA-GRID-FIX' not in h:
+              css='''<!-- MM-RIDA-GRID-FIX --><style>.rida-section .product-grid-home{grid-template-columns:repeat(6,minmax(0,1fr))!important;gap:14px!important}.rida-section .product-grid-home .product{min-width:0}@media(max-width:900px){.rida-section .product-grid-home{grid-template-columns:repeat(3,minmax(0,1fr))!important}}@media(max-width:600px){.rida-section .product-grid-home{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px}}</style>'''
               h=h.replace('</head>',css+'</head>',1)
-              idx.write_text(h,encoding='utf-8')
+          if 'MM-RIDA-12-PRODUCTS' not in h:
+              js=r'''<!-- MM-RIDA-12-PRODUCTS --><script>
+          (function(){
+            async function fill(){
+              const g=document.getElementById('rida-featured');if(!g)return;
+              try{
+                const r=await fetch('/api/products?limit=100',{cache:'no-store'});const d=await r.json();
+                const a=Array.isArray(d)?d:(d.products||d.items||[]);
+                const p=a.filter(x=>String(x.brand||'').trim().toUpperCase()==='RIDA').slice(0,12);
+                if(p.length<12)return;
+                const e=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+                const im=v=>{v=String(v||'').trim();if(!v)return '/assets/paint-placeholder.svg';if(v.startsWith('/'))return v;if(/^https?:\/\//i.test(v))return v;return '/'+v.replace(/^\.\//,'')};
+                const mo=v=>{const n=Number(v);return Number.isFinite(n)?n.toLocaleString('pt-PT',{style:'currency',currency:'EUR'}):e(v||'Preço sob consulta')};
+                g.innerHTML=p.map(x=>{const u='produto-wc.html?slug='+encodeURIComponent(x.slug||'');return `<a class="product" href="${u}"><div class="pimg"><img src="${e(im(x.image))}" alt="${e(x.name||'RIDA')}" loading="lazy"></div><div class="pbody"><small>RIDA</small><h3>${e(x.name||'')}</h3><div class="price">${mo(x.price_display||x.price)}</div><span class="more">Ver produto →</span></div></a>`}).join('');
+              }catch(e){console.warn(e)}
+            }
+            if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',fill);else fill();setTimeout(fill,500);
+          })();
+          </script>'''
+              h=h.replace('</body>',js+'</body>',1)
+          idx.write_text(h,encoding='utf-8')
           PY
       - name: Validar
         run: |
@@ -68,11 +87,17 @@ jobs:
           test -f assets/neuce/neucematt.jpg
           test -f assets/neuce/neucesoft.jpeg
           grep -q 'MM-RIDA-GRID-FIX' index.html
-      - name: Commit e push
+          grep -q 'MM-RIDA-12-PRODUCTS' index.html
+      - name: Commit e push com retry
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add catalogo.html index.html assets/neuce
           if git diff --cached --quiet; then echo 'Nada para commitar'; exit 0; fi
-          git commit -m 'V26 - corrigir imagens NEUCE e preencher grelha RIDA'
-          git push
+          git commit -m 'V26 - preencher grelha RIDA e corrigir imagens NEUCE'
+          for i in 1 2 3 4 5; do
+            git pull --rebase origin main && git push origin HEAD:main && exit 0
+            git rebase --abort || true
+            sleep 3
+          done
+          exit 1
