@@ -139,15 +139,6 @@
           <h4>MarquesMater</h4>
           <a href="empresa.html">Quem somos</a>
           <a href="contactos.html">Contactos</a>
-          <a href="carrinho.html">Carrinho</a>
-        </div>
-
-        <div class="mm-footer-col-v17">
-          <h4>Categorias</h4>
-          <a href="catalogo.html?cat=Ferramentas">Ferramentas</a>
-          <a href="catalogo.html?cat=Construção">Construção</a>
-          <a href="catalogo.html?cat=Pinturas">Pinturas</a>
-          <a href="catalogo-rida.html">Máquinas</a>
         </div>
 
         <div class="mm-footer-col-v17">
@@ -203,12 +194,8 @@
       const item=link.closest('.mm-nav-family');
       if(!item || !item.querySelector('.mm-nav-dropdown')) return;
       if(window.matchMedia('(max-width: 900px)').matches){
-        const wasOpen=item.classList.contains('mm-open');
         document.querySelectorAll('.mm-nav-family.mm-open').forEach(x=>x.classList.remove('mm-open'));
-        if(!wasOpen){
-          e.preventDefault();
-          item.classList.add('mm-open');
-        }
+        // A família é clicável: não bloquear a navegação para o catálogo.
       }
     });
   }
