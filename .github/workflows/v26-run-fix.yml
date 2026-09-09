@@ -1,0 +1,19 @@
+name: V26 run fix
+on:
+  workflow_dispatch:
+  push:
+    paths: ['.github/workflows/v26-run-fix.yml']
+permissions:
+  contents: write
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - run: python3 scripts/v26_runtime_fix.py
+      - run: python3 -m py_compile server.py
+      - uses: stefanzweifel/git-auto-commit-action@v6
+        with:
+          commit_message: 'MarquesMater V26 - tópicos 1 a 5'
