@@ -1,0 +1,39 @@
+name: Fix NEUCE final
+on:
+  push:
+    paths:
+      - '.github/workflows/fix-neuce-final2.yml'
+permissions:
+  contents: write
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch catalog
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('catalogo.html'); s=p.read_text(encoding='utf-8')
+          start=s.find('<script>\nconst API=')
+          end=s.find('</script>',start)
+          if start<0 or end<0: raise SystemExit('catalog script not found')
+          new='''<script>\nconst API='/api/products';const PER=24;let rida=[];const PAINTINGS=[{slug:'neucebel',name:'NeuceBel',image:'assets/neucebel-normal.svg',stock:'Disponível',variants:[{name:'1L',price:'€9,90'},{name:'5L',price:'€39,90'},{name:'15L',price:'€89,90'}]},{slug:'neucematt',name:'NeuceMatt',image:'assets/neucematt-normal.svg',stock:'Disponível',variants:[{name:'5L',price:'€29,90'},{name:'15L',price:'€69,90'}]},{slug:'neucesoft',name:'NeuceSoft',image:'assets/neucesoft-normal.svg',stock:'Disponível',variants:[{name:'1L',price:'€14,90'},{name:'5L',price:'€39,90'},{name:'15L',price:'€129,90'}]}];\nfunction esc(s=''){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}function imgUrl(v){v=String(v||'').trim();if(!v)return '/assets/paint-placeholder.svg';if(v.startsWith('/'))return v;if(/^https?:\\/\\//i.test(v)||v.startsWith('data:'))return v;return '/'+v.replace(/^\\.\\//,'')}function lowPrice(p){const a=(p.variants||[]).map(v=>parseFloat(String(v.price||'').replace(/[^0-9,]/g,'').replace(',','.'))).filter(Number.isFinite);return a.length?Math.min(...a):null}\nfunction paintCard(p){const low=lowPrice(p);const display=low!==null?'Desde '+low.toFixed(2).replace('.',',')+' €':'Preço sob consulta';return `<a class="product" href="produto-wc.html?slug=${encodeURIComponent(p.slug)}&local=1"><div class="pimg mm-neuce-single"><img src="${esc(imgUrl(p.image))}" alt="${esc(p.name)}" loading="lazy" onerror="this.onerror=null;this.src='/assets/paint-placeholder.svg'"></div><div class="pbody"><small>NEUCE · PINTURAS</small><h3>${esc(p.name)}</h3><div class="price">${esc(display)}</div><div class="stock">${esc(p.stock)}</div></div></a>`}\nfunction ridaCard(p){return `<a class="product" href="produto-wc.html?slug=${encodeURIComponent(p.slug||p.sku)}"><div class="pimg"><img src="${esc(imgUrl(p.image||''))}" alt="${esc(p.name)}" loading="lazy"></div><div class="pbody"><small>RIDA · ${esc(p.subfamily||'Máquinas')}</small><h3>${esc(p.name)}</h3><div class="price">${esc(p.price_display||p.price||'Preço sob consulta')}</div><span class="more">Ver produto →</span></div></a>`}\nasync function load(page=1){const q=document.getElementById('q').value.trim().toLowerCase(),cat=document.getElementById('cat').value,brand=document.getElementById('brand').value,grid=document.getElementById('grid');if(cat==='RIDA'){const list=rida.filter(x=>!q||x.name.toLowerCase().includes(q)||x.sku.toLowerCase().includes(q));grid.innerHTML=list.slice((page-1)*PER,page*PER).map(ridaCard).join('');document.getElementById('count').textContent=`${list.length} produtos RIDA`;return}if(cat==='Pinturas'||location.search.includes('cat=Pinturas')){const list=PAINTINGS.filter(x=>!q||x.name.toLowerCase().includes(q));grid.innerHTML=list.map(paintCard).join('');document.getElementById('count').textContent=`${list.length} produtos NEUCE`;return}try{let u=new URL(API,location.href);u.searchParams.set('page',page);u.searchParams.set('per_page',PER);if(q)u.searchParams.set('search',q);if(cat)u.searchParams.set('category',cat);if(brand)u.searchParams.set('brand',brand);const rr=await fetch(u,{cache:'no-store'});if(!rr.ok)throw Error();const list=await rr.json();grid.innerHTML=list.map(p=>{const lp=PAINTINGS.find(x=>x.slug===p.slug);return lp?paintCard(lp):`<a class="product" href="produto-wc.html?slug=${encodeURIComponent(p.slug||p.id)}"><div class="pimg"><img src="${esc(imgUrl(p.images?.[0]?.src||p.image||''))}" alt="${esc(p.name)}" loading="lazy"></div><div class="pbody"><small>MARQUESMATER</small><h3>${esc(p.name)}</h3><div class="price">${esc(p.price_display||'Preço sob consulta')}</div><span class="more">Ver produto →</span></div></a>`}).join('')||'<p>Nenhum produto encontrado.</p>';document.getElementById('count').textContent=`${list.length} produtos MarquesMater`}catch(e){grid.innerHTML='<p class="catalog-error">Não foi possível carregar o catálogo neste momento.</p>'}}async function init(){try{rida=await (await fetch('rida-products.json',{cache:'no-store'})).json()}catch(e){rida=[]}document.getElementById('cat').addEventListener('change',()=>load(1));document.getElementById('brand').addEventListener('change',()=>load(1));document.getElementById('sort').addEventListener('change',()=>load(1));load(1)}init();\n</script>'''
+          s=s[:start]+new+s[end+9:]
+          # Remove all legacy NEUCE gallery/fix scripts/styles after the main page script, if present.
+          import re
+          s=re.sub(r'<style>\\s*\\.mm-neuce-gallery.*?</style>\\s*<script>.*?</script>', '', s, flags=re.S)
+          s=re.sub(r'<script id="MM_NEUCE_LOCAL_GALLERY">.*?</script>', '', s, flags=re.S)
+          s=re.sub(r'<style id="MM-NEUCE-FINAL">.*?</style>\\s*<script>.*?</script>', '', s, flags=re.S)
+          p.write_text(s,encoding='utf-8')
+          PY
+      - name: Commit and remove workflow
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add catalogo.html
+          git commit -m 'Aplicar catálogo NEUCE com imagem principal única' || true
+          git push
+          git rm .github/workflows/fix-neuce-final2.yml || true
+          git commit -m 'Remover workflow temporário catálogo NEUCE' || true
+          git push
