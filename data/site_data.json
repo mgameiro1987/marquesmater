@@ -1,6 +1,7 @@
 {
   "settings": {
-    "v26_top_visibility_initialized": true
+    "v26_top_visibility_initialized": true,
+    "visibility_mode": "menu_and_featured_categories_separate_persistent"
   },
   "families": [
     {
@@ -12,7 +13,7 @@
         "Medição"
       ],
       "icon": "assets/family-icons/tools.png",
-      "show_top": true,
+      "show_top": false,
       "show_bottom": true,
       "show_menu": true
     },
@@ -28,7 +29,7 @@
       "icon": "assets/family-icons/construction.png",
       "show_top": false,
       "show_bottom": true,
-      "show_menu": true
+      "show_menu": false
     },
     {
       "name": "Jardim/Agricultura",
@@ -41,7 +42,7 @@
       "icon": "assets/family-icons/garden-vito.png",
       "show_top": false,
       "show_bottom": true,
-      "show_menu": true
+      "show_menu": false
     },
     {
       "name": "Pinturas",
@@ -53,7 +54,7 @@
         "Tintas em Spray"
       ],
       "icon": "assets/family-icons/paint-neuce.png",
-      "show_top": true,
+      "show_top": false,
       "show_bottom": true,
       "show_menu": true
     },
@@ -67,7 +68,7 @@
       "icon": "assets/family-icons/hardware.png",
       "show_top": false,
       "show_bottom": true,
-      "show_menu": true
+      "show_menu": false
     },
     {
       "name": "Iluminação",
@@ -79,7 +80,7 @@
       "icon": "assets/family-icons/lighting.png",
       "show_top": false,
       "show_bottom": true,
-      "show_menu": true
+      "show_menu": false
     },
     {
       "name": "Casa",
@@ -90,7 +91,7 @@
       "icon": "assets/family-icons/home.png",
       "show_top": false,
       "show_bottom": true,
-      "show_menu": true
+      "show_menu": false
     },
     {
       "name": "Bricolage",
@@ -101,7 +102,7 @@
       "icon": "assets/family-icons/diy.png",
       "show_top": false,
       "show_bottom": true,
-      "show_menu": true
+      "show_menu": false
     },
     {
       "name": "Material Elétrico",
@@ -113,7 +114,7 @@
       "icon": "assets/family-icons/electric.png",
       "show_top": false,
       "show_bottom": true,
-      "show_menu": true
+      "show_menu": false
     },
     {
       "name": "Protecção Individual",
@@ -125,7 +126,7 @@
       "icon": "assets/family-icons/ppe.png",
       "show_top": false,
       "show_bottom": true,
-      "show_menu": true
+      "show_menu": false
     },
     {
       "name": "Máquinas",
@@ -134,7 +135,7 @@
         "Máquinas sem fio"
       ],
       "icon": "assets/family-icons/machines-rida.png",
-      "show_top": true,
+      "show_top": false,
       "show_bottom": true,
       "show_menu": true
     },
@@ -148,7 +149,7 @@
         "Adesivos de Montagem"
       ],
       "icon": "assets/family-icons/construction.png",
-      "show_top": true,
+      "show_top": false,
       "show_bottom": true,
       "show_menu": true
     },
@@ -165,7 +166,7 @@
       "icon": "assets/family-icons/spray-aerosol.svg",
       "show_top": false,
       "show_bottom": true,
-      "show_menu": true
+      "show_menu": false
     }
   ]
 }
