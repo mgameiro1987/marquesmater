@@ -1,0 +1,10 @@
+MARQUESMATER V24
+
+- Cada família passou a ter 3 controlos independentes no Back Office > Categorias:
+  - Mostrar no menu superior
+  - Mostrar nos cartões acima do carrossel
+  - Mostrar nos cartões abaixo do carrossel
+- O menu superior deixa de mostrar automaticamente todas as famílias: respeita show_menu.
+- Os cartões da homepage continuam a respeitar show_top/show_bottom.
+- Uma família pode aparecer no menu, nos cartões de cima, nos cartões de baixo, em várias posições ou em nenhuma.
+- Migração automática: famílias existentes ficam visíveis no menu, mantendo o comportamento anterior dos cartões.

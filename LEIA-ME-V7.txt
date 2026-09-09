@@ -1,0 +1,11 @@
+MarquesMater V7
+
+- Homepage redesenhada com famílias acima do carrossel.
+- Menu de famílias e subfamílias dinâmico em todo o Front Office.
+- RIDA apresentada como marca dentro de Máquinas; não como família.
+- Página inicial com carrossel, famílias, RIDA em destaque, promoções e Quem Somos.
+- Chat cliente ↔ Back Office com identificação do cliente e histórico.
+- Acesso público ao Back Office removido; acesso reservado por 3 cliques no logótipo + login.
+- Guardar produto no Back Office preserva campos não alterados, evitando apagar família/subfamília ao mudar preços.
+- PVPs provisórios/recomendados para a gama RIDA para apresentação da loja.
+- A versão mantém compatibilidade com o servidor Python/Render existente.

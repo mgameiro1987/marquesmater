@@ -1,0 +1,13 @@
+MARQUESMATER V3
+
+Principais alterações:
+- Página de produto refeita com layout profissional e responsivo.
+- Galeria de imagens, miniaturas e área de compra reorganizada.
+- Embalagens/variantes em botões claros e preços por variante.
+- Características técnicas só aparecem quando existem dados válidos (nunca mostra [] vazio).
+- Documentação técnica em cartões.
+- Produtos relacionados com cartões visuais.
+- Back Office abre num novo separador a partir dos links da loja.
+- Back Office V3 inclui botão “Ver loja” também em novo separador.
+
+A V3 mantém a gestão central da V2 e as funções de famílias, subfamílias, marcas, produtos, stock, promoções, variantes, imagens, documentos e relacionados.

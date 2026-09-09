@@ -1,0 +1,16 @@
+MARQUESMATER V17
+
+Principais alterações:
+- Página Contactos renovada com dados dinâmicos, botões Ligar/Email/Como chegar e Google Maps por URL de incorporação configurável.
+- Back Office > Empresa permite editar Código Postal, NIF, link Google Maps e URL de incorporação.
+- Rodapé profissional com colunas, espaçamento, informação legal e Livro de Reclamações com ícone.
+- Livro de Reclamações com ligação para a plataforma oficial.
+- Conteúdos legais continuam editáveis no Back Office.
+
+NOTA: os textos legais são modelos base e devem ser revistos pela empresa/profissional competente antes da entrada em produção.
+
+CORREÇÃO VISUAL V17
+- Os cartões de famílias da página inicial não mostram subfamílias.
+- As subfamílias aparecem apenas no menu superior da respetiva família.
+- Os links da coluna Informação do rodapé ficam separados, um por linha.
+- Livro de Reclamações mantém o ícone visível.

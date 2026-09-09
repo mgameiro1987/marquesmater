@@ -1,0 +1,46 @@
+MARQUESMATER — V9
+
+Objetivo
+Homepage profissional e Back Office preparados para crescer como loja online.
+
+Homepage
+- Cabeçalho limpo com pesquisa, Empresa, Contacto e Carrinho.
+- Todas as famílias em barra horizontal por cima do carrossel.
+- Máquinas é a família; RIDA é a marca.
+- Carrossel grande com setas, pontos e imagens reais da gama RIDA.
+- Secção "Explore por família" com cartões/quadrados e ícones.
+- Ícones das famílias vêm da configuração do Back Office.
+- Secção "Máquinas RIDA em destaque" com produtos e preços.
+- Secção de promoções.
+- Secção Quem Somos e contactos.
+- Layout responsivo para desktop e telemóvel.
+
+Back Office
+- Categorias/Famílias/Subfamílias.
+- Cada família tem ícone configurável.
+- É possível escolher um ícone ou carregar uma imagem própria.
+- Alterar o ícone no Back Office atualiza a homepage através da API.
+- Produtos continuam com edição centralizada.
+- Chat, encomendas, clientes, pagamentos, entregas, empresa, SEO e configurações permanecem disponíveis.
+
+Catálogo
+- 40 produtos RIDA.
+- RIDA classificada como marca em Máquinas → Máquinas sem fio.
+- Produtos sem subfamília passam a receber a primeira subfamília da respetiva família, evitando artigos sem classificação.
+
+Acesso reservado
+- O botão do Back Office não aparece no site público.
+- O acesso escondido é feito por 3 cliques rápidos no logótipo e depois pelo login.
+
+Testes V9
+- Python server.py: OK
+- JavaScript nav.js: OK
+- API /api/health: OK, V9
+- API /api/site: 11 famílias e ícones configurados
+- Catálogo: 64 produtos / 40 RIDA
+- Produtos sem subfamília: 0
+- Máquinas: 40 produtos / subfamília Máquinas sem fio
+- Back Office: edição de ícone testada via API
+
+Nota
+O upload de uma imagem de ícone usa a área uploads/ do servidor. Em produção, recomenda-se configurar armazenamento persistente no Render antes de guardar imagens e dados comerciais definitivos.

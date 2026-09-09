@@ -1,0 +1,14 @@
+MARQUESMATER V8
+
+Correções visuais da homepage:
+- Famílias em barra horizontal no cabeçalho, por cima do carrossel.
+- Menu mostra apenas famílias de topo; subfamílias aparecem no menu da família.
+- Máquinas substitui RIDA no menu; RIDA continua como marca.
+- Famílias apresentadas em cartões/quadrados abaixo do carrossel.
+- Carrossel preservado e com visual profissional.
+- Máquinas RIDA em destaque com preços provisórios.
+- Cartões de produtos e promoções com apresentação de loja.
+- Chat mantido no canto inferior direito.
+- Acesso ao Back Office continua reservado por 3 cliques no logótipo + login.
+
+Esta versão é uma atualização do Front Office; o ZIP completo contém toda a base do projeto.

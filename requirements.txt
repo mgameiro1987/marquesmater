@@ -1,0 +1,1 @@
+# MarquesMater usa apenas a biblioteca standard do Python.

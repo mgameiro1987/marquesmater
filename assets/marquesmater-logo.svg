@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 620 150">
+  <g transform="translate(8 10)">
+    <path d="M55 5 L100 31 L100 83 L55 109 L10 83 L10 31 Z" fill="none" stroke="#f28a00" stroke-width="11" stroke-linejoin="round"/>
+    <path d="M31 79 V39 L55 55 L79 39 V79" fill="none" stroke="#243b91" stroke-width="9" stroke-linejoin="round"/>
+    <text x="122" y="64" font-family="Arial, Helvetica, sans-serif" font-size="50" font-weight="800" fill="#243b91">MarquesMater</text>
+    <text x="124" y="96" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="600" fill="#243b91">Materiais de Construção e Pinturas, Lda.</text>
+  </g>
+</svg>

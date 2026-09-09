@@ -1,0 +1,20 @@
+MARQUESMATER V23
+
+Principais alterações:
+- A visibilidade das famílias na página inicial passou a ser controlada individualmente por família.
+- Cada família tem dois piscos independentes:
+  - Mostrar acima do carrossel
+  - Mostrar abaixo do carrossel
+- Uma família pode aparecer acima, abaixo, nos dois locais ou em nenhum.
+- Removidos da Personalização os antigos controlos globais de posição das famílias para evitar conflito/confusão.
+- Mantida a possibilidade de controlar produtos em destaque e promoções na Personalização.
+- A homepage passa a ler os campos show_top/show_bottom de cada família.
+- A base existente é migrada automaticamente: mantém o comportamento anterior (abaixo do carrossel) até o utilizador alterar cada família.
+- Não foram alterados os produtos existentes.
+
+Ficheiros principais da atualização:
+admin.html
+index.html
+server.py
+VERSAO.txt
+LEIA-ME-V23.txt

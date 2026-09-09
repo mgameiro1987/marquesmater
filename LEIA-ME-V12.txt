@@ -1,0 +1,14 @@
+MARQUESMATER V12
+
+Correção do Back Office — Categorias.
+
+Principais alterações:
+- A biblioteca de ícones deixou de aparecer repetida dentro de cada família.
+- Os ícones grandes no meio da página foram removidos da vista normal.
+- Cada família fica compacta, mostrando apenas o ícone atual, nome, subfamílias e ações.
+- O botão “Alterar ícone” abre uma janela profissional com a biblioteca completa.
+- Os ícones aparecem em grelha pequena e uniforme dentro da janela.
+- Mantidas as opções de carregar imagem do PC, adicionar por download e remover/restaurar ícone.
+- Mantidas as subfamílias e todas as restantes funções do Back Office V11.
+
+Esta versão é uma atualização visual/funcional da área Categorias e não remove as funções existentes.

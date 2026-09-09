@@ -1,0 +1,9 @@
+MARQUESMATER V19
+
+- Back Office > Personalização: duas opções independentes para famílias acima e abaixo do carrossel.
+- Pode ativar ambas, apenas uma ou nenhuma.
+- Ícones dedicados para Silicones e Sprays/Aerossóis adicionados à biblioteca local.
+- Base Soudal inicial expandida com T-Rex X-Treme Express, T-Rex Turbo, T-Rex Flex, Pega Tudo, Soudaflex 40FC, Selante Fendas e Selante Fendas Granulado.
+- As páginas oficiais Soudal ficam registadas para obtenção das imagens oficiais através do servidor.
+- Não foram utilizadas fotografias enviadas pelo utilizador.
+- PVP Soudal não é inventado: fica marcado como “PVP Soudal por confirmar” quando não existe uma tabela pública verificável.

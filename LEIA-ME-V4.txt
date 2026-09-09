@@ -1,0 +1,19 @@
+MARQUESMATER V4
+
+Nova arquitetura do Back Office e Front Office.
+
+1. Página Inicial: editor do carrossel + pré-visualização da loja.
+2. Categorias: famílias e subfamílias antes dos produtos.
+3. Produtos: gestão de dados, preços, promoções, stock, fotografias, variantes, documentos, relacionados e SEO.
+4. Inventário, Marcas, Encomendas e Clientes.
+5. Conversas: chat do site ligado ao Back Office para responder aos clientes.
+6. Pagamentos: configuração preparada para gateways SIBS, Eupago ou outra por API, em modo teste/produção. Não ativar cobranças reais sem configurar credenciais.
+7. Entregas: transportadora, portes, levantamento e regras base.
+8. Empresa: contactos, localização e Quem Somos, editáveis no Back Office.
+9. Personalização, SEO e Configurações gerais.
+10. Back Office abre em novo separador a partir da loja.
+
+NOTA DE PRODUÇÃO
+A versão local usa SQLite. Antes de guardar dados comerciais reais no Render, configurar armazenamento persistente/base de dados externa e armazenamento persistente para ficheiros.
+
+Acesso local: admin / admin123

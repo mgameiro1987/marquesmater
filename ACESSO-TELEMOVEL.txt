@@ -1,0 +1,15 @@
+MARQUESMATER — ACESSO AO BACK OFFICE PELO TELEMÓVEL
+
+1. No PC, execute ABRIR-SITE-WINDOWS.bat.
+2. O servidor passa a aceitar ligações na rede local.
+3. Ligue o telemóvel à mesma rede Wi-Fi do PC.
+4. No PC, abra CMD e execute: ipconfig
+5. Procure o IPv4 (ex.: 192.168.1.50).
+6. No telemóvel, abra no navegador: http://192.168.1.50:8000/admin.html
+7. Entre com o utilizador/password do Back Office.
+
+IMPORTANTE
+- O Back Office é responsivo para telemóvel.
+- Categorias, subcategorias, produtos, preços, stock, promoções e marcas são guardados no servidor em data/site_data.json.
+- As alterações feitas no telemóvel são as mesmas que aparecem no PC, porque usam a mesma base de dados local.
+- Para acesso fora de casa/escritório, será necessário publicar o servidor com domínio/HTTPS ou usar uma VPN segura. Não exponha diretamente a porta 8000 à Internet.

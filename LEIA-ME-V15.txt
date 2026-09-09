@@ -1,0 +1,7 @@
+V15
+
+Dashboard profissional com filtros e dados reais de encomendas.
+Rodapé global organizado.
+Termos, privacidade, cookies, entregas/devoluções e livro de reclamações.
+Textos legais editáveis em Back Office > Empresa > Legal e políticas.
+Os textos legais são modelos base e devem ser revistos antes da entrada em produção.
