@@ -21,26 +21,30 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          p = Path('server.py')
-          s = p.read_text(encoding='utf-8')
-          marker = 'ensure_v19_catalog()\n'
-          inject = '''ensure_v19_catalog()\n\ndef ensure_soudal_only_trex():\n    c = db()\n    c.execute("DELETE FROM products WHERE brand='Soudal' AND slug <> 'soudal-t-rex-power-290ml'")\n    c.execute("DELETE FROM brands WHERE name='Soudal'")\n    if c.execute("SELECT 1 FROM products WHERE brand='Soudal' LIMIT 1").fetchone():\n        c.execute("INSERT OR IGNORE INTO brands(name) VALUES('Soudal')")\n    c.commit(); c.close()\n\nensure_soudal_only_trex()\n'''
+          p=Path('server.py'); s=p.read_text(encoding='utf-8')
+          marker='ensure_v19_catalog()\n'
+          inject='''ensure_v19_catalog()\n\ndef ensure_soudal_only_trex():\n    c=db(); c.execute("DELETE FROM products WHERE brand='Soudal' AND slug <> 'soudal-t-rex-power-290ml'"); c.execute("DELETE FROM brands WHERE name='Soudal'")\n    if c.execute("SELECT 1 FROM products WHERE brand='Soudal' LIMIT 1").fetchone(): c.execute("INSERT OR IGNORE INTO brands(name) VALUES('Soudal')")\n    c.commit(); c.close()\n\nensure_soudal_only_trex()\n'''
           if 'def ensure_soudal_only_trex()' not in s:
               if marker not in s: raise SystemExit('Marcador Soudal não encontrado')
               s=s.replace(marker,inject,1)
           if 'MM-NEUCE-FINAL-SERVER' not in s:
-              fn='''\n# MM-NEUCE-FINAL-SERVER\ndef ensure_neuce_final():\n    c=db()\n    vals={\n      "neucebel":(89.9,"89,90 €","https://wsrv.nl/?url=https%3A%2F%2Ftemplodastintas.pt%2Fcdn%2Fshop%2Ffiles%2Fneucebel.png%3Fv%3D1705605720%26width%3D533&w=600&h=600&fit=inside"),\n      "neucematt":(69.9,"69,90 €","https://wsrv.nl/?url=https%3A%2F%2Fwww.saniluz.pt%2Fcdn%2Fshop%2Ffiles%2F5602920000587.jpg%3Fv%3D1733586586&w=600&h=600&fit=inside"),\n      "neucesoft":(129.9,"129,90 €","https://wsrv.nl/?url=https%3A%2F%2Fcdn-shopkit.com%2Fusercontent%2Ftintas-vital%2Fmedia%2Fimages%2Fsquare%2F37a3a6a-neucesoft.jpeg&w=600&h=600&fit=inside")\n    }\n    for slug,(price,display,image) in vals.items():\n      c.execute("UPDATE products SET price=?, price_display=?, image=?, updated_at=CURRENT_TIMESTAMP WHERE slug=?",(price,display,image,slug))\n    c.execute("INSERT OR IGNORE INTO brands(name) VALUES(?)",("NEUCE",))\n    c.commit(); c.close()\n\n'''
+              fn='''\n# MM-NEUCE-FINAL-SERVER\ndef ensure_neuce_final():\n    c=db(); vals={"neucebel":(89.9,"89,90 €","https://wsrv.nl/?url=https%3A%2F%2Ftemplodastintas.pt%2Fcdn%2Fshop%2Ffiles%2Fneucebel.png%3Fv%3D1705605720%26width%3D533&w=600&h=600&fit=inside"),"neucematt":(69.9,"69,90 €","https://wsrv.nl/?url=https%3A%2F%2Fwww.saniluz.pt%2Fcdn%2Fshop%2Ffiles%2F5602920000587.jpg%3Fv%3D1733586586&w=600&h=600&fit=inside"),"neucesoft":(129.9,"129,90 €","https://wsrv.nl/?url=https%3A%2F%2Fcdn-shopkit.com%2Fusercontent%2Ftintas-vital%2Fmedia%2Fimages%2Fsquare%2F37a3a6a-neucesoft.jpeg&w=600&h=600&fit=inside")};\n    for slug,(price,display,image) in vals.items(): c.execute("UPDATE products SET price=?,price_display=?,image=?,updated_at=CURRENT_TIMESTAMP WHERE slug=?",(price,display,image,slug))\n    c.execute("INSERT OR IGNORE INTO brands(name) VALUES(?)",("NEUCE",)); c.commit(); c.close()\n\n'''
               pos=s.rfind('ensure_v26_runtime_fixes()')
               if pos<0: raise SystemExit('Startup V26 não encontrado')
               s=s[:pos]+fn+'ensure_neuce_final()\n'+s[pos:]
           p.write_text(s,encoding='utf-8')
           PY
 
-      - name: Corrigir catálogo Pinturas
+      - name: Corrigir cartões NEUCE da página Pinturas
         run: |
           python3 - <<'PY'
           from pathlib import Path
           p=Path('catalogo.html'); s=p.read_text(encoding='utf-8')
+          urls={
+            'https://www.marquesmater.pt/novo/wp-content/uploads/2024/03/Neucebel-600x638.png':'https://wsrv.nl/?url=https%3A%2F%2Ftemplodastintas.pt%2Fcdn%2Fshop%2Ffiles%2Fneucebel.png%3Fv%3D1705605720%26width%3D533&w=600&h=600&fit=inside',
+            'https://www.marquesmater.pt/novo/wp-content/uploads/2024/03/Neucematt-600x638.png':'https://wsrv.nl/?url=https%3A%2F%2Fwww.saniluz.pt%2Fcdn%2Fshop%2Ffiles%2F5602920000587.jpg%3Fv%3D1733586586&w=600&h=600&fit=inside',
+            'https://www.marquesmater.pt/novo/wp-content/uploads/2024/03/Neucesoft-600x638.png':'https://wsrv.nl/?url=https%3A%2F%2Fcdn-shopkit.com%2Fusercontent%2Ftintas-vital%2Fmedia%2Fimages%2Fsquare%2F37a3a6a-neucesoft.jpeg&w=600&h=600&fit=inside'}
+          for a,b in urls.items(): s=s.replace(a,b)
           if 'MM-NEUCE-FINAL' not in s:
             patch='<style id="MM-NEUCE-FINAL">body.mm-neuce-final .more{display:none!important}</style><script>(function(){function f(){var p=new URLSearchParams(location.search);if(p.get("cat")!=="Pinturas")return;document.body.classList.add("mm-neuce-final");document.querySelectorAll("#grid .product").forEach(function(c){var n=(c.querySelector("h3")||{}).textContent||"";var v={"NeuceBel":"89,90 €","NeuceMatt":"69,90 €","NeuceSoft":"129,90 €"}[n.trim()];if(v){var q=c.querySelector(".price");if(q)q.textContent=v;var m=c.querySelector(".more");if(m)m.remove()}})}if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",function(){setTimeout(f,200);setTimeout(f,1000)});else{setTimeout(f,200);setTimeout(f,1000)}})();</script>'
             s=s.replace('</body>',patch+'</body>')
@@ -55,4 +59,4 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add server.py catalogo.html
-          if git diff --cached --quiet; then echo "Sem alterações"; else git commit -m "NEUCE: preços, imagens e cartões sem Ver produto"; git push origin main; fi
+          if git diff --cached --quiet; then echo "Sem alterações"; else git commit -m "NEUCE: imagens cacheadas, preços e sem Ver produto"; git push origin main; fi
