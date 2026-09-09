@@ -1,0 +1,22 @@
+name: Repor layout anterior
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  revert:
+    if: ${{ !contains(github.event.head_commit.message, 'Repor layout anterior aplicado') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Reverter últimas correções de layout
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git revert --no-edit 3b6e403c4a104e98b0ca0eb216d058c953827add 38ca20120430b9deb8cda7980b50932d19e557df || true
+          git add -A
+          git commit -m 'Repor layout anterior aplicado' || true
+          git push
