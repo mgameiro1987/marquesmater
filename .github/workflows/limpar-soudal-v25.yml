@@ -1,0 +1,25 @@
+name: Limpar Soudal V25
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'scripts/limpar_soudal.py'
+permissions:
+  contents: write
+jobs:
+  limpar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Limpar base Soudal
+        run: python scripts/limpar_soudal.py
+      - name: Validar
+        run: python -m py_compile server.py scripts/limpar_soudal.py
+      - name: Guardar
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/soudal_products.json data/catalog.db scripts/limpar_soudal.py
+          git diff --cached --quiet && exit 0
+          git commit -m "Soudal: manter apenas T-Rex Power 290ml"
+          git push
