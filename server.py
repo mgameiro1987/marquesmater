@@ -285,6 +285,18 @@ def ensure_v19_catalog():
  c.commit(); c.close()
 ensure_v19_catalog()
 
+def ensure_soudal_only_trex():
+    """Remove legacy Soudal products from persistent SQLite data, keeping only T-Rex Power 290ml."""
+    c = db()
+    c.execute("DELETE FROM products WHERE brand='Soudal' AND slug <> 'soudal-t-rex-power-290ml'")
+    c.execute("DELETE FROM brands WHERE name='Soudal'")
+    if c.execute("SELECT 1 FROM products WHERE brand='Soudal' LIMIT 1").fetchone():
+        c.execute("INSERT OR IGNORE INTO brands(name) VALUES('Soudal')")
+    c.commit()
+    c.close()
+
+ensure_soudal_only_trex()
+
 def normalize_product_taxonomy():
  c=db(); d=site_data(); mapping={f.get('name'): (f.get('subs') or []) for f in d.get('families',[]) if isinstance(f,dict)}
  for family,subs in mapping.items():
