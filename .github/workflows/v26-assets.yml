@@ -1,0 +1,18 @@
+name: V26 assets
+on:
+  workflow_dispatch:
+  push:
+    paths: ['.github/workflows/v26-assets.yml']
+permissions:
+  contents: write
+jobs:
+  assets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
+      - run: python3 scripts/v26_neuce_assets.py
+      - run: python3 -m py_compile server.py
+      - uses: stefanzweifel/git-auto-commit-action@v6
+        with:
+          commit_message: 'MarquesMater V26 - imagens e fichas Neuce'
