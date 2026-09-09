@@ -14,10 +14,8 @@ on:
       - 'scripts/fix_soudal_v2.py'
       - 'scripts/limpar_soudal.py'
       - '.github/workflows/backup-completo-v25.yml'
-
 permissions:
   contents: write
-
 jobs:
   backup:
     runs-on: ubuntu-latest
@@ -33,20 +31,16 @@ jobs:
           python - <<'PY'
           from pathlib import Path
           import re
-          # FRONT: uma implementação única, preço 12,95 €, cores e imagem por cor.
-          p=Path('produto-wc.html'); s=p.read_text()
-          s=re.sub(r'<script id="MM_TrexPower290JS">.*?</script>','',s,flags=re.S)
+          p=Path('produto-wc.html'); s=p.read_text(); s=re.sub(r'<script id="MM_TrexPower290JS">.*?</script>','',s,flags=re.S)
           if 'MM_TrexPowerFinalJS' not in s:
             css='<style id="MM_TrexPowerFinalCSS">.mm-trex-colors{display:flex;flex-wrap:wrap;gap:8px}.mm-trex-color{display:flex;align-items:center;gap:8px;border:1px solid #d6dbe0;background:#fff;border-radius:10px;padding:8px 11px;font-weight:800;cursor:pointer}.mm-trex-color.active{border:2px solid #f28c00;box-shadow:0 0 0 3px rgba(242,140,0,.12)}.mm-trex-dot{width:24px;height:24px;border-radius:50%;border:1px solid #c7ccd1;box-shadow:inset 0 0 0 2px #fff}</style>'
             js='''<script id="MM_TrexPowerFinalJS">(function(){let T=null,I=0;const path=v=>'/'+String(v.image||v.asset_image||'').replace(/^\\//,'');const bg=c=>{c=(c||'').toLowerCase();if(c.includes('preto'))return '#171717';if(c.includes('cinz'))return '#9da3a8';if(c.includes('bege'))return '#d7c2a2';if(c.includes('terracota'))return '#b65c43';if(c.includes('transpar'))return 'linear-gradient(135deg,#fff,#dfe8ef)';return '#fff'};function apply(){if(!T)return;let b=document.getElementById('priceBox');if(b)b.innerHTML='<div class="price">€ '+Number(T.price||12.95).toFixed(2).replace('.',',')+'</div>';document.querySelector('.stock')?.remove();let t=document.querySelector('.variant-title'),g=document.querySelector('.variant-grid');if(!t||!g)return;t.textContent='Escolha a cor';g.className='mm-trex-colors';g.innerHTML=T.variants.map((v,i)=>'<button type="button" class="mm-trex-color '+(i===I?'active':'')+'" data-i="'+i+'"><span class="mm-trex-dot" style="background:'+bg(v.color)+'"></span>'+v.color+'</button>').join('');g.querySelectorAll('.mm-trex-color').forEach(x=>x.onclick=()=>{I=Number(x.dataset.i);let m=document.getElementById('mainImg');if(m)m.src=path(T.variants[I]);g.querySelectorAll('.mm-trex-color').forEach((z,k)=>z.classList.toggle('active',k===I))});let m=document.getElementById('mainImg');if(m)m.src=path(T.variants[I])}async function boot(){if(!/soudal-t-rex-power-290ml/i.test(new URLSearchParams(location.search).get('slug')||''))return;T=(await fetch('/data/soudal_products.json?x='+Date.now(),{cache:'no-store'}).then(r=>r.json())).products.find(x=>x.slug==='soudal-t-rex-power-290ml');if(!T)return;T.price=12.95;let n=0,q=setInterval(()=>{if(document.getElementById('priceBox')&&document.querySelector('.variant-grid')){apply();clearInterval(q)}else if(++n>40)clearInterval(q)},150)}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot()})();</script>'''
             s=s.replace('</head>',css+'</head>',1).replace('</body>',js+'</body>',1)
           p.write_text(s)
-          # CATALOG: preço e sem disponibilidade/Ver produto no cartão.
           c=Path('catalogo.html'); s=c.read_text()
           if 'MM_TrexCardFinal' not in s:
             j='''<script id="MM_TrexCardFinal">(function(){function f(){document.querySelectorAll('.product').forEach(x=>{if(!(x.querySelector('h3')?.textContent||'').includes('T-Rex Power 290ml'))return;[...x.querySelectorAll('*')].forEach(e=>{let t=(e.textContent||'').trim();if(t==='Preço sob consulta')e.textContent='12,95 €';if(/^Disponibilidade/i.test(t)||t==='Ver produto →'||t==='Ver produto')e.remove()})})}f();new MutationObserver(f).observe(document.body,{childList:true,subtree:true})})();</script>'''
             c.write_text(s.replace('</body>',j+'</body>',1))
-          # BACKOFFICE: editor preparado para preço, promoção e imagens/cores.
           a=Path('admin.html'); s=a.read_text()
           if 'MM_TrexAdminFinal' not in s:
             css='<style id="MM_TrexAdminFinalCSS">.mm-trex-admin{margin-top:16px;border:1px solid var(--line);border-radius:14px;padding:16px;background:#fff}.mm-ta-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.mm-ta-colors{display:grid;gap:8px}.mm-ta-color{display:grid;grid-template-columns:65px 120px 1fr;gap:8px;align-items:center}.mm-ta-color img{width:55px;height:55px;object-fit:contain;border:1px solid var(--line);border-radius:8px}@media(max-width:800px){.mm-ta-grid{grid-template-columns:1fr}.mm-ta-color{grid-template-columns:55px 1fr}}}</style>'
@@ -60,14 +54,17 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data/soudal_products.json data/catalog.db produto-wc.html catalogo.html admin.html scripts/limpar_soudal.py
-          git diff --cached --quiet || (git commit -m "T-Rex Power final: preço, cores, promoção e limpeza Soudal" && git push)
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "T-Rex Power final: preço, cores, promoção e limpeza Soudal"
+          git fetch origin main
+          git rebase origin/main
+          git push origin HEAD:main
       - name: Criar ZIP completo
         run: |
           mkdir -p /tmp/backup/MarquesMater_V25_SOUDAL_BACKUP_COMPLETO
           rsync -a --exclude='.git' ./ /tmp/backup/MarquesMater_V25_SOUDAL_BACKUP_COMPLETO/
           cd /tmp/backup
           zip -r MarquesMater_V25_SOUDAL_BACKUP_COMPLETO.zip MarquesMater_V25_SOUDAL_BACKUP_COMPLETO
-          ls -lh MarquesMater_V25_SOUDAL_BACKUP_COMPLETO.zip
       - name: Disponibilizar backup para download
         uses: actions/upload-artifact@v4
         with:
