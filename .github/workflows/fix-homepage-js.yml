@@ -3,8 +3,6 @@ name: Fix Homepage V10 JavaScript
 on:
   push:
     branches: [main]
-    paths:
-      - 'index.html'
 
 jobs:
   fix:
