@@ -1,0 +1,37 @@
+name: Backup completo MarquesMater V25
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'data/catalog.db'
+      - 'data/soudal_products.json'
+      - 'assets/soudal/**'
+      - 'docs/soudal/**'
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout completo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Criar ZIP completo
+        run: |
+          mkdir -p /tmp/backup/MarquesMater_V25_SOUDAL_BACKUP_COMPLETO
+          rsync -a --exclude='.git' ./ /tmp/backup/MarquesMater_V25_SOUDAL_BACKUP_COMPLETO/
+          cd /tmp/backup
+          zip -r MarquesMater_V25_SOUDAL_BACKUP_COMPLETO.zip MarquesMater_V25_SOUDAL_BACKUP_COMPLETO
+          ls -lh MarquesMater_V25_SOUDAL_BACKUP_COMPLETO.zip
+
+      - name: Disponibilizar backup para download
+        uses: actions/upload-artifact@v4
+        with:
+          name: MarquesMater_V25_SOUDAL_BACKUP_COMPLETO
+          path: /tmp/backup/MarquesMater_V25_SOUDAL_BACKUP_COMPLETO.zip
+          retention-days: 30
