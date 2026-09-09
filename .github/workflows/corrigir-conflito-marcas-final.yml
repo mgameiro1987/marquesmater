@@ -1,0 +1,55 @@
+name: Corrigir conflito index e marcas duplicadas
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: ${{ !contains(github.event.head_commit.message, 'CORREÇÃO FINAL HOMEPAGE LIMPA') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Limpar conflito e marcas antigas
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+
+          # Remove qualquer conflito Git deixado no HTML, mantendo a versão HEAD.
+          pat=r'<<<<<<< HEAD\n(.*?)\n=======\n.*?\n>>>>>>>[^\n]*\n'
+          s2,n=re.subn(pat, r'\1', s, count=1, flags=re.S)
+          if n==0:
+              # fallback para marcadores que possam estar sem newline final
+              s2=re.sub(r'<<<<<<< HEAD\n|=======\n|>>>>>>>[^\n]*\n?', '', s2)
+
+          # Retira os cartões antigos em preto. O carrossel novo de marcas fica no mesmo bloco.
+          s2=re.sub(r'<div class="brands-grid">.*?</div>', '', s2, count=1, flags=re.S)
+
+          # Nunca mostrar o link antigo "Ver todas as marcas".
+          s2=s2.replace('<a class="section-link" href="catalogo.html?brand=RIDA">Ver todas as marcas →</a>','')
+
+          # Garante que a grelha antiga não volta a aparecer por CSS.
+          if 'MM-CLEAN-OLD-BRANDS' not in s2:
+              s2=s2.replace('</head>', '<style id="MM-CLEAN-OLD-BRANDS">.brands-featured .brands-grid{display:none!important}.brands-featured .section-link{display:none!important}</style></head>')
+
+          p.write_text(s2,encoding='utf-8')
+          PY
+
+          # Validação: não pode existir nenhum marcador de conflito no HTML.
+          if grep -nE '^(<<<<<<<|=======|>>>>>>>)' index.html; then
+            echo 'Ainda existem marcadores de conflito'; exit 1
+          fi
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html .github/workflows/corrigir-conflito-marcas-final.yml
+          git diff --cached --quiet || git commit -m 'CORREÇÃO FINAL HOMEPAGE LIMPA'
+          git push
