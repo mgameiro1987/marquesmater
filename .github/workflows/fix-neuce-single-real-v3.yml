@@ -1,0 +1,84 @@
+name: Fix NEUCE single real image v3
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/fix-neuce-single-real-v3.yml'
+permissions:
+  contents: write
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download official NEUCE product images
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from urllib.request import Request, urlopen
+          from urllib.parse import urljoin
+          import re
+          products={
+            'neucebel-real.jpg':'https://www.neuce.com/p180-p-881-neucebel-pt_pt',
+            'neucematt-real.jpg':'https://www.neuce.com/p180-p-1026-neucematt-pt_pt',
+            'neucesoft-real.jpg':'https://www.neuce.com/p180-p-886-neucesoft-mo_pt',
+          }
+          for out,url in products.items():
+            req=Request(url,headers={'User-Agent':'Mozilla/5.0'})
+            html=urlopen(req,timeout=30).read().decode('utf-8','ignore')
+            candidates=[]
+            for pat in [r'<meta[^>]+property=["\']og:image["\'][^>]+content=["\']([^"\']+)',r'<meta[^>]+content=["\']([^"\']+)["\'][^>]+property=["\']og:image["\']',r'<meta[^>]+name=["\']twitter:image["\'][^>]+content=["\']([^"\']+)']:
+              candidates += re.findall(pat,html,re.I)
+            candidates=[urljoin(url,x.replace('&amp;','&')) for x in candidates]
+            if not candidates:
+              raise SystemExit(f'No product image found for {url}')
+            imgurl=candidates[0]
+            print(out,imgurl)
+            data=urlopen(Request(imgurl,headers={'User-Agent':'Mozilla/5.0'}),timeout=30).read()
+            if len(data)<10000: raise SystemExit(f'Image too small: {imgurl}')
+            Path('assets',out).write_bytes(data)
+          PY
+      - name: Remove old NEUCE overrides and force one image
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          p=Path('catalogo.html')
+          s=p.read_text(encoding='utf-8')
+          s=re.sub(r'<!-- MM-PINTURAS-V26-OPEN-FIX -->.*?<script id="MM_NEUCE_LOCAL_GALLERY">.*?</script>', '', s, flags=re.S)
+          s=re.sub(r'<!-- MM-NEUCE-DUAL-GALLERY -->.*?</style>\s*<script>.*?</script>', '', s, flags=re.S)
+          s=re.sub(r'<script id="MM_NEUCE_LOCAL_GALLERY">.*?</script>', '', s, flags=re.S)
+          s=re.sub(r'<style id="MM-NEUCE-FINAL">.*?</script>', '', s, flags=re.S)
+          s=s.replace('"image":"assets/neucebel-trabalhada.svg"','"image":"assets/neucebel-real.jpg"')
+          s=s.replace('"image":"assets/neucematt-trabalhada.svg"','"image":"assets/neucematt-real.jpg"')
+          s=s.replace('"image":"assets/neucesoft-trabalhada.svg"','"image":"assets/neucesoft-real.jpg"')
+          old="const localBySlug=Object.fromEntries(PAINTINGS.map(x=>[x.slug,x]));list=list.map(x=>localBySlug[x.slug]?{...x,...localBySlug[x.slug]}:x);"
+          new="const localBySlug=Object.fromEntries(PAINTINGS.map(x=>[x.slug,x]));list=list.map(x=>{const p=localBySlug[x.slug];return p?{...x,...p,price_display:p.price,image:p.image}:x;});"
+          if old not in s: raise SystemExit('runtime mapping target not found')
+          s=s.replace(old,new,1)
+          p.write_text(s,encoding='utf-8')
+          PY
+      - name: Verify
+        run: |
+          ! grep -q 'MM-NEUCE-DUAL-GALLERY' catalogo.html
+          ! grep -q 'MM_NEUCE_LOCAL_GALLERY' catalogo.html
+          ! grep -q 'MM-PINTURAS-V26-OPEN-FIX' catalogo.html
+          grep -q 'assets/neucebel-real.jpg' catalogo.html
+          grep -q 'assets/neucematt-real.jpg' catalogo.html
+          grep -q 'assets/neucesoft-real.jpg' catalogo.html
+          grep -q 'price_display:p.price' catalogo.html
+      - name: Commit and push
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add catalogo.html assets/neucebel-real.jpg assets/neucematt-real.jpg assets/neucesoft-real.jpg
+          git commit -m 'NEUCE: imagens oficiais reais e preço Desde' || exit 0
+          git push
+      - name: Remove temporary workflow
+        if: always()
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/fix-neuce-single-real-v3.yml || true
+          git commit -m 'Remover workflow temporário NEUCE v3' || true
+          git push || true
