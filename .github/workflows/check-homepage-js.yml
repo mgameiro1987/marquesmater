@@ -17,11 +17,11 @@ jobs:
           from pathlib import Path
           import re
           s=Path('index.html').read_text(encoding='utf-8')
-          scripts=re.findall(r'<script(?:\\s[^>]*)?>(.*?)</script>',s,re.S|re.I)
-          Path('/tmp/scripts.txt').write_text('\n\n/* SCRIPT SEPARATOR */\n\n'.join(scripts),encoding='utf-8')
+          scripts=re.findall(r'<script(?:\s[^>]*)?>(.*?)</script>',s,re.S|re.I)
+          Path('/tmp/scripts.js').write_text('\n\n/* SCRIPT SEPARATOR */\n\n'.join(scripts),encoding='utf-8')
           print('Scripts encontrados:',len(scripts))
           PY
-          node --check /tmp/scripts.txt > /tmp/check.txt 2>&1 || true
+          node --check /tmp/scripts.js > /tmp/check.txt 2>&1 || true
           cat /tmp/check.txt
           {
             echo 'Homepage JavaScript diagnostic';
