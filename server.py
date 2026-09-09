@@ -394,6 +394,11 @@ def fetch_soudal_image(page_url):
 
 class Handler(http.server.SimpleHTTPRequestHandler):
  def __init__(self,*a,**kw):super().__init__(*a,directory=str(ROOT),**kw)
+ def end_headers(self):
+  if self.path.split('?',1)[0].endswith(('.html','.js','.css')):
+   self.send_header('Cache-Control','no-store, no-cache, must-revalidate, max-age=0')
+   self.send_header('Pragma','no-cache')
+  super().end_headers()
  def log_message(self,f,*a):print('[SITE]',f%a)
  def send_json(self,o,status=200):
   raw=json.dumps(o,ensure_ascii=False).encode();self.send_response(status);self.send_header('Content-Type','application/json; charset=utf-8');self.send_header('Cache-Control','no-store');self.send_header('Content-Length',str(len(raw)));self.end_headers();self.wfile.write(raw)
