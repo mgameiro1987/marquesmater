@@ -11,7 +11,7 @@
       "category": "Colas e Selantes",
       "subfamily": "Soudal",
       "brand": "Soudal",
-      "price": 6.40,
+      "price": 6.4,
       "price_display": "6,40 €",
       "vat_rate": 23,
       "stock": 1,
@@ -20,15 +20,40 @@
       "manufacturer_url": "https://www.soudal.pt/diy/produtos/cola-veda/cola-veda-ms/pega-tudo",
       "asset_page": "https://www.soudalshop.pt/products/pega-tudo",
       "description": "Selante adesivo monocomponente de polímero híbrido SMX, neutro e elástico, indicado para colagem e selagem na construção, incluindo aplicações interiores e exteriores.",
-      "tech": ["Polímero híbrido SMX", "Cartucho 290 ml", "Formação de pele aprox. 10 min", "Resistência à temperatura: -40 °C a +90 °C", "Aplicação: +5 °C a +35 °C", "Alongamento à rutura: 400%"],
+      "tech": [
+        "Polímero híbrido SMX",
+        "Cartucho 290 ml",
+        "Formação de pele aprox. 10 min",
+        "Resistência à temperatura: -40 °C a +90 °C",
+        "Aplicação: +5 °C a +35 °C",
+        "Alongamento à rutura: 400%"
+      ],
       "variants": [
-        {"label":"290ml / Branco","color":"Branco","price":6.40},
-        {"label":"290ml / Cinzento","color":"Cinzento","price":6.40},
-        {"label":"290ml / Castanho","color":"Castanho","price":6.40},
-        {"label":"290ml / Preto","color":"Preto","price":6.40}
+        {
+          "label": "290ml / Branco",
+          "color": "Branco",
+          "price": 6.4
+        },
+        {
+          "label": "290ml / Cinzento",
+          "color": "Cinzento",
+          "price": 6.4
+        },
+        {
+          "label": "290ml / Castanho",
+          "color": "Castanho",
+          "price": 6.4
+        },
+        {
+          "label": "290ml / Preto",
+          "color": "Preto",
+          "price": 6.4
+        }
       ],
       "asset_image": "assets/soudal/soudal-pega-tudo.jpg",
-      "asset_doc": "docs/soudal/soudal-pega-tudo.pdf"
+      "asset_doc": "docs/soudal/soudal-pega-tudo.pdf",
+      "downloaded_image_url": "http://www.soudalshop.pt/cdn/shop/files/Imagens_SoudalShop_2026_PegaTodo.jpg?v=1769614253",
+      "downloaded_doc_url": "https://www.soudal.pt/sites/default/files/soudal_api/document/900008510/TDS_Soudal_Pega_Tudo_9900298_Portuguese_Soudal_Portugal.pdf"
     },
     {
       "slug": "soudal-selante-fendas-granulado",
@@ -47,10 +72,25 @@
       "manufacturer_url": "https://www.soudal.pt/diy/produtos/selantes/selante-fendas-granulado",
       "asset_page": "https://www.soudalshop.pt/products/selante-fendas-granulado",
       "description": "Selante acrílico para reparação de fendas, com estrutura granulada, especialmente indicado para gesso e superfícies porosas.",
-      "tech": ["Base: dispersão acrílica", "Cartucho 290 ml", "Estrutura granulada", "Pintável após a cura", "Boa aderência sobre materiais porosos", "Não indicado para imersão contínua em água"],
-      "variants": [{"label":"290ml / Branco","color":"Branco","price":4.77}],
+      "tech": [
+        "Base: dispersão acrílica",
+        "Cartucho 290 ml",
+        "Estrutura granulada",
+        "Pintável após a cura",
+        "Boa aderência sobre materiais porosos",
+        "Não indicado para imersão contínua em água"
+      ],
+      "variants": [
+        {
+          "label": "290ml / Branco",
+          "color": "Branco",
+          "price": 4.77
+        }
+      ],
       "asset_image": "assets/soudal/soudal-selante-fendas-granulado.jpg",
-      "asset_doc": "docs/soudal/soudal-selante-fendas-granulado.pdf"
+      "asset_doc": "docs/soudal/soudal-selante-fendas-granulado.pdf",
+      "downloaded_image_url": "http://www.soudalshop.pt/cdn/shop/files/Selante_Fendas_Granulado.jpg?v=1738171783",
+      "downloaded_doc_url": "https://www.soudal.pt/sites/default/files/soudal_api/document/900007551/TDS_Soudal_Selante_Fendas_Granulado_9900355_Portuguese_Soudal_Portugal.pdf"
     },
     {
       "slug": "soudal-selante-fendas",
@@ -69,15 +109,39 @@
       "manufacturer_url": "https://www.soudal.pt/diy/produtos/selantes/selante-fendas",
       "asset_page": "https://www.soudalshop.pt/products/selante-fendas",
       "description": "Selante acrílico plasto-elástico para juntas e reparação de fendas, fácil de aplicar e pintável após a cura.",
-      "tech": ["Base: dispersão acrílica", "Cartucho 290 ml", "Pintável após a cura", "Boa aderência em superfícies porosas e alumínio", "Cor inalterável e resistente à água após a cura"],
+      "tech": [
+        "Base: dispersão acrílica",
+        "Cartucho 290 ml",
+        "Pintável após a cura",
+        "Boa aderência em superfícies porosas e alumínio",
+        "Cor inalterável e resistente à água após a cura"
+      ],
       "variants": [
-        {"label":"290ml / Branco","color":"Branco","price":2.76},
-        {"label":"290ml / Cinzento","color":"Cinzento","price":2.84},
-        {"label":"290ml / Preto","color":"Preto","price":2.84},
-        {"label":"290ml / Castanho","color":"Castanho","price":2.84}
+        {
+          "label": "290ml / Branco",
+          "color": "Branco",
+          "price": 2.76
+        },
+        {
+          "label": "290ml / Cinzento",
+          "color": "Cinzento",
+          "price": 2.84
+        },
+        {
+          "label": "290ml / Preto",
+          "color": "Preto",
+          "price": 2.84
+        },
+        {
+          "label": "290ml / Castanho",
+          "color": "Castanho",
+          "price": 2.84
+        }
       ],
       "asset_image": "assets/soudal/soudal-selante-fendas.jpg",
-      "asset_doc": "docs/soudal/soudal-selante-fendas.pdf"
+      "asset_doc": "docs/soudal/soudal-selante-fendas.pdf",
+      "downloaded_image_url": "http://www.soudalshop.pt/cdn/shop/files/Painters_Sealant_230477_96dpi_253x1181px_X_NR-25851_115790_aa62fecb-9d9e-49a0-9be9-1abe36ea6800.jpg?v=1738171781",
+      "downloaded_doc_url": "https://www.soudal.pt/sites/default/files/soudal_api/document/900007973/TDS_Soudal_Selante_Fendas_9900896_Portuguese_Soudal_Portugal.pdf"
     },
     {
       "slug": "soudabond-easy-click-fix-750ml",
@@ -97,10 +161,26 @@
       "asset_page": "https://www.soudal.com/nl-nl/pro/producten/lijmen/lijmschuim/soudabond-easy-click-fix",
       "price_source_url": "https://www.leroymerlin.pt/produtos/soudabond-easy-click-fix-espuma-adesiva-de-pu-soudal-88455142.html",
       "description": "Espuma adesiva de poliuretano monocomponente, pronta a usar e com características de enchimento, indicada para painéis de isolamento, placas de gesso e outros elementos de construção.",
-      "tech": ["PU monocomponente", "750 ml", "Aplicação Click & Fix", "Secagem rápida; pode ser cortada após cerca de 1 hora", "Sem solventes", "Boa aderência à maioria dos materiais, exceto PE, PP e PTFE", "Alto isolamento térmico e acústico"],
-      "variants": [{"label":"750ml","color":"Laranja","price":12.85}],
+      "tech": [
+        "PU monocomponente",
+        "750 ml",
+        "Aplicação Click & Fix",
+        "Secagem rápida; pode ser cortada após cerca de 1 hora",
+        "Sem solventes",
+        "Boa aderência à maioria dos materiais, exceto PE, PP e PTFE",
+        "Alto isolamento térmico e acústico"
+      ],
+      "variants": [
+        {
+          "label": "750ml",
+          "color": "Laranja",
+          "price": 12.85
+        }
+      ],
       "asset_image": "assets/soudal/soudabond-easy-click-fix-750ml.jpg",
-      "asset_doc": "docs/soudal/soudabond-easy-click-fix-750ml.pdf"
+      "asset_doc": "docs/soudal/soudabond-easy-click-fix-750ml.pdf",
+      "downloaded_image_url": "https://www.soudal.com/sites/default/files/styles/header_image_xs_480_x_600_/public/2020-02/cover_pro2_0.jpg.webp?h=a612ed85&itok=AzIxfh4l",
+      "downloaded_doc_url": "https://www.soudal.com/sites/default/files/soudal_api/document/33419/F0033419_0001.pdf"
     },
     {
       "slug": "soudal-soudaflex-40fc-300ml",
@@ -119,16 +199,45 @@
       "manufacturer_url": "https://www.soudal.pt/pro/produtos/selantes/selantes-de-poliuretano/soudaflex-40fc",
       "asset_page": "https://www.soudalshop.pt/products/soudaflex-40fc",
       "description": "Selante adesivo de poliuretano de módulo elevado, com elevado desempenho mecânico e resistência química, indicado para construção e metalomecânica.",
-      "tech": ["Poliuretano", "Cartucho 300 ml", "Permanentemente elástico após a cura", "Elevada resistência química", "Boa adesão a diversos materiais", "Juntas de 5 a 30 mm"],
+      "tech": [
+        "Poliuretano",
+        "Cartucho 300 ml",
+        "Permanentemente elástico após a cura",
+        "Elevada resistência química",
+        "Boa adesão a diversos materiais",
+        "Juntas de 5 a 30 mm"
+      ],
       "variants": [
-        {"label":"300ml / Branco","color":"Branco","price":5.54},
-        {"label":"300ml / Cinzento","color":"Cinzento","price":5.54},
-        {"label":"300ml / Preto","color":"Preto","price":5.54},
-        {"label":"300ml / Castanho","color":"Castanho","price":5.54},
-        {"label":"300ml / Terracota","color":"Terracota","price":5.54}
+        {
+          "label": "300ml / Branco",
+          "color": "Branco",
+          "price": 5.54
+        },
+        {
+          "label": "300ml / Cinzento",
+          "color": "Cinzento",
+          "price": 5.54
+        },
+        {
+          "label": "300ml / Preto",
+          "color": "Preto",
+          "price": 5.54
+        },
+        {
+          "label": "300ml / Castanho",
+          "color": "Castanho",
+          "price": 5.54
+        },
+        {
+          "label": "300ml / Terracota",
+          "color": "Terracota",
+          "price": 5.54
+        }
       ],
       "asset_image": "assets/soudal/soudal-soudaflex-40fc-300ml.jpg",
-      "asset_doc": "docs/soudal/soudal-soudaflex-40fc-300ml.pdf"
+      "asset_doc": "docs/soudal/soudal-soudaflex-40fc-300ml.pdf",
+      "downloaded_image_url": "http://www.soudalshop.pt/cdn/shop/files/Soudaflex_40FC_250x1181px_X_NR-12253_c6045eba-03e6-4593-ab92-dafdcef55539.jpg?v=1738171398",
+      "downloaded_doc_url": "https://www.soudal.pt/sites/default/files/soudal_api/document/900009962/TDS_Soudal_Soudaflex_40FC_9900485_Portuguese_Soudal_Portugal.pdf"
     },
     {
       "slug": "soudal-soudafoam-tt-manual-750ml",
@@ -139,7 +248,7 @@
       "category": "Colas e Selantes",
       "subfamily": "Soudal",
       "brand": "Soudal",
-      "price": 9.10,
+      "price": 9.1,
       "price_display": "9,10 €",
       "vat_rate": 23,
       "stock": 1,
@@ -147,13 +256,30 @@
       "manufacturer_url": "https://www.soudal.pt/pro/produtos/gama-construcao/espumas-pu/soudafoam-tt-manual",
       "asset_page": "https://www.soudalshop.pt/products/soudafoam-tt-manual",
       "description": "Espuma PU monocomponente para aplicação manual, especialmente indicada para instalação e reparação de telhas e preenchimento de cavidades.",
-      "tech": ["PU monocomponente", "750 ml", "Aplicação manual", "Boa aderência em madeira, cimento, betão, tijolo e metal", "Resistente à geada e ao calor", "Aplicação: +5 °C a +30 °C"],
+      "tech": [
+        "PU monocomponente",
+        "750 ml",
+        "Aplicação manual",
+        "Boa aderência em madeira, cimento, betão, tijolo e metal",
+        "Resistente à geada e ao calor",
+        "Aplicação: +5 °C a +30 °C"
+      ],
       "variants": [
-        {"label":"750ml / Cinzento","color":"Cinzento","price":9.10},
-        {"label":"750ml / Terracota","color":"Terracota","price":9.10}
+        {
+          "label": "750ml / Cinzento",
+          "color": "Cinzento",
+          "price": 9.1
+        },
+        {
+          "label": "750ml / Terracota",
+          "color": "Terracota",
+          "price": 9.1
+        }
       ],
       "asset_image": "assets/soudal/soudal-soudafoam-tt-manual-750ml.jpg",
-      "asset_doc": "docs/soudal/soudal-soudafoam-tt-manual-750ml.pdf"
+      "asset_doc": "docs/soudal/soudal-soudafoam-tt-manual-750ml.pdf",
+      "downloaded_image_url": "http://www.soudalshop.pt/cdn/shop/files/Soudafoam_TT_300dpi_397x1181px_X_NR-33575_128824_c30b4a64-b694-4d0a-9c32-3d7f49e9c33f.jpg?v=1738171867",
+      "downloaded_doc_url": "https://www.soudal.pt/sites/default/files/soudal_api/document/F0036392_0001.pdf"
     },
     {
       "slug": "soudal-t-rex-flex-290ml",
@@ -172,19 +298,61 @@
       "manufacturer_url": "https://www.soudal.pt/diy/produtos/gama-t-rex/cola-veda-t-rex/t-rex-flex",
       "asset_page": "https://www.soudalshop.pt/products/t-rex-flex",
       "description": "Selante e adesivo de polímero híbrido extremamente flexível, adequado para superfícies húmidas e aplicações sanitárias, cozinhas, juntas e pavimentos.",
-      "tech": ["Polímero híbrido SMX", "Cartucho 290 ml", "Resistente a fungos", "Adere a superfícies húmidas", "Interior e exterior", "Pintável", "Resistência à temperatura: -40 °C a +90 °C"],
+      "tech": [
+        "Polímero híbrido SMX",
+        "Cartucho 290 ml",
+        "Resistente a fungos",
+        "Adere a superfícies húmidas",
+        "Interior e exterior",
+        "Pintável",
+        "Resistência à temperatura: -40 °C a +90 °C"
+      ],
       "variants": [
-        {"label":"290ml / Branco","color":"Branco","price":9.95},
-        {"label":"290ml / Cinzento","color":"Cinzento","price":9.95},
-        {"label":"290ml / Preto","color":"Preto","price":9.95},
-        {"label":"290ml / Castanho","color":"Castanho","price":9.95},
-        {"label":"290ml / Bege","color":"Bege","price":9.95},
-        {"label":"290ml / Cinza Betão","color":"Cinza Betão","price":9.95},
-        {"label":"290ml / Antracite","color":"Antracite","price":9.95},
-        {"label":"290ml / Transparente","color":"Transparente","price":9.95}
+        {
+          "label": "290ml / Branco",
+          "color": "Branco",
+          "price": 9.95
+        },
+        {
+          "label": "290ml / Cinzento",
+          "color": "Cinzento",
+          "price": 9.95
+        },
+        {
+          "label": "290ml / Preto",
+          "color": "Preto",
+          "price": 9.95
+        },
+        {
+          "label": "290ml / Castanho",
+          "color": "Castanho",
+          "price": 9.95
+        },
+        {
+          "label": "290ml / Bege",
+          "color": "Bege",
+          "price": 9.95
+        },
+        {
+          "label": "290ml / Cinza Betão",
+          "color": "Cinza Betão",
+          "price": 9.95
+        },
+        {
+          "label": "290ml / Antracite",
+          "color": "Antracite",
+          "price": 9.95
+        },
+        {
+          "label": "290ml / Transparente",
+          "color": "Transparente",
+          "price": 9.95
+        }
       ],
       "asset_image": "assets/soudal/soudal-t-rex-flex-290ml.jpg",
-      "asset_doc": "docs/soudal/soudal-t-rex-flex-290ml.pdf"
+      "asset_doc": "docs/soudal/soudal-t-rex-flex-290ml.pdf",
+      "downloaded_image_url": "http://www.soudalshop.pt/cdn/shop/files/125505-ZTRA_TUB_TREX_MS_Flex_white_ES-PT_125ml_888bb9c5-8629-466a-a433-39dee09c260c.jpg?v=1738171722",
+      "downloaded_doc_url": "https://www.soudal.pt/sites/default/files/soudal_api/document/900009453/TDS_Soudal_T-Rex_Flex_9901420_Portuguese_Soudal_Portugal.pdf"
     },
     {
       "slug": "soudal-t-rex-power-290ml",
@@ -203,17 +371,51 @@
       "manufacturer_url": "https://www.soudal.pt/pro/produtos/gama-t-rex/cola-veda-t-rex/t-rex-power",
       "asset_page": "https://www.soudalshop.pt/products/t-rex-power",
       "description": "Selante adesivo de polímero híbrido com elevado agarre inicial, indicado para colagem e selagem interior e exterior, inclusive em suportes húmidos.",
-      "tech": ["Polímero híbrido SMX", "Cartucho 290 ml", "Elevado agarre inicial", "Pode ser aplicado debaixo de água", "Pintável", "Interior e exterior", "Resistência à temperatura: -40 °C a +90 °C"],
+      "tech": [
+        "Polímero híbrido SMX",
+        "Cartucho 290 ml",
+        "Elevado agarre inicial",
+        "Pode ser aplicado debaixo de água",
+        "Pintável",
+        "Interior e exterior",
+        "Resistência à temperatura: -40 °C a +90 °C"
+      ],
       "variants": [
-        {"label":"290ml / Branco","color":"Branco","price":13.84},
-        {"label":"290ml / Preto","color":"Preto","price":13.84},
-        {"label":"290ml / Cinzento","color":"Cinzento","price":13.84},
-        {"label":"290ml / Bege","color":"Bege","price":13.84},
-        {"label":"290ml / Terracota","color":"Terracota","price":13.84},
-        {"label":"290ml / Transparente Água","color":"Transparente Água","price":13.84}
+        {
+          "label": "290ml / Branco",
+          "color": "Branco",
+          "price": 13.84
+        },
+        {
+          "label": "290ml / Preto",
+          "color": "Preto",
+          "price": 13.84
+        },
+        {
+          "label": "290ml / Cinzento",
+          "color": "Cinzento",
+          "price": 13.84
+        },
+        {
+          "label": "290ml / Bege",
+          "color": "Bege",
+          "price": 13.84
+        },
+        {
+          "label": "290ml / Terracota",
+          "color": "Terracota",
+          "price": 13.84
+        },
+        {
+          "label": "290ml / Transparente Água",
+          "color": "Transparente Água",
+          "price": 13.84
+        }
       ],
       "asset_image": "assets/soudal/soudal-t-rex-power-290ml.jpg",
-      "asset_doc": "docs/soudal/soudal-t-rex-power-290ml.pdf"
+      "asset_doc": "docs/soudal/soudal-t-rex-power-290ml.pdf",
+      "downloaded_image_url": "http://www.soudalshop.pt/cdn/shop/files/T-Rex_Power_96dpi_251x1181px_X_NR-32998_145082_09d0af68-e7d6-41ee-bb58-42114d8dbd0e.jpg?v=1768390083",
+      "downloaded_doc_url": "https://www.soudal.pt/sites/default/files/soudal_api/document/900009480/TDS_Soudal_T-Rex_Power_9901099_Portuguese_Soudal_Portugal.pdf"
     },
     {
       "slug": "soudal-t-rex-turbo-290ml",
@@ -232,10 +434,26 @@
       "manufacturer_url": "https://www.soudal.pt/pro/produtos/gama-t-rex/cola-veda-t-rex/t-rex-turbo",
       "asset_page": "https://www.soudalshop.pt/products/t-rex-turbo",
       "description": "Selante adesivo de polímero híbrido de desenvolvimento rápido de resistência, para colagem e fixação interior e exterior.",
-      "tech": ["Polímero híbrido SMX", "Cartucho 290 ml", "Fixação muito rápida", "Peças completamente fixas em cerca de 20 minutos", "Formação de pele aprox. 5 min", "Pode ser usado debaixo de água", "Pintável"],
-      "variants": [{"label":"290ml / Branco","color":"Branco","price":13.96}],
+      "tech": [
+        "Polímero híbrido SMX",
+        "Cartucho 290 ml",
+        "Fixação muito rápida",
+        "Peças completamente fixas em cerca de 20 minutos",
+        "Formação de pele aprox. 5 min",
+        "Pode ser usado debaixo de água",
+        "Pintável"
+      ],
+      "variants": [
+        {
+          "label": "290ml / Branco",
+          "color": "Branco",
+          "price": 13.96
+        }
+      ],
       "asset_image": "assets/soudal/soudal-t-rex-turbo-290ml.jpg",
-      "asset_doc": "docs/soudal/soudal-t-rex-turbo-290ml.pdf"
+      "asset_doc": "docs/soudal/soudal-t-rex-turbo-290ml.pdf",
+      "downloaded_image_url": "http://www.soudalshop.pt/cdn/shop/files/131074-ZTRA_T-Rex_Tube_ES-PT_125ml_09f4073f-3166-4854-8493-9f37319d6698.jpg?v=1738171751",
+      "downloaded_doc_url": "https://www.soudal.pt/sites/default/files/soudal_api/document/900009547/TDS_Soudal_T-Rex_Turbo_9901108_Portuguese_Soudal_Portugal.pdf"
     },
     {
       "slug": "soudal-t-rex-x-treme-express-280ml",
@@ -254,10 +472,26 @@
       "manufacturer_url": "https://www.soudal.pt/pro/produtos/gama-t-rex/cola-veda-t-rex/t-rex-x-treme-express",
       "asset_page": "https://www.soudalshop.pt/products/t-rex-x-treme-express",
       "description": "Adesivo de elevada resistência e agarre inicial extremo, concebido para colagem rápida de objetos pesados sem apoio adicional.",
-      "tech": ["Polímero híbrido SMX", "Cartucho 280 ml", "Agarre inicial mínimo 400 kg/m²", "Manipulação após cerca de 30 minutos", "Cura rápida", "Resistente à humidade, UV e intempéries", "Sem solventes, isocianatos, ácidos e halogéneos"],
-      "variants": [{"label":"280ml / Branco","color":"Branco","price":10.81}],
+      "tech": [
+        "Polímero híbrido SMX",
+        "Cartucho 280 ml",
+        "Agarre inicial mínimo 400 kg/m²",
+        "Manipulação após cerca de 30 minutos",
+        "Cura rápida",
+        "Resistente à humidade, UV e intempéries",
+        "Sem solventes, isocianatos, ácidos e halogéneos"
+      ],
+      "variants": [
+        {
+          "label": "280ml / Branco",
+          "color": "Branco",
+          "price": 10.81
+        }
+      ],
       "asset_image": "assets/soudal/soudal-t-rex-x-treme-express-280ml.jpg",
-      "asset_doc": "docs/soudal/soudal-t-rex-x-treme-express-280ml.pdf"
+      "asset_doc": "docs/soudal/soudal-t-rex-x-treme-express-280ml.pdf",
+      "downloaded_image_url": "http://www.soudalshop.pt/cdn/shop/files/154493_339423-LAB_T-Rex_X-Treme_X-press_ES_280ml_604beabd-88cb-4def-9a7e-348965522275.jpg?v=1738171754",
+      "downloaded_doc_url": "https://www.soudal.pt/sites/default/files/soudal_api/document/900009513/TDS_Soudal_T-Rex_X-Treme_Express_9901426_Portuguese_Soudal_Portugal.pdf"
     }
   ]
 }
