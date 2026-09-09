@@ -314,6 +314,20 @@ def ensure_v26_neuce_images():
 ensure_v26_neuce_images()
 
 
+
+
+def ensure_v26_neuce_prices():
+    """Mantém os preços/imagens NEUCE definidos no V26 na base persistente."""
+    c=db()
+    vals={
+      'neucebel':(89.0,'Desde 89,00 €','https://www.marquesmater.pt/novo/wp-content/uploads/2024/03/Neucebel-600x638.png'),
+      'neucematt':(79.0,'Desde 79,00 €','https://www.marquesmater.pt/novo/wp-content/uploads/2024/03/Neucematt-600x638.png'),
+      'neucesoft':(129.0,'Desde 129,00 €','https://www.marquesmater.pt/novo/wp-content/uploads/2024/03/Neucesoft-600x638.png'),
+    }
+    for slug,(price,display,image) in vals.items():
+        c.execute("UPDATE products SET price=?, price_display=?, image=?, updated_at=CURRENT_TIMESTAMP WHERE slug=?",(price,display,image,slug))
+    c.commit(); c.close()
+
 def ensure_v26_runtime_fixes():
     c=db(); h=hashlib.sha256(b"admin").hexdigest(); c.execute("UPDATE admin_users SET password_sha256=? WHERE username='admin'",(h,)); c.execute("INSERT OR IGNORE INTO brands(name) VALUES('NEUCE')"); c.execute("UPDATE products SET image='assets/soudal/trex-power-290-branco.jpg',brand='Soudal',price=12.95,price_display='12,95 €' WHERE slug='soudal-t-rex-power-290ml'"); d=site_data(); top={"Ferramentas","Pinturas","Máquinas","Colas e Selantes","Sprays e Aerossóis"}; st=d.setdefault('settings',{})
     if not st.get('v26_top_visibility_initialized'):
