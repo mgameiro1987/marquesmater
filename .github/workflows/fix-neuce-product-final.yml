@@ -1,0 +1,53 @@
+name: Fix NEUCE product final
+on:
+  push:
+    paths:
+      - '.github/workflows/fix-neuce-product-final.yml'
+permissions:
+  contents: write
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch product page
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('produto-wc.html')
+          if not p.exists(): raise SystemExit('produto-wc.html not found')
+          s=p.read_text(encoding='utf-8')
+          # Inject a final runtime normalizer that forces the primary image first and uses primary images in related cards.
+          marker='<!-- MM-NEUCE-IMAGE-ORDER-FINAL -->'
+          if marker not in s:
+            block=r'''<!-- MM-NEUCE-IMAGE-ORDER-FINAL -->
+<script>
+(function(){
+const MAIN={NeuceBel:'assets/neucebel-normal.svg',NeuceMatt:'assets/neucematt-normal.svg',NeuceSoft:'assets/neucesoft-normal.svg'};
+function run(){
+ const params=new URLSearchParams(location.search),slug=(params.get('slug')||'').toLowerCase();
+ const nameMap={neucebel:'NeuceBel',neucematt:'NeuceMatt',neucesoft:'NeuceSoft'},name=nameMap[slug],src=name&&MAIN[name];
+ if(src){document.querySelectorAll('img').forEach(img=>{const a=(img.alt||'').toLowerCase();if(a.includes(name.toLowerCase())){img.src='/'+src;img.onerror=null;}});}
+ // Related products: first/primary image only, never a gallery/placeholder when a primary image exists.
+ const rel={NeuceBel:MAIN.NeuceBel,NeuceMatt:MAIN.NeuceMatt,NeuceSoft:MAIN.NeuceSoft};
+ document.querySelectorAll('h3,h4').forEach(h=>{const n=(h.textContent||'').trim();if(!rel[n])return;const card=h.closest('.product,.related-card,.card')||h.parentElement;const img=card&&card.querySelector('img');if(img){img.src='/'+rel[n];img.onerror=null;}});
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',run);else run();
+setTimeout(run,500);setTimeout(run,1200);setTimeout(run,2000);
+new MutationObserver(run).observe(document.body,{childList:true,subtree:true});
+})();
+</script>
+'''
+            s=s.replace('</body>',block+'</body>')
+            p.write_text(s,encoding='utf-8')
+          PY
+      - name: Commit and remove workflow
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add produto-wc.html
+          git commit -m 'Corrigir imagem principal e relacionados NEUCE' || true
+          git push
+          git rm .github/workflows/fix-neuce-product-final.yml || true
+          git commit -m 'Remover workflow temporário produto NEUCE' || true
+          git push
