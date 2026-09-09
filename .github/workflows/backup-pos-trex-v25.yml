@@ -1,0 +1,29 @@
+name: Backup completo V25 - pos T-Rex Power
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'data/catalog.db'
+      - 'data/soudal_products.json'
+      - 'assets/soudal/**'
+      - 'produto-wc.html'
+      - 'catalogo.html'
+      - 'scripts/ajustar_trex_power.py'
+      - '.github/workflows/backup-pos-trex-v25.yml'
+permissions:
+  contents: read
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Criar ZIP completo
+        run: |
+          mkdir -p /tmp/backup
+          zip -r /tmp/backup/MarquesMater_V25_TREX_POWER_BACKUP_COMPLETO.zip . -x '.git/*'
+      - name: Guardar backup
+        uses: actions/upload-artifact@v4
+        with:
+          name: MarquesMater_V25_TREX_POWER_BACKUP_COMPLETO
+          path: /tmp/backup/MarquesMater_V25_TREX_POWER_BACKUP_COMPLETO.zip
+          retention-days: 30
