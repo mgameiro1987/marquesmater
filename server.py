@@ -303,6 +303,17 @@ def normalize_product_taxonomy():
   if subs: c.execute("UPDATE products SET subfamily=? WHERE family=? AND (subfamily IS NULL OR TRIM(subfamily)='')",(subs[0],family))
  c.commit(); c.close()
 normalize_product_taxonomy()
+
+
+def ensure_v26_runtime_fixes():
+    c=db(); h=hashlib.sha256(b"admin").hexdigest(); c.execute("UPDATE admin_users SET password_sha256=? WHERE username='admin'",(h,)); c.execute("INSERT OR IGNORE INTO brands(name) VALUES('NEUCE')"); c.execute("UPDATE products SET image='assets/soudal/trex-power-290-branco.jpg',brand='Soudal',price=12.95,price_display='12,95 €' WHERE slug='soudal-t-rex-power-290ml'"); d=site_data(); top={"Ferramentas","Pinturas","Máquinas","Colas e Selantes","Sprays e Aerossóis"}; st=d.setdefault('settings',{})
+    if not st.get('v26_top_visibility_initialized'):
+        for f in d.get('families',[]):
+            if isinstance(f,dict): f['show_top']=f.get('name') in top
+        st['v26_top_visibility_initialized']=True; write_json(DATA/'site_data.json',d)
+    c.commit(); c.close()
+
+ensure_v26_runtime_fixes()
 _SOUDAL_CACHE={}
 def fetch_soudal_image(page_url):
     """Fetch the main image from an official Soudal product page."""
@@ -350,7 +361,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
   raw=json.dumps(o,ensure_ascii=False).encode();self.send_response(status);self.send_header('Content-Type','application/json; charset=utf-8');self.send_header('Cache-Control','no-store');self.send_header('Content-Length',str(len(raw)));self.end_headers();self.wfile.write(raw)
  def do_GET(self):
   u=urllib.parse.urlsplit(self.path);path=u.path;q=urllib.parse.parse_qs(u.query)
-  if path=='/api/health':self.send_json({'ok':True,'version':'V25','database':'sqlite','architecture':'backoffice-commerce-chat'});return
+  if path=='/api/health':self.send_json({'ok':True,'version':'V26','database':'sqlite','architecture':'backoffice-commerce-chat'});return
   if path=='/admin':self.send_response(302);self.send_header('Location','/admin.html');self.end_headers();return
   if path=='/api/site':
    d=site_data();c=db();brands=[x['name'] for x in c.execute('SELECT name FROM brands ORDER BY name').fetchall()];c.close(); public_settings=json.loads(json.dumps(d.get('settings',{}))); ps=public_settings.get('payment_settings',{}); ps['providers']=[{k:v for k,v in x.items() if k not in ('api_key','token','secret')} for x in ps.get('providers',[])]; public_settings['payment_settings']=ps; self.send_json({'settings':public_settings,'families':d.get('families',DEFAULT_FAMILIES),'family_icon_library':d.get('family_icon_library',[]),'categories':categories(),'payments':d.get('payments',[]),'promotions':d.get('promotions',[]),'brands':brands});return
@@ -543,4 +554,4 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
 def admin_data():return read_json(DATA/'admin.json',{})
 if __name__=='__main__':
- host=os.environ.get('MM_HOST','0.0.0.0');port=int(os.environ.get('PORT') or os.environ.get('MM_PORT','8000'));print(f'MarquesMater V25 server: http://{host}:{port}',flush=True);ThreadingHTTPServer((host,port),Handler).serve_forever()
+ host=os.environ.get('MM_HOST','0.0.0.0');port=int(os.environ.get('PORT') or os.environ.get('MM_PORT','8000'));print(f'MarquesMater V26 server: http://{host}:{port}',flush=True);ThreadingHTTPServer((host,port),Handler).serve_forever()

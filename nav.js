@@ -15,7 +15,7 @@
 
     const families=(site?.families||[])
       .map(normalise)
-      .filter(f=>f.name && f.show_menu !== false);
+      .filter(f=>f.name && f.show_menu !== false && f.show_top !== false);
 
     const items=families.map(f=>{
       const name=f.name;
