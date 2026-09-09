@@ -1,5 +1,6 @@
 from pathlib import Path
 import json, sqlite3
+# V25 final: apenas o T-Rex Power 290ml fica ativo na marca Soudal.
 ROOT=Path(__file__).resolve().parents[1]
 DATA=ROOT/'data'/'soudal_products.json'
 DB=ROOT/'data'/'catalog.db'
