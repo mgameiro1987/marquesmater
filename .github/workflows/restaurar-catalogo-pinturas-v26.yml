@@ -1,0 +1,39 @@
+name: Restaurar catálogo Pinturas V26
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Restaurar catalogo.html da V26 base funcional
+        run: |
+          git checkout 60079cdcce459dd9b12f85b6783f5e5d7a0b2d47 -- catalogo.html
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('catalogo.html')
+          s=p.read_text(encoding='utf-8')
+          # Garantir que Pinturas abre diretamente com os 3 produtos NEUCE.
+          marker='<!-- MM-PINTURAS-V26-OPEN-FIX -->'
+          if marker not in s:
+              block='''\n%s\n<script>\n(function(){\n  function showNeuce(){\n    const p=new URLSearchParams(location.search);\n    if(p.get('cat')!=='Pinturas') return;\n    const grid=document.getElementById('grid');\n    if(!grid) return;\n    const items=[\n      {slug:'neucebel',name:'NeuceBel',price:'Preço por variante',image:'https://www.marquesmater.pt/novo/wp-content/uploads/2024/03/Neucebel-600x638.png'},\n      {slug:'neucematt',name:'NeuceMatt',price:'Preço por variante',image:'https://www.marquesmater.pt/novo/wp-content/uploads/2024/03/Neucematt-600x638.png'},\n      {slug:'neucesoft',name:'NeuceSoft',price:'Preço por variante',image:'https://www.marquesmater.pt/novo/wp-content/uploads/2024/03/Neucesoft-600x638.png'}\n    ];\n    const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));\n    grid.innerHTML=items.map(x=>`<a class="product" href="produto-wc.html?slug=${encodeURIComponent(x.slug)}"><div class="pimg"><img src="${esc(x.image)}" alt="${esc(x.name)}" loading="lazy" onerror="this.onerror=null;this.src='/assets/paint-placeholder.svg'"></div><div class="pbody"><small>NEUCE · PINTURAS</small><h3>${esc(x.name)}</h3><div class="price">${esc(x.price)}</div></div></a>`).join('');\n    const c=document.getElementById('count'); if(c)c.textContent='3 produtos NEUCE';\n    const pg=document.getElementById('pager'); if(pg)pg.innerHTML='';\n  }\n  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',showNeuce);else showNeuce();\n  setTimeout(showNeuce,500);\n})();\n</script>\n''' % marker
+              s=s.replace('</body>',block+'</body>',1)
+              p.write_text(s,encoding='utf-8')
+          PY
+          grep -q 'MM-PINTURAS-V26-OPEN-FIX' catalogo.html
+          grep -q 'NeuceBel' catalogo.html
+          grep -q 'NeuceMatt' catalogo.html
+          grep -q 'NeuceSoft' catalogo.html
+      - name: Commit
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add catalogo.html
+          git diff --cached --quiet || git commit -m 'MarquesMater V26 - restaurar catálogo Pinturas funcional'
+          git push
