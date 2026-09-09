@@ -1,0 +1,48 @@
+name: Corrigir Soudal no Render
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Corrigir server.py para limpar Soudal antigo
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('server.py')
+          s = p.read_text(encoding='utf-8')
+          marker = 'ensure_v19_catalog()\n'
+          inject = '''ensure_v19_catalog()\n\ndef ensure_soudal_only_trex():\n    """Remove legacy Soudal products from persistent SQLite data, keeping only T-Rex Power 290ml."""\n    c = db()\n    c.execute("DELETE FROM products WHERE brand='Soudal' AND slug <> 'soudal-t-rex-power-290ml'")\n    c.execute("DELETE FROM brands WHERE name='Soudal'")\n    if c.execute("SELECT 1 FROM products WHERE brand='Soudal' LIMIT 1").fetchone():\n        c.execute("INSERT OR IGNORE INTO brands(name) VALUES('Soudal')")\n    c.commit()\n    c.close()\n\nensure_soudal_only_trex()\n'''
+          if 'def ensure_soudal_only_trex()' not in s:
+              if marker not in s:
+                  raise SystemExit('Marcador ensure_v19_catalog() não encontrado')
+              s = s.replace(marker, inject, 1)
+              p.write_text(s, encoding='utf-8')
+          PY
+
+      - name: Validar Python
+        run: python3 -m py_compile server.py
+
+      - name: Commit e push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add server.py
+          if git diff --cached --quiet; then
+            echo "Sem alterações"
+          else
+            git commit -m "Limpar Soudal antigo da base persistente no Render"
+            git push origin main
+          fi
