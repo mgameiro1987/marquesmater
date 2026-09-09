@@ -13,6 +13,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Preencher grelha RIDA com 12 produtos
         run: |
           python3 - <<'PY'
@@ -46,7 +48,6 @@ jobs:
                 const img=v=>{v=String(v||'').trim();if(!v)return '/assets/paint-placeholder.svg';if(v.startsWith('/'))return v;if(/^https?:\\/\\//i.test(v))return v;return '/'+v.replace(/^\\.\\//,'')};
                 const money=v=>{const n=Number(v);return Number.isFinite(n)?n.toLocaleString('pt-PT',{style:'currency',currency:'EUR'}):esc(v||'Preço sob consulta')};
                 grid.innerHTML=products.map(p=>{
-                  const slug=esc(p.slug||p.id||'');
                   const href='produto.html?slug='+encodeURIComponent(p.slug||'');
                   return `<article class="product-card"><a href="${href}" class="product-image"><img src="${esc(img(p.image))}" alt="${esc(p.name||'Produto RIDA')}" loading="lazy"></a><div class="product-body"><small class="brand">RIDA</small><h3>${esc(p.name||'')}</h3><strong class="price">${money(p.price_display||p.price)}</strong><a class="more" href="${href}">Ver produto →</a></div></article>`;
                 }).join('');
@@ -56,20 +57,20 @@ jobs:
             setTimeout(fillRida,500);
           })();
           </script>'''
-          if '</body>' not in s:
-              raise SystemExit('index.html sem </body>')
+          if '</body>' not in s: raise SystemExit('index.html sem </body>')
           s=s.replace('</body>',payload+'</body>',1)
           p.write_text(s,encoding='utf-8')
-          print('RIDA home fix aplicado')
           PY
       - name: Validar
         run: |
           grep -q 'MM-RIDA-HOME-12-FIX' index.html
           grep -q 'slice(0,12)' index.html
-      - name: Commit e push
+      - name: Commit e push seguro
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add index.html
-          git diff --cached --quiet || git commit -m 'Corrigir grelha RIDA na página principal com 12 produtos'
-          git push
+          git diff --cached --quiet && exit 0
+          git commit -m 'Corrigir grelha RIDA na página principal com 12 produtos'
+          git pull --rebase origin main
+          git push origin HEAD:main
