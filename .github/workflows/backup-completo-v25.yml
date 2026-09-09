@@ -8,6 +8,7 @@ on:
       - 'data/soudal_products.json'
       - 'assets/soudal/**'
       - 'docs/soudal/**'
+      - '.github/workflows/backup-completo-v25.yml'
 
 permissions:
   contents: read
