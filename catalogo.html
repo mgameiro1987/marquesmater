@@ -43,4 +43,26 @@ async function run(){try{const r=await fetch('/data/soudal_products.json?x='+Dat
   setTimeout(showNeuce,500);
 })();
 </script>
+<!-- MM-NEUCE-PINTURAS-FIX -->
+<script>
+(function(){
+  function render(){
+    const params=new URLSearchParams(location.search);
+    if(params.get('cat')!=='Pinturas') return;
+    const grid=document.getElementById('grid');
+    if(!grid) return;
+    const items=[
+      {slug:'neucebel',name:'NeuceBel',price:'Desde 89,00 €',image:'https://www.marquesmater.pt/novo/wp-content/uploads/2024/03/Neucebel-600x638.png'},
+      {slug:'neucematt',name:'NeuceMatt',price:'Desde 79,00 €',image:'https://www.saniluz.pt/cdn/shop/files/5602920000587.jpg?v=1733586586'},
+      {slug:'neucesoft',name:'NeuceSoft',price:'Desde 129,00 €',image:'https://cdn-shopkit.com/usercontent/tintas-vital/media/images/square/37a3a6a-neucesoft.jpeg'}
+    ];
+    const safe=(v)=>String(v).replace(/[&<>\"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#039;'}[m]));
+    grid.innerHTML=items.map(x=>`<a class="product neuce-simple-card" href="produto-wc.html?slug=${encodeURIComponent(x.slug)}"><div class="pimg"><img src="${x.image}" alt="${safe(x.name)}" loading="lazy" onerror="this.onerror=null;this.src='/assets/paint-placeholder.svg'"></div><div class="pbody"><small>NEUCE · PINTURAS</small><h3>${safe(x.name)}</h3><div class="price">${safe(x.price)}</div></div></a>`).join('');
+    const count=document.getElementById('count'); if(count) count.textContent='3 produtos NEUCE';
+    const pager=document.getElementById('pager'); if(pager) pager.innerHTML='';
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',render); else render();
+  setTimeout(render,250);
+})();
+</script>
 </body></html>
