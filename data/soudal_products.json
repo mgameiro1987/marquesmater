@@ -363,8 +363,8 @@
       "category": "Colas e Selantes",
       "subfamily": "Soudal",
       "brand": "Soudal",
-      "price": 13.84,
-      "price_display": "13,84 €",
+      "price": 12.95,
+      "price_display": "12,95 €",
       "vat_rate": 23,
       "stock": 1,
       "supplier": "Soudal",
@@ -384,38 +384,66 @@
         {
           "label": "290ml / Branco",
           "color": "Branco",
-          "price": 13.84
-        },
-        {
-          "label": "290ml / Preto",
-          "color": "Preto",
-          "price": 13.84
+          "price": 12.95,
+          "image": "assets/soudal/trex-power-290-branco.jpg",
+          "asset_image": "assets/soudal/trex-power-290-branco.jpg"
         },
         {
           "label": "290ml / Cinzento",
           "color": "Cinzento",
-          "price": 13.84
+          "price": 12.95,
+          "image": "assets/soudal/trex-power-290-cinzento.jpg",
+          "asset_image": "assets/soudal/trex-power-290-cinzento.jpg"
+        },
+        {
+          "label": "290ml / Preto",
+          "color": "Preto",
+          "price": 12.95,
+          "image": "assets/soudal/trex-power-290-preto.jpg",
+          "asset_image": "assets/soudal/trex-power-290-preto.jpg"
         },
         {
           "label": "290ml / Bege",
           "color": "Bege",
-          "price": 13.84
+          "price": 12.95,
+          "image": "assets/soudal/trex-power-290-bege.jpg",
+          "asset_image": "assets/soudal/trex-power-290-bege.jpg"
         },
         {
           "label": "290ml / Terracota",
           "color": "Terracota",
-          "price": 13.84
+          "price": 12.95,
+          "image": "assets/soudal/trex-power-290-terracota.jpg",
+          "asset_image": "assets/soudal/trex-power-290-terracota.jpg"
         },
         {
-          "label": "290ml / Transparente Água",
-          "color": "Transparente Água",
-          "price": 13.84
+          "label": "290ml / Transparente",
+          "color": "Transparente",
+          "price": 12.95,
+          "image": "assets/soudal/trex-power-290-transparente.jpg",
+          "asset_image": "assets/soudal/trex-power-290-transparente.jpg"
         }
       ],
-      "asset_image": "assets/soudal/soudal-t-rex-power-290ml.jpg",
+      "asset_image": "assets/soudal/trex-power-290-branco.jpg",
       "asset_doc": "docs/soudal/soudal-t-rex-power-290ml.pdf",
       "downloaded_image_url": "http://www.soudalshop.pt/cdn/shop/files/T-Rex_Power_96dpi_251x1181px_X_NR-32998_145082_09d0af68-e7d6-41ee-bb58-42114d8dbd0e.jpg?v=1768390083",
-      "downloaded_doc_url": "https://www.soudal.pt/sites/default/files/soudal_api/document/900009480/TDS_Soudal_T-Rex_Power_9901099_Portuguese_Soudal_Portugal.pdf"
+      "downloaded_doc_url": "https://www.soudal.pt/sites/default/files/soudal_api/document/900009480/TDS_Soudal_T-Rex_Power_9901099_Portuguese_Soudal_Portugal.pdf",
+      "variant_images_local": {
+        "Branco": "assets/soudal/trex-power-290-branco.jpg",
+        "Cinzento": "assets/soudal/trex-power-290-cinzento.jpg",
+        "Preto": "assets/soudal/trex-power-290-preto.jpg",
+        "Bege": "assets/soudal/trex-power-290-bege.jpg",
+        "Terracota": "assets/soudal/trex-power-290-terracota.jpg",
+        "Transparente": "assets/soudal/trex-power-290-transparente.jpg"
+      },
+      "gallery_local": [
+        "assets/soudal/trex-power-290-branco.jpg",
+        "assets/soudal/trex-power-290-cinzento.jpg",
+        "assets/soudal/trex-power-290-preto.jpg",
+        "assets/soudal/trex-power-290-bege.jpg",
+        "assets/soudal/trex-power-290-terracota.jpg",
+        "assets/soudal/trex-power-290-transparente.jpg"
+      ]
     },
     {
       "slug": "soudal-t-rex-turbo-290ml",
