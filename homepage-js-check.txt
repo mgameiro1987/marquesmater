@@ -1,15 +1,12 @@
 Homepage JavaScript diagnostic
-Commit: 8134a6bacdcf918a0ee455c5e656ed727ec671f3
+Commit: 0ce55841c9fa6ed0b86c7741d96fc31e4045d594
 --- node --check ---
-node:internal/modules/esm/get_format:219
-  throw new ERR_UNKNOWN_FILE_EXTENSION(ext, filepath);
-        ^
+/tmp/scripts.js:7
+function renderHero(a){let s=(a||[]).find(x=>x&&x.enabled!==false)||{tag:'MarquesMater',title:'Tudo para os seus projetos',text:'Materiais de construção, ferramentas, tintas e muito mais. Qualidade e confiança num só lugar.',button:'Ver todas as categorias →',link:'catalogo.html',image:'assets/RCH072D6-B24.png'};document.getElementById('mm-home-hero').innerHTML=`<div class='mm-home-hero'><img class='hero-bg' src='${esc(imgUrl(s.image))}'><div class='container'><div class='mm-hero-copy'><div class='tag'>${esc(s.tag||'MarquesMater')}</div><h1>${esc(s.title||'Tudo para os seus projetos').replace(/
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        ^
 
-TypeError [ERR_UNKNOWN_FILE_EXTENSION]: Unknown file extension ".txt" for /tmp/scripts.txt
-    at Object.getFileProtocolModuleFormat [as file:] (node:internal/modules/esm/get_format:219:9)
-    at defaultGetFormat (node:internal/modules/esm/get_format:245:36)
-    at checkSyntax (node:internal/main/check_syntax:69:20) {
-  code: 'ERR_UNKNOWN_FILE_EXTENSION'
-}
+SyntaxError: Invalid regular expression: missing /
+    at wrapSafe (node:internal/modules/cjs/loader:1713:18)
+    at checkSyntax (node:internal/main/check_syntax:78:3)
 
 Node.js v22.23.2
