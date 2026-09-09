@@ -1,7 +1,6 @@
 /* MarquesMater — carrossel de marcas */
 .brands-featured{background:#fff;padding:42px 0}
 .brands-featured .section-head{margin-bottom:18px}
-.brands-featured .brands-grid{display:none!important}
 .mm-brands-wrap{position:relative;padding:0 42px}
 .mm-brands-track{display:flex;gap:14px;overflow-x:auto;scroll-behavior:smooth;scrollbar-width:none;padding:4px 2px 12px}
 .mm-brands-track::-webkit-scrollbar{display:none}
@@ -9,9 +8,7 @@
 .mm-brand-card:hover{transform:translateY(-3px);border-color:#f28c00;box-shadow:0 12px 28px rgba(17,21,27,.1)}
 .mm-brand-card img{max-width:100%;max-height:72px;width:auto;height:auto;object-fit:contain;display:block}
 .mm-brand-text{font-weight:950;font-size:30px;letter-spacing:-.05em;color:#16212b;text-align:center}
-.mm-brand-card[aria-label="VITO"]{background-image:url('/assets/brand-vito.svg');background-repeat:no-repeat;background-position:center;background-size:82% auto}
-.mm-brand-card[aria-label="VITO"] img{display:none!important}
 .mm-brand-arrow{position:absolute;top:50%;transform:translateY(-50%);z-index:3;width:36px;height:36px;border:1px solid #d7dde2;border-radius:50%;background:#fff;color:#17212b;font-size:24px;font-weight:900;box-shadow:0 4px 14px #0002}
 .mm-brand-arrow.prev{left:0}.mm-brand-arrow.next{right:0}
 @media(max-width:1000px){.mm-brand-card{flex-basis:calc((100% - 28px)/3)}}
-@media(max-width:600px){.mm-brands-wrap{padding:0 34px}.mm-brand-card{flex-basis:calc((100% - 10px)/2);min-width:140px;height:100px}.mm-brand-card img{max-height:58px}.mm-brand-text{font-size:24px}.mm-brand-card[aria-label="VITO"]{background-size:88% auto}}
+@media(max-width:600px){.mm-brands-wrap{padding:0 34px}.mm-brand-card{flex-basis:calc((100% - 10px)/2);min-width:140px;height:100px}.mm-brand-card img{max-height:58px}.mm-brand-text{font-size:24px}}
