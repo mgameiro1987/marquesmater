@@ -1,0 +1,65 @@
+name: Fix NEUCE images
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Apply local NEUCE gallery
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          catalog=Path('catalogo.html')
+          product=Path('produto-wc.html')
+          catalog_text=catalog.read_text(encoding='utf-8')
+          product_text=product.read_text(encoding='utf-8')
+          block=r'''<script id="MM_NEUCE_LOCAL_GALLERY">
+          (function(){
+            const MAP={
+              'NeuceBel':{normal:'/assets/neucebel-normal.svg',worked:'/assets/neucebel-trabalhada.svg'},
+              'NeuceMatt':{normal:'/assets/neucematt-normal.svg',worked:'/assets/neucematt-trabalhada.svg'},
+              'NeuceSoft':{normal:'/assets/neucesoft-normal.svg',worked:'/assets/neucesoft-trabalhada.svg'}
+            };
+            function gallery(name){const p=MAP[name];if(!p)return '';return `<div class="mm-local-gallery"><div class="mm-local-slide active"><span>IMAGEM TRABALHADA</span><img src="${p.worked}" alt="${name} — imagem trabalhada"></div><div class="mm-local-slide"><span>IMAGEM NORMAL</span><img src="${p.normal}" alt="${name} — imagem normal"></div><button type="button" class="mm-local-prev">‹</button><button type="button" class="mm-local-next">›</button><div class="mm-local-dots"><i class="active"></i><i></i></div></div>`}
+            function apply(){document.querySelectorAll('#grid .product').forEach(card=>{const name=(card.querySelector('h3')?.textContent||'').trim();if(!MAP[name])return;const host=card.querySelector('.pimg');if(!host||host.dataset.mmLocal==='1')return;host.dataset.mmLocal='1';host.innerHTML=gallery(name);const slides=[...host.querySelectorAll('.mm-local-slide')],dots=[...host.querySelectorAll('.mm-local-dots i')];let i=0;const go=n=>{i=(n+2)%2;slides.forEach((s,k)=>s.classList.toggle('active',k===i));dots.forEach((d,k)=>d.classList.toggle('active',k===i))};host.querySelector('.mm-local-prev').onclick=e=>{e.preventDefault();e.stopPropagation();go(i-1)};host.querySelector('.mm-local-next').onclick=e=>{e.preventDefault();e.stopPropagation();go(i+1)};dots.forEach((d,k)=>d.onclick=e=>{e.preventDefault();e.stopPropagation();go(k)});host.onclick=e=>{if(e.target.closest('button')||e.target.closest('i'))return;e.preventDefault();e.stopPropagation();go(i+1)}})}
+            const css=document.createElement('style');css.textContent=`.mm-local-gallery{position:relative;width:100%;height:100%;min-height:190px;overflow:hidden;background:#f7f8fa}.mm-local-slide{position:absolute;inset:0;display:none;align-items:center;justify-content:center;padding:8px}.mm-local-slide.active{display:flex}.mm-local-slide img{width:100%;height:100%;object-fit:contain}.mm-local-slide span{position:absolute;z-index:3;top:7px;left:7px;background:#fff;border:1px solid #e1e5e9;border-radius:999px;padding:4px 7px;font-size:8px;font-weight:900;color:#17212b}.mm-local-prev,.mm-local-next{position:absolute;z-index:4;top:50%;transform:translateY(-50%);width:24px;height:24px;border:1px solid #dfe3e7;border-radius:50%;background:#fff;color:#17212b;font-size:18px;line-height:18px}.mm-local-prev{left:5px}.mm-local-next{right:5px}.mm-local-dots{position:absolute;z-index:4;right:7px;bottom:6px;display:flex;gap:4px}.mm-local-dots i{display:block;width:7px;height:7px;border-radius:50%;background:#c7cdd2}.mm-local-dots i.active{background:#f28c00}@media(max-width:600px){.mm-local-gallery{min-height:170px}}`;document.head.appendChild(css);
+            function run(){apply();setTimeout(apply,250);setTimeout(apply,700);setTimeout(apply,1500)}
+            if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',run);else run();
+            const obs=new MutationObserver(apply);setTimeout(()=>obs.observe(document.getElementById('grid')||document.body,{childList:true,subtree:true}),300);
+          })();
+          </script>'''
+          if 'id="MM_NEUCE_LOCAL_GALLERY"' not in catalog_text:
+              catalog_text=catalog_text.replace('</body>',''+block+'</body>')
+          # Product page: replace the single remote image gallery with the same two local images for the three NEUCE products.
+          pblock=r'''<script id="MM_NEUCE_PRODUCT_LOCAL">
+          (function(){
+            const MAP={neucebel:['/assets/neucebel-trabalhada.svg','/assets/neucebel-normal.svg'],neucematt:['/assets/neucematt-trabalhada.svg','/assets/neucematt-normal.svg'],neucesoft:['/assets/neucesoft-trabalhada.svg','/assets/neucesoft-normal.svg']};
+            const key=(new URLSearchParams(location.search).get('slug')||'').toLowerCase();const imgs=MAP[key];if(!imgs)return;
+            function apply(){const app=document.getElementById('app');if(!app)return;const main=app.querySelector('#mainImg');const thumbs=app.querySelector('.thumbs');if(!main||!thumbs)return;if(app.dataset.mmNeuce==='1')return;app.dataset.mmNeuce='1';main.src=imgs[0];main.alt='NEUCE — imagem trabalhada';thumbs.innerHTML=imgs.map((src,i)=>`<button class="thumb ${i===0?'active':''}" type="button"><img src="${src}" alt=""></button>`).join('');const ts=[...thumbs.querySelectorAll('.thumb')];ts.forEach((b,i)=>b.onclick=()=>{main.src=imgs[i];main.alt=i===0?'NEUCE — imagem trabalhada':'NEUCE — imagem normal';ts.forEach(x=>x.classList.remove('active'));b.classList.add('active')});}
+            const run=()=>{apply();setTimeout(apply,300);setTimeout(apply,900)};if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',run);else run();const obs=new MutationObserver(apply);obs.observe(document.getElementById('app')||document.body,{childList:true,subtree:true});
+          })();
+          </script>'''
+          if 'id="MM_NEUCE_PRODUCT_LOCAL"' not in product_text:
+              product_text=product_text.replace('</body>',pblock+'</body>')
+          catalog.write_text(catalog_text,encoding='utf-8')
+          product.write_text(product_text,encoding='utf-8')
+          PY
+      - name: Commit changes and remove temporary workflow
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add catalogo.html produto-wc.html
+          git commit -m 'Corrigir imagens NEUCE e galeria local' || true
+          rm -f .github/workflows/fix-neuce-images.yml
+          git add .github/workflows/fix-neuce-images.yml
+          git commit -m 'Remover workflow temporário de correção NEUCE' || true
+          git push origin HEAD:main
