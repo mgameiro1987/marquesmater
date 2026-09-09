@@ -1,0 +1,90 @@
+name: Atualizar marcas e gestor de marcas
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: ${{ !contains(github.event.head_commit.message, 'Gestor de marcas aplicado') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Aplicar gestão das marcas
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          Path('assets/brand-aslo.svg').write_text('''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 180"><rect width="520" height="180" fill="white"/><circle cx="70" cy="78" r="28" fill="#f28c00"/><path d="M55 78h30M70 63v30" stroke="white" stroke-width="7" stroke-linecap="round"/><text x="115" y="92" font-family="Arial,Helvetica,sans-serif" font-size="72" font-weight="700" fill="#f28c00">Aslo</text><text x="119" y="132" font-family="Arial,Helvetica,sans-serif" font-size="18" font-weight="700" letter-spacing="4" fill="#f28c00">BRIGHTER LIFE</text></svg>''', encoding='utf-8')
+
+          Path('assets/brand-logos.css').write_text('''/* MarquesMater — carrossel de marcas */
+          .brands-featured{background:#fff;padding:42px 0}
+          .brands-featured .section-head{margin-bottom:18px}
+          .mm-brands-wrap{position:relative;padding:0 42px}
+          .mm-brands-track{display:flex;gap:14px;overflow-x:auto;scroll-behavior:smooth;scrollbar-width:none;padding:4px 2px 12px}
+          .mm-brands-track::-webkit-scrollbar{display:none}
+          .mm-brand-card{flex:0 0 calc((100% - 56px)/5);min-width:150px;height:118px;border:1px solid #e1e5e9;border-radius:14px;background:#fff;display:flex;align-items:center;justify-content:center;padding:18px;box-shadow:0 3px 12px rgba(17,21,27,.06);transition:.18s;text-decoration:none}
+          .mm-brand-card:hover{transform:translateY(-3px);border-color:#f28c00;box-shadow:0 12px 28px rgba(17,21,27,.1)}
+          .mm-brand-card img{max-width:100%;max-height:72px;width:auto;height:auto;object-fit:contain;display:block}
+          .mm-brand-text{font-weight:950;font-size:30px;letter-spacing:-.05em;color:#16212b;text-align:center}
+          .mm-brand-arrow{position:absolute;top:50%;transform:translateY(-50%);z-index:3;width:36px;height:36px;border:1px solid #d7dde2;border-radius:50%;background:#fff;color:#17212b;font-size:24px;font-weight:900;box-shadow:0 4px 14px #0002}
+          .mm-brand-arrow.prev{left:0}.mm-brand-arrow.next{right:0}
+          @media(max-width:1000px){.mm-brand-card{flex-basis:calc((100% - 28px)/3)}}
+          @media(max-width:600px){.mm-brands-wrap{padding:0 34px}.mm-brand-card{flex-basis:calc((100% - 10px)/2);min-width:140px;height:100px}.mm-brand-card img{max-height:58px}.mm-brand-text{font-size:24px}}
+          ''', encoding='utf-8')
+
+          idx=Path('index.html'); s=idx.read_text(encoding='utf-8')
+          marker='MM-BRANDS-CAROUSEL-20260909'
+          if marker not in s:
+              block=r'''<style id="MM-BRANDS-CSS-20260909">.mm-brands-hide-more{display:none!important}</style>
+              <script id="MM-BRANDS-CAROUSEL-20260909">(function(){
+              const defaults=[
+                {name:'RIDA',logo:'/assets/rida-logo.png',brand:'RIDA'},
+                {name:'NEUCE',logo:'https://www.saniluz.pt/cdn/shop/files/5602920000587.jpg?v=1733586586',brand:'NEUCE'},
+                {name:'SOUDAL',logo:'https://images.tcdn.com.br/img/img_prod/1206448/espuma_expansiva_pro_foam_340_soudal_500ml_3093_2_c5ccba014714e485173f80a976f243fb.jpg',brand:'Soudal'},
+                {name:'VITO',logo:'https://www.developmentaid.org/files/organizationLogos/leega-power-and-tools-505312.jpg',brand:'VITO'},
+                {name:'BOSCH',logo:'https://upload.wikimedia.org/wikipedia/commons/c/c3/Bosch_logo.png',brand:'Bosch'},
+                {name:'ASLO',logo:'/assets/brand-aslo.svg',brand:'ASLO'}
+              ];
+              const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+              function build(brands){const sec=document.getElementById('brands-featured');if(!sec)return;const head=sec.querySelector('.section-head');if(head){const old=head.querySelector('.section-link');if(old){old.textContent='';old.classList.add('mm-brands-hide-more')}}let data=(Array.isArray(brands)?brands:[]).filter(x=>x&&x.visible!==false&&x.name&&x.logo);if(!data.length)data=defaults;const oldWrap=sec.querySelector('.mm-brands-wrap');if(oldWrap)oldWrap.remove();const wrap=document.createElement('div');wrap.className='mm-brands-wrap';wrap.innerHTML='<button class="mm-brand-arrow prev" aria-label="Marcas anteriores">‹</button><div class="mm-brands-track">'+data.map(x=>`<a class="mm-brand-card" href="${esc(x.brand?'catalogo.html?brand='+encodeURIComponent(x.brand):'#')}" aria-label="${esc(x.name)}"><img src="${esc(x.logo)}" alt="${esc(x.name)}" onerror="this.style.display='none';this.parentElement.insertAdjacentHTML('beforeend','<span class=\"mm-brand-text\">${esc(x.name)}</span>')"></a>`).join('')+'</div><button class="mm-brand-arrow next" aria-label="Próximas marcas">›</button>';sec.querySelector('.container').appendChild(wrap);const tr=wrap.querySelector('.mm-brands-track');wrap.querySelector('.prev').onclick=()=>tr.scrollBy({left:-tr.clientWidth*.82,behavior:'smooth'});wrap.querySelector('.next').onclick=()=>tr.scrollBy({left:tr.clientWidth*.82,behavior:'smooth'});}
+              async function boot(){try{const r=await fetch('/api/site',{cache:'no-store'});const d=await r.json();build(d?.settings?.homepage?.brands||[])}catch(e){build(defaults)}}
+              if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
+              })();</script>'''
+              s=s.replace('</body>',block+'\n</body>')
+              idx.write_text(s,encoding='utf-8')
+
+          adm=Path('admin.html'); a=adm.read_text(encoding='utf-8')
+          amarker='MM-BRANDS-MANAGER-20260909'
+          if amarker not in a:
+              inject=r'''<style id="MM-BRANDS-MANAGER-CSS-20260909">.mm-brand-manager{display:grid;gap:14px}.mm-brand-manager-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.mm-brand-editor{border:1px solid #e0e5e9;border-radius:14px;padding:15px;background:#fff}.mm-brand-logo-preview{height:100px;border:1px dashed #cfd7dd;border-radius:10px;background:#f7f9fa;display:flex;align-items:center;justify-content:center;margin:10px 0;overflow:hidden}.mm-brand-logo-preview img{max-width:90%;max-height:78px;object-fit:contain}.mm-brand-visible{display:flex;align-items:center;gap:8px;font-weight:900;font-size:12px}.mm-brand-visible input{width:18px;height:18px}.mm-brand-manager-head{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}@media(max-width:800px){.mm-brand-manager-list{grid-template-columns:1fr}}</style>
+              <script id="MM-BRANDS-MANAGER-20260909">(function(){
+              const DEFAULTS=[
+                {name:'RIDA',logo:'/assets/rida-logo.png',visible:true,brand:'RIDA'},
+                {name:'NEUCE',logo:'https://www.saniluz.pt/cdn/shop/files/5602920000587.jpg?v=1733586586',visible:true,brand:'NEUCE'},
+                {name:'SOUDAL',logo:'https://images.tcdn.com.br/img/img_prod/1206448/espuma_expansiva_pro_foam_340_soudal_500ml_3093_2_c5ccba014714e485173f80a976f243fb.jpg',visible:true,brand:'Soudal'},
+                {name:'VITO',logo:'https://www.developmentaid.org/files/organizationLogos/leega-power-and-tools-505312.jpg',visible:true,brand:'VITO'},
+                {name:'BOSCH',logo:'https://upload.wikimedia.org/wikipedia/commons/c/c3/Bosch_logo.png',visible:true,brand:'Bosch'},
+                {name:'ASLO',logo:'/assets/brand-aslo.svg',visible:true,brand:'ASLO'}
+              ];
+              let brands=[];const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+              async function load(){try{const r=await fetch('/api/admin/state',{cache:'no-store'});const d=await r.json();brands=Array.isArray(d?.settings?.homepage?.brands)&&d.settings.homepage.brands.length?d.settings.homepage.brands:DEFAULTS.map(x=>({...x}));}catch(e){brands=DEFAULTS.map(x=>({...x}))}}
+              async function save(){const status=document.getElementById('mmBrandStatus');if(status)status.textContent='A guardar...';try{const r=await fetch('/api/admin/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({homepage:{brands}})});if(!r.ok)throw Error('Não foi possível guardar');if(status)status.textContent='Guardado com sucesso.';setTimeout(()=>{if(status)status.textContent=''},2200)}catch(e){if(status)status.textContent='Erro: '+e.message}}
+              function render(){const v=document.getElementById('mmBrandsView');if(!v)return;const list=v.querySelector('.mm-brand-manager-list');list.innerHTML=brands.map((b,i)=>`<div class="mm-brand-editor"><div class="toolbar"><strong>Marca ${i+1}</strong><button class="btn danger" type="button" data-del="${i}">Remover</button></div><label class="label">Nome da marca</label><input class="input" data-name="${i}" value="${esc(b.name)}"><label class="label" style="margin-top:8px">Logótipo</label><div class="mm-brand-logo-preview"><img id="mmBrandPreview${i}" src="${esc(b.logo||'/assets/paint-placeholder.svg')}" alt=""></div><div class="actions"><label class="btn primary">🖼️ Escolher logótipo<input type="file" accept="image/*,.svg" data-file="${i}" style="display:none"></label><input class="input" style="flex:1;min-width:180px" data-logo="${i}" value="${esc(b.logo||'')}" placeholder="URL do logótipo"></div><label class="mm-brand-visible" style="margin-top:10px"><input type="checkbox" data-visible="${i}" ${b.visible!==false?'checked':''}> Visível no site</label></div>`).join('');list.querySelectorAll('[data-name]').forEach(x=>x.oninput=()=>brands[+x.dataset.name].name=x.value);list.querySelectorAll('[data-logo]').forEach(x=>x.oninput=()=>{brands[+x.dataset.logo].logo=x.value;const p=document.getElementById('mmBrandPreview'+x.dataset.logo);if(p)p.src=x.value});list.querySelectorAll('[data-visible]').forEach(x=>x.onchange=()=>brands[+x.dataset.visible].visible=x.checked);list.querySelectorAll('[data-del]').forEach(x=>x.onclick=()=>{brands.splice(+x.dataset.del,1);render()});list.querySelectorAll('[data-file]').forEach(x=>x.onchange=async()=>{const f=x.files?.[0];if(!f)return;const i=+x.dataset.file;const fd=new FormData();fd.append('file',f);try{const r=await fetch('/api/admin/upload',{method:'POST',body:fd});const j=await r.json();if(!j.url)throw Error(j.error||'Upload falhou');brands[i].logo='/'+j.url;render()}catch(e){alert('Erro ao carregar logótipo: '+e.message)}})}
+              function open(){const a=document.getElementById('app');if(!a)return;a.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));let v=document.getElementById('mmBrandsView');if(!v){v=document.createElement('section');v.id='mmBrandsView';v.className='view active';v.innerHTML='<div class="panel mm-brand-manager"><div class="mm-brand-manager-head"><div><h2>As nossas marcas</h2><p class="muted">Adiciona marcas, coloca o logótipo e escolhe se aparecem ou não no site.</p></div><div class="actions"><button class="btn" id="mmBrandAdd">+ Nova marca</button><button class="btn primary" id="mmBrandSave">Guardar alterações</button></div></div><div id="mmBrandStatus" class="muted"></div><div class="mm-brand-manager-list"></div></div>';a.appendChild(v);v.querySelector('#mmBrandAdd').onclick=()=>{brands.push({name:'Nova marca',logo:'/assets/paint-placeholder.svg',visible:true,brand:''});render()};v.querySelector('#mmBrandSave').onclick=save}v.classList.add('active');render()}
+              function nav(){const n=document.querySelector('.side .nav');if(!n||n.querySelector('[data-mm-brands]'))return;const b=document.createElement('button');b.type='button';b.dataset.mmBrands='1';b.textContent='🏷️ As nossas marcas';b.onclick=async()=>{await load();open()};n.appendChild(b)}
+              if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',nav);else nav();window.MM_OPEN_BRANDS=open;
+              })();</script>'''
+              a=a.replace('</body>',inject+'\n</body>')
+              adm.write_text(a,encoding='utf-8')
+          PY
+      - name: Commit e push
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html admin.html assets/brand-logos.css assets/brand-aslo.svg
+          git diff --cached --quiet || git commit -m 'Gestor de marcas aplicado — Logotipos reais das marcas — Homepage final + Back Office imagens — Repor layout anterior aplicado'
+          git push
