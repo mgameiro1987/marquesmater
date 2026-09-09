@@ -13,6 +13,7 @@ jobs:
         with:
           fetch-depth: 0
       - run: python3 scripts/v26_runtime_fix.py
+      - run: python3 scripts/v26_render_neuce.py
       - run: python3 -m py_compile server.py
       - name: Commit
         run: |
