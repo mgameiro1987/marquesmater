@@ -1,14 +1,15 @@
-/* MarquesMater — carrossel de marcas */
+/* MarquesMater — logotipos reais das marcas */
 .brands-featured{background:#fff;padding:42px 0}
-.brands-featured .section-head{margin-bottom:18px}
-.mm-brands-wrap{position:relative;padding:0 42px}
-.mm-brands-track{display:flex;gap:14px;overflow-x:auto;scroll-behavior:smooth;scrollbar-width:none;padding:4px 2px 12px}
-.mm-brands-track::-webkit-scrollbar{display:none}
-.mm-brand-card{flex:0 0 calc((100% - 56px)/5);min-width:150px;height:118px;border:1px solid #e1e5e9;border-radius:14px;background:#fff;display:flex;align-items:center;justify-content:center;padding:18px;box-shadow:0 3px 12px rgba(17,21,27,.06);transition:.18s;text-decoration:none}
-.mm-brand-card:hover{transform:translateY(-3px);border-color:#f28c00;box-shadow:0 12px 28px rgba(17,21,27,.1)}
-.mm-brand-card img{max-width:100%;max-height:72px;width:auto;height:auto;object-fit:contain;display:block}
-.mm-brand-text{font-weight:950;font-size:30px;letter-spacing:-.05em;color:#16212b;text-align:center}
-.mm-brand-arrow{position:absolute;top:50%;transform:translateY(-50%);z-index:3;width:36px;height:36px;border:1px solid #d7dde2;border-radius:50%;background:#fff;color:#17212b;font-size:24px;font-weight:900;box-shadow:0 4px 14px #0002}
-.mm-brand-arrow.prev{left:0}.mm-brand-arrow.next{right:0}
-@media(max-width:1000px){.mm-brand-card{flex-basis:calc((100% - 28px)/3)}}
-@media(max-width:600px){.mm-brands-wrap{padding:0 34px}.mm-brand-card{flex-basis:calc((100% - 10px)/2);min-width:140px;height:100px}.mm-brand-card img{max-height:58px}.mm-brand-text{font-size:24px}}
+.brands-featured .brands-grid{grid-template-columns:repeat(6,minmax(0,1fr));gap:14px}
+.brands-featured .brand-tile{min-height:112px;border:1px solid #e1e5e9;border-radius:14px;background:#fff;display:flex;align-items:center;justify-content:center;padding:20px;position:relative;overflow:hidden;box-shadow:0 3px 12px rgba(17,21,27,.06);transition:transform .18s,border-color .18s,box-shadow .18s}
+.brands-featured .brand-tile:hover{transform:translateY(-3px);border-color:#cfd5dd;box-shadow:0 12px 28px rgba(17,21,27,.1)}
+.brands-featured .brand-tile strong,.brands-featured .brand-tile small{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.brands-featured .brand-tile:before{content:"";display:block;width:100%;height:66px;background-repeat:no-repeat;background-position:center;background-size:contain}
+.brands-featured .brand-tile:nth-child(1):before{background-image:url('/assets/rida-logo.png')}
+.brands-featured .brand-tile:nth-child(2):before{background-image:url('https://supplymaster.store/cdn/shop/collections/10013748_781002805280107_6928551319780305804_n_1.jpg?v=1627140638&width=1296')}
+.brands-featured .brand-tile:nth-child(3):before{background-image:url('https://images.tcdn.com.br/img/img_prod/1206448/espuma_expansiva_pro_foam_340_soudal_500ml_3093_2_c5ccba014714e485173f80a976f243fb.jpg')}
+.brands-featured .brand-tile:nth-child(4):before{background-image:url('https://www.developmentaid.org/files/organizationLogos/leega-power-and-tools-505312.jpg')}
+.brands-featured .brand-tile:nth-child(5):before{background-image:url('https://upload.wikimedia.org/wikipedia/commons/c/c3/Bosch_logo.png')}
+.brands-featured .brand-tile:nth-child(6):before{background-image:url('https://gereed3d.nl/cdn/shop/collections/Makita.png?v=1732651049')}
+@media(max-width:900px){.brands-featured .brands-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:520px){.brands-featured .brands-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.brands-featured .brand-tile{min-height:96px;padding:14px}.brands-featured .brand-tile:before{height:58px}}
