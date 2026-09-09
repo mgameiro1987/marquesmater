@@ -1,0 +1,1 @@
+Aplicar layout final da homepage e gestor de imagens.
