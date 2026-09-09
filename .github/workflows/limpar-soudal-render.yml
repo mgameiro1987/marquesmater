@@ -16,7 +16,8 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
+      - name: Aplicar homepage V10 e gestor de imagens
+        run: python3 .github/homepage_v10.py
       - name: Corrigir server.py para limpar Soudal antigo e NEUCE
         run: |
           python3 - <<'PY'
@@ -34,29 +35,23 @@ jobs:
               s=s[:pos]+fn+'ensure_neuce_final()\n'+s[pos:]
           p.write_text(s,encoding='utf-8')
           PY
-
       - name: Corrigir cartões NEUCE da página Pinturas
         run: |
           python3 - <<'PY'
           from pathlib import Path
           p=Path('catalogo.html'); s=p.read_text(encoding='utf-8')
-          urls={
-            'https://www.marquesmater.pt/novo/wp-content/uploads/2024/03/Neucebel-600x638.png':'https://wsrv.nl/?url=https%3A%2F%2Ftemplodastintas.pt%2Fcdn%2Fshop%2Ffiles%2Fneucebel.png%3Fv%3D1705605720%26width%3D533&w=600&h=600&fit=inside',
-            'https://www.marquesmater.pt/novo/wp-content/uploads/2024/03/Neucematt-600x638.png':'https://wsrv.nl/?url=https%3A%2F%2Fwww.saniluz.pt%2Fcdn%2Fshop%2Ffiles%2F5602920000587.jpg%3Fv%3D1733586586&w=600&h=600&fit=inside',
-            'https://www.marquesmater.pt/novo/wp-content/uploads/2024/03/Neucesoft-600x638.png':'https://wsrv.nl/?url=https%3A%2F%2Fcdn-shopkit.com%2Fusercontent%2Ftintas-vital%2Fmedia%2Fimages%2Fsquare%2F37a3a6a-neucesoft.jpeg&w=600&h=600&fit=inside'}
+          urls={'https://www.marquesmater.pt/novo/wp-content/uploads/2024/03/Neucebel-600x638.png':'https://wsrv.nl/?url=https%3A%2F%2Ftemplodastintas.pt%2Fcdn%2Fshop%2Ffiles%2Fneucebel.png%3Fv%3D1705605720%26width%3D533&w=600&h=600&fit=inside','https://www.marquesmater.pt/novo/wp-content/uploads/2024/03/Neucematt-600x638.png':'https://wsrv.nl/?url=https%3A%2F%2Fwww.saniluz.pt%2Fcdn%2Fshop%2Ffiles%2F5602920000587.jpg%3Fv%3D1733586586&w=600&h=600&fit=inside','https://www.marquesmater.pt/novo/wp-content/uploads/2024/03/Neucesoft-600x638.png':'https://wsrv.nl/?url=https%3A%2F%2Fcdn-shopkit.com%2Fusercontent%2Ftintas-vital%2Fmedia%2Fimages%2Fsquare%2F37a3a6a-neucesoft.jpeg&w=600&h=600&fit=inside'}
           for a,b in urls.items(): s=s.replace(a,b)
           if 'MM-NEUCE-FINAL' not in s:
             patch='<style id="MM-NEUCE-FINAL">body.mm-neuce-final .more{display:none!important}</style><script>(function(){function f(){var p=new URLSearchParams(location.search);if(p.get("cat")!=="Pinturas")return;document.body.classList.add("mm-neuce-final");document.querySelectorAll("#grid .product").forEach(function(c){var n=(c.querySelector("h3")||{}).textContent||"";var v={"NeuceBel":"89,90 €","NeuceMatt":"69,90 €","NeuceSoft":"129,90 €"}[n.trim()];if(v){var q=c.querySelector(".price");if(q)q.textContent=v;var m=c.querySelector(".more");if(m)m.remove()}})}if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",function(){setTimeout(f,200);setTimeout(f,1000)});else{setTimeout(f,200);setTimeout(f,1000)}})();</script>'
             s=s.replace('</body>',patch+'</body>')
           p.write_text(s,encoding='utf-8')
           PY
-
       - name: Validar
-        run: python3 -m py_compile server.py
-
+        run: python3 -m py_compile server.py .github/homepage_v10.py
       - name: Commit e push
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add server.py catalogo.html
-          if git diff --cached --quiet; then echo "Sem alterações"; else git commit -m "NEUCE: imagens cacheadas, preços e sem Ver produto"; git push origin main; fi
+          git add server.py catalogo.html index.html admin.html
+          if git diff --cached --quiet; then echo "Sem alterações"; else git commit -m "Homepage V10 profissional + gestor de imagens"; git push origin main; fi
