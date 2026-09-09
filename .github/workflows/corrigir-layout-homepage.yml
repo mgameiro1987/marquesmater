@@ -1,0 +1,103 @@
+name: Corrigir layout final da homepage
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  fix:
+    if: ${{ !contains(github.event.head_commit.message, 'Aplicar correção final homepage') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Corrigir homepage e persistência das imagens
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          idx=Path('index.html')
+          s=idx.read_text(encoding='utf-8')
+          marker='MM-HOMEPAGE-FINAL-FIX-20260909'
+          if marker not in s:
+              s=s.replace('</head>', '<link rel="stylesheet" href="/assets/homepage-final-fix.css">\\n</head>')
+              s=s.replace('</body>', '<script id="MM-HOMEPAGE-FINAL-FIX-20260909" src="/assets/homepage-final-fix.js"></script>\\n</body>')
+              s=s.replace('</html>', '<!-- '+marker+' -->\\n</html>')
+              idx.write_text(s,encoding='utf-8')
+          adm=Path('admin.html')
+          a=adm.read_text(encoding='utf-8')
+          am='MM-ADMIN-MEDIA-PERSIST-20260909'
+          if am not in a:
+              a=a.replace('</body>', '<script id="'+am+'" src="/assets/admin-media-persist.js"></script>\\n</body>')
+              adm.write_text(a,encoding='utf-8')
+          css=Path('assets/homepage-final-fix.css')
+          css.write_text(r'''/* MM-HOMEPAGE-FINAL-FIX-20260909 */
+          .mm-final-promos{padding:34px 0;background:#f5f7f8}
+          .mm-final-promos .mm-promo-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+          .mm-promo-card{position:relative;min-height:245px;border-radius:16px;overflow:hidden;background:#16212b;color:#fff;text-decoration:none;display:flex;align-items:flex-end;box-shadow:0 8px 24px #16212b18;border:1px solid #e2e7eb}
+          .mm-promo-card img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+          .mm-promo-card:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 25%,#07131ee8 100%)}
+          .mm-promo-copy{position:relative;z-index:2;padding:22px;width:100%}
+          .mm-promo-copy small{font-weight:900;text-transform:uppercase;letter-spacing:.12em;color:#f28c00;font-size:10px}
+          .mm-promo-copy h3{font-size:25px;line-height:1.05;margin:7px 0 6px;font-weight:950}
+          .mm-promo-copy span{font-size:13px;opacity:.9}
+          .mm-final-brands{padding:34px 0;background:#fff}
+          .mm-final-brand-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px}
+          .mm-final-brand{min-height:86px;border:1px solid #e1e5e9;border-radius:13px;background:#fff;display:flex;align-items:center;justify-content:center;text-decoration:none;box-shadow:0 3px 12px #16212b0a;overflow:hidden}
+          .mm-final-brand img{max-width:82%;max-height:55px;object-fit:contain}
+          .mm-final-brand strong{font-size:23px;font-weight:950;letter-spacing:-.04em}
+          .mm-final-brand.rida strong{color:#1e4f92}.mm-final-brand.neuce strong{color:#e21f26}.mm-final-brand.soudal strong{color:#e30613}.mm-final-brand.vito strong{color:#f28c00}.mm-final-brand.bosch strong{color:#0b58a2}.mm-final-brand.makita strong{color:#00a0df}.mm-final-brand.stanley strong{color:#f0a400}.mm-final-brand.dewalt strong{color:#f2c300}
+          @media(max-width:800px){.mm-final-promos .mm-promo-grid{grid-template-columns:1fr}.mm-promo-card{min-height:210px}.mm-final-brand-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+          @media(max-width:480px){.mm-final-brand-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.mm-final-brand{min-height:72px}.mm-final-brand strong{font-size:19px}}
+          ''',encoding='utf-8')
+          js=Path('assets/homepage-final-fix.js')
+          js.write_text(r'''(function(){
+          const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+          const img=v=>{v=String(v||'').trim();if(!v)return '';if(v.startsWith('/'))return v;return '/'+v.replace(/^\.\//,'')};
+          const first=(o,...ks)=>{for(const k of ks){if(o&&o[k])return o[k]}return null};
+          function arr3(h){let a=first(h,'promo_banners','promoBanners','banners','cards');return Array.isArray(a)?a.slice(0,3):[]}
+          function render(h){
+            const r=document.getElementById('rida-section'); if(!r)return;
+            document.getElementById('promo-section')?.remove(); document.querySelector('.about-home')?.remove();
+            document.getElementById('mmFinalPromos')?.remove(); document.getElementById('mmFinalBrands')?.remove();
+            const banners=arr3(h); const fallback=[
+              {title:'Tintas NEUCE',tag:'PINTURAS',text:'Cores e soluções para interior e exterior.',image:'assets/family-icons/paint-neuce.png',link:'catalogo.html?cat=Pinturas'},
+              {title:'SOUDAL',tag:'COLAS E SELANTES',text:'Soluções profissionais para vedação, colagem e montagem.',image:'soudal/soudal-pega-tudo.jpg',link:'catalogo.html?brand=Soudal'},
+              {title:'Tudo para o jardim',tag:'JARDIM / AGRICULTURA',text:'Ferramentas e equipamentos para cuidar do seu espaço.',image:'assets/family-icons/garden-vito.png',link:'catalogo.html?cat=Jardim%2FAgricultura'}
+            ];
+            const cards=fallback.map((f,i)=>Object.assign({},f,banners[i]||{}));
+            const sec=document.createElement('section');sec.id='mmFinalPromos';sec.className='mm-final-promos';
+            sec.innerHTML='<div class="container"><div class="section-head"><div><div class="eyebrow">DESTAQUES</div><h2>Explore as nossas soluções</h2></div></div><div class="mm-promo-grid">'+cards.map(x=>'<a class="mm-promo-card" href="'+esc(x.link||'catalogo.html')+'">'+(x.image?'<img src="'+esc(img(x.image))+'" alt="">':'')+'<div class="mm-promo-copy"><small>'+esc(x.tag||'MarquesMater')+'</small><h3>'+esc(x.title||'')+'</h3><span>'+esc(x.text||'')+'</span></div></a>').join('')+'</div></div>';
+            r.insertAdjacentElement('afterend',sec);
+            const names=['RIDA','NEUCE','SOUDAL','VITO','BOSCH','Makita','STANLEY','DEWALT'];
+            const logos=h.brand_logos||h.brandLogos||{};
+            const bsec=document.createElement('section');bsec.id='mmFinalBrands';bsec.className='mm-final-brands';
+            bsec.innerHTML='<div class="container"><div class="section-head"><div><div class="eyebrow">AS NOSSAS MARCAS</div><h2>Marcas em destaque</h2></div><a class="section-link" href="catalogo.html">Ver todas as marcas →</a></div><div class="mm-final-brand-grid">'+names.map((n,i)=>{let v=Array.isArray(logos)?logos[i]:logos[n]||logos[n.toLowerCase()];return '<a class="mm-final-brand '+n.toLowerCase()+'" href="catalogo.html?brand='+encodeURIComponent(n)+'">'+(v?'<img src="'+esc(img(typeof v==='string'?v:v.image||v.src))+'" alt="'+esc(n)+'">':'<strong>'+esc(n)+'</strong>')+'</a>'}).join('')+'</div></div>';
+            sec.insertAdjacentElement('afterend',bsec);
+          }
+          async function boot(){try{const r=await fetch('/api/site?finalfix=1',{cache:'no-store'});const d=await r.json();const h=d?.settings?.homepage||{};render(h)}catch(e){render({})}}
+          if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
+          })();''',encoding='utf-8')
+          adminjs=Path('assets/admin-media-persist.js')
+          adminjs.write_text(r'''(function(){
+          const files={};
+          const brandNames=['RIDA','NEUCE','SOUDAL','VITO','BOSCH','Makita','STANLEY','DEWALT'];
+          function keyFrom(s){const m=String(s||'').match(/mmPick\(this\.files\[0\],'([^']+)'\)/);return m?m[1]:null}
+          function put(h,key,url){
+            h=h||{};
+            if(key==='hero1'){let a=Array.isArray(h.slides)?h.slides.slice():[];if(!a.length)a=[{tag:'MarquesMater',title:'Tudo para os seus projetos',text:'',button:'Ver produtos →',link:'catalogo.html',enabled:true}];a[0]=Object.assign({},a[0],{image:url});h.slides=a}
+            else if(key==='rida1')h.rida_banner=Object.assign({},h.rida_banner||{},{image:url});
+            else if(key.startsWith('promos')){let i=Number(key.slice(6))-1,a=Array.isArray(h.promo_banners)?h.promo_banners.slice():[];while(a.length<3)a.push({});a[i]=Object.assign({},a[i],{image:url});h.promo_banners=a}
+            else if(key.startsWith('brands')){let i=Number(key.slice(6))-1, n=brandNames[i],o=(h.brand_logos&&typeof h.brand_logos==='object'&&!Array.isArray(h.brand_logos))?Object.assign({},h.brand_logos):{};o[n]=url;h.brand_logos=o}
+            return h;
+          }
+          async function save(key,button){const f=files[key];if(!f)return;const st=button?.parentElement?.nextElementSibling;try{button.disabled=true;const fd=new FormData();fd.append('file',f);const ur=await fetch('/api/admin/upload',{method:'POST',body:fd});const uj=await ur.json();if(!uj.url)throw Error('Upload sem URL');const sr=await fetch('/api/site?adminmedia=1',{cache:'no-store'});const sd=await sr.json();const h=sd?.settings?.homepage||{};const nh=put(h,key,uj.url);const wr=await fetch('/api/admin/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({homepage:nh})});const wj=await wr.json();if(!wr.ok||wj.error)throw Error(wj.error||'Não foi possível guardar');if(st)st.textContent='Guardada e aplicada na homepage.';files[key]=null}catch(e){if(st)st.textContent='Erro: '+e.message}finally{button.disabled=false}}
+          document.addEventListener('change',e=>{const i=e.target;if(i.matches('input[type=file][onchange*="mmPick"]')){const k=keyFrom(i.getAttribute('onchange'));if(k&&i.files[0])files[k]=i.files[0]}},true);
+          document.addEventListener('click',e=>{const b=e.target.closest('.mm-media-actions button');if(!b)return;const m=String(b.getAttribute('onclick')||'').match(/mmSave\('([^']+)'\)/);if(!m)return;e.preventDefault();e.stopImmediatePropagation();save(m[1],b)},true);
+          })();''',encoding='utf-8')
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html admin.html assets/homepage-final-fix.css assets/homepage-final-fix.js assets/admin-media-persist.js
+          git diff --cached --quiet || git commit -m 'Aplicar correção final homepage'
+          git push
