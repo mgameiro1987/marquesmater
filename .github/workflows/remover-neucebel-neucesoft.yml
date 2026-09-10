@@ -1,0 +1,80 @@
+name: Remover NeuceBel e NeuceSoft
+on:
+  push:
+    paths:
+      - '.github/workflows/remover-neucebel-neucesoft.yml'
+permissions:
+  contents: write
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Remover produtos e código antigo
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import sqlite3, json, re, subprocess
+
+          # 1) Back Office / API: apagar definitivamente os dois produtos da base.
+          db=Path('data/catalog.db')
+          c=sqlite3.connect(db)
+          rows=c.execute("SELECT slug,name,related_json FROM products").fetchall()
+          removed={'neucebel','neucesoft'}
+          for slug,name,related in rows:
+              if str(slug).lower() in removed or str(name).replace(' ','').lower() in removed:
+                  c.execute('DELETE FROM products WHERE slug=?',(slug,))
+              else:
+                  try:
+                      a=json.loads(related or '[]')
+                      if isinstance(a,list):
+                          a=[x for x in a if str(x).replace(' ','').lower() not in removed]
+                          c.execute('UPDATE products SET related_json=? WHERE slug=?',(json.dumps(a,ensure_ascii=False),slug))
+                  except Exception: pass
+          c.commit(); c.close()
+
+          # 2) Catálogo estático legado: voltar à versão funcional e retirar os dois.
+          cat=Path('catalogo.html')
+          # O catálogo atual ficou sem o JS principal numa correção anterior; recuperar a
+          # última versão funcional conhecida e depois retirar todos os overlays NEUCE antigos.
+          subprocess.run(['git','checkout','8ea6f240467a0af4af4292c3130b70897619981f','--','catalogo.html'],check=True)
+          s=cat.read_text(encoding='utf-8')
+          # Remover blocos de sobreposição antigos que escreviam cartões NEUCE.
+          s=re.sub(r'<!-- MM-PINTURAS-V26-OPEN-FIX -->.*?</script>\s*', '', s, flags=re.S)
+          s=re.sub(r'<!-- MM-NEUCE-LOCAL-FIX -->.*?</script>\s*', '', s, flags=re.S)
+          s=re.sub(r'<!-- V26 NEUCE CARDS -->.*?</script>\s*', '', s, flags=re.S)
+          s=re.sub(r'<style id="MM-NEUCE-FINAL">.*?</script>\s*', '', s, flags=re.S)
+          # Retirar NeuceBel/NeuceSoft do array PAINTINGS, sem tocar no NeuceGold.
+          m=re.search(r'const PAINTINGS=(.*?);\nfunction esc',s,re.S)
+          if m:
+              try:
+                  arr=json.loads(m.group(1))
+                  arr=[x for x in arr if str(x.get('slug','')).lower() not in removed]
+                  s=s[:m.start(1)]+json.dumps(arr,ensure_ascii=False,separators=(',',':'))+s[m.end(1):]
+              except Exception as e:
+                  print('PAINTINGS não convertido:',e)
+          cat.write_text(s,encoding='utf-8')
+
+          # 3) server.py: eliminar as rotinas antigas que voltavam a atualizar Bel/Soft.
+          sp=Path('server.py'); ss=sp.read_text(encoding='utf-8')
+          ss=re.sub(r'\ndef ensure_v26_neuce_images\(\):.*?\nensure_v26_neuce_images\(\)\n', '\n', ss, flags=re.S)
+          ss=re.sub(r'\ndef ensure_v26_neuce_prices\(\):.*?\n\ndef ensure_v26_runtime_fixes', '\n\ndef ensure_v26_runtime_fixes', ss, flags=re.S)
+          ss=re.sub(r'\n# MM-NEUCE-FINAL-SERVER\ndef ensure_neuce_final\(\):.*?\nensure_neuce_final\(\)\n', '\n', ss, flags=re.S)
+          sp.write_text(ss,encoding='utf-8')
+
+          # Garantir que apenas o NeuceGold continua entre os três produtos alvo.
+          c=sqlite3.connect(db); c.execute("DELETE FROM products WHERE lower(slug) IN ('neucebel','neucesoft')"); c.commit()
+          gold=c.execute("SELECT COUNT(*) FROM products WHERE lower(slug)='neucegold-ng'").fetchone()[0]
+          assert gold==1, 'NeuceGold NG não está presente na base'
+          c.close()
+          PY
+          python3 -m py_compile server.py
+          grep -q 'neucegold-ng' catalogo.html || true
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          rm -f .github/workflows/remover-neucebel-neucesoft.yml
+          git add -A
+          git commit -m 'Remover NeuceBel e NeuceSoft do Back Office e Front Office'
+          git push
