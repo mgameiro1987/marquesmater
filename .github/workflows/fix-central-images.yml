@@ -1,0 +1,61 @@
+name: Corrigir imagens centrais
+on:
+  push:
+    paths:
+      - '.github/workflows/fix-central-images.yml'
+permissions:
+  contents: write
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Corrigir fonte unica das imagens
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('server.py')
+          s=p.read_text(encoding='utf-8')
+          old="""def ensure_v26_neuce_images():
+              c=db()
+              m={\"NeuceBel\":\"https://templodastintas.pt/cdn/shop/files/neucebel.png?v=1705605720&width=533\",\"NeuceMatt\":\"https://www.saniluz.pt/cdn/shop/files/5602920000587.jpg?v=1733586586\",\"NeuceSoft\":\"https://cdn-shopkit.com/usercontent/tintas-vital/media/images/square/37a3a6a-neucesoft.jpeg\"}
+              for name,img in m.items(): c.execute(\"UPDATE products SET brand='NEUCE',supplier='NEUCE',price_display='Preço por variante',image=?,gallery_json=? WHERE lower(name)=lower(?)\",(img,json.dumps([img]),name))
+              c.commit(); c.close()
+
+          ensure_v26_neuce_images()
+          """
+          new="""def migrate_neuce_legacy_images():
+              # Migração única dos URLs antigos que eram impostos pelo servidor.
+              # A partir daqui, a imagem/galeria guardada no Back Office é a única fonte.
+              c=db()
+              legacy={
+                  'neucebel': ('https://templodastintas.pt/cdn/shop/files/neucebel.png?v=1705605720&width=533','assets/neucebel-real.jpg'),
+                  'neucematt': ('https://www.saniluz.pt/cdn/shop/files/5602920000587.jpg?v=1733586586','assets/neucematt-real.png'),
+                  'neucesoft': ('https://cdn-shopkit.com/usercontent/tintas-vital/media/images/square/37a3a6a-neucesoft.jpeg','assets/neucesoft-real.jpg')
+              }
+              for slug,(legacy_url,local) in legacy.items():
+                  r=c.execute('SELECT image,gallery_json FROM products WHERE lower(slug)=?',(slug,)).fetchone()
+                  if not r: continue
+                  image=r['image'] or ''
+                  try: gallery=json.loads(r['gallery_json'] or '[]')
+                  except: gallery=[]
+                  if image==legacy_url or (gallery and gallery[0]==legacy_url):
+                      gallery=[local]+[x for x in gallery if x and x!=legacy_url and x!=local]
+                      c.execute('UPDATE products SET image=?,gallery_json=?,updated_at=CURRENT_TIMESTAMP WHERE lower(slug)=?',(local,json.dumps(gallery,ensure_ascii=False),slug))
+              c.commit(); c.close()
+
+          migrate_neuce_legacy_images()
+          """
+          if old not in s:
+              raise SystemExit('Bloco legado não encontrado; não alterar server.py')
+          s=s.replace(old,new)
+          p.write_text(s,encoding='utf-8')
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add server.py
+          git commit -m 'Centralizar imagens no Back Office' || true
+          git push
+          git rm .github/workflows/fix-central-images.yml || true
+          git commit -m 'Remover workflow temporario de imagens centrais' || true
+          git push
