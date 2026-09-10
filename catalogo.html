@@ -21,26 +21,4 @@ async function init(){try{const site=await fetch('/api/site').then(r=>r.json());
 document.getElementById('cat').onchange=()=>{const v=document.getElementById('cat').value; history.replaceState({},'',`catalogo.html${v?'?cat='+encodeURIComponent(v):''}`);load(1)}; document.getElementById('brand').onchange=()=>{const v=document.getElementById('brand').value; const sp=new URLSearchParams(location.search); if(v)sp.set('brand',v);else sp.delete('brand'); history.replaceState({},'',`catalogo.html${sp.toString()?'?'+sp.toString():''}`);load(1)}; document.getElementById('sort').onchange=()=>load(1); init();
 </script><script src="chat.js?v=20"></script><script src="nav.js?v=20"></script><script id="MM_SoudalCatalogV2">(async function(){try{const r=await fetch('/data/soudal_products.json?x='+Date.now(),{cache:'no-store'});if(!r.ok)return;const d=await r.json(),a=d.products||[];const fix=()=>document.querySelectorAll('.product').forEach(card=>{const n=card.querySelector('h3')?.textContent?.trim(),p=a.find(x=>x.name===n);if(p?.asset_image){const im=card.querySelector('img');if(im){im.src='/'+String(p.asset_image).replace(/^\//,'');im.onerror=null}}});setTimeout(fix,300);const old=window.load;if(typeof old==='function')window.load=async function(){const z=await old.apply(this,arguments);setTimeout(fix,100);return z}}catch(e){console.warn(e)}})();</script><style id="MM_TrexCatalogCSS">.mm-hide-soudal-card-info{display:none!important}</style><script id="MM_TrexCatalogJS">(function(){
 async function run(){try{const r=await fetch('/data/soudal_products.json?x='+Date.now(),{cache:'no-store'});const d=await r.json();const names=(d.products||[]).map(p=>String(p.name||'').trim());const hide=()=>document.querySelectorAll('.product').forEach(card=>{const n=card.querySelector('h3')?.textContent?.trim()||'';if(names.includes(n)){card.querySelectorAll('.stock,.more,.availability').forEach(x=>{x.classList.add('mm-hide-soudal-card-info');x.remove()})}});hide();new MutationObserver(hide).observe(document.getElementById('grid')||document.body,{childList:true,subtree:true})}catch(e){console.warn(e)}}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',run);else run()})();</script><script id="MM_TrexCardFinal">(function(){function f(){document.querySelectorAll('.product').forEach(x=>{if(!(x.querySelector('h3')?.textContent||'').includes('T-Rex Power 290ml'))return;[...x.querySelectorAll('*')].forEach(e=>{let t=(e.textContent||'').trim();if(t==='Preço sob consulta')e.textContent='12,95 €';if(/^Disponibilidade/i.test(t)||t==='Ver produto →'||t==='Ver produto')e.remove()})})}f();new MutationObserver(f).observe(document.body,{childList:true,subtree:true})})();</script>
-<!-- MM-PINTURAS-V26-OPEN-FIX -->
-<script>
-(function(){
-  function showNeuce(){
-    const p=new URLSearchParams(location.search);
-    if(p.get('cat')!=='Pinturas') return;
-    const grid=document.getElementById('grid');
-    if(!grid) return;
-    const items=[
-      {slug:'neucebel',name:'NeuceBel',price:'Preço por variante',image:'https://wsrv.nl/?url=https%3A%2F%2Ftemplodastintas.pt%2Fcdn%2Fshop%2Ffiles%2Fneucebel.png%3Fv%3D1705605720%26width%3D533&w=600&h=600&fit=inside'},
-      {slug:'neucematt',name:'NeuceMatt',price:'Preço por variante',image:'https://wsrv.nl/?url=https%3A%2F%2Fwww.saniluz.pt%2Fcdn%2Fshop%2Ffiles%2F5602920000587.jpg%3Fv%3D1733586586&w=600&h=600&fit=inside'},
-      {slug:'neucesoft',name:'NeuceSoft',price:'Preço por variante',image:'https://wsrv.nl/?url=https%3A%2F%2Fcdn-shopkit.com%2Fusercontent%2Ftintas-vital%2Fmedia%2Fimages%2Fsquare%2F37a3a6a-neucesoft.jpeg&w=600&h=600&fit=inside'}
-    ];
-    const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
-    grid.innerHTML=items.map(x=>`<a class="product" href="produto-wc.html?slug=${encodeURIComponent(x.slug)}"><div class="pimg"><img src="${esc(x.image)}" alt="${esc(x.name)}" loading="lazy" onerror="this.onerror=null;this.src='/assets/paint-placeholder.svg'"></div><div class="pbody"><small>NEUCE · PINTURAS</small><h3>${esc(x.name)}</h3><div class="price">${esc(x.price)}</div></div></a>`).join('');
-    const c=document.getElementById('count'); if(c)c.textContent='3 produtos NEUCE';
-    const pg=document.getElementById('pager'); if(pg)pg.innerHTML='';
-  }
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',showNeuce);else showNeuce();
-  setTimeout(showNeuce,500);
-})();
-</script>
-<style id="MM-NEUCE-FINAL">body.mm-neuce-final .more{display:none!important}</style><script>(function(){function f(){var p=new URLSearchParams(location.search);if(p.get("cat")!=="Pinturas")return;document.body.classList.add("mm-neuce-final");document.querySelectorAll("#grid .product").forEach(function(c){var n=(c.querySelector("h3")||{}).textContent||"";var v={"NeuceBel":"89,90 €","NeuceMatt":"69,90 €","NeuceSoft":"129,90 €"}[n.trim()];if(v){var q=c.querySelector(".price");if(q)q.textContent=v;var m=c.querySelector(".more");if(m)m.remove()}})}if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",function(){setTimeout(f,200);setTimeout(f,1000)});else{setTimeout(f,200);setTimeout(f,1000)}})();</script></body></html>
+</body></html>
