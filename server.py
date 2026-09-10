@@ -86,6 +86,17 @@ def put_product(c,p):
  img=str(p.get('image') or (gallery[0] if gallery else ''))
  if img and img not in gallery:gallery.insert(0,img)
  variants=p.get('variants',[]); docs=p.get('docs',[]); related=p.get('related',p.get('related_slugs',[]))
+ # Default rule for new paint articles: create the standard 1L/5L/15L sizes
+ # and always show the cheapest available package as "Desde X".
+ is_paint=str(p.get('family',p.get('category',''))).strip().lower()=='pinturas' or str(p.get('category',p.get('family',''))).strip().lower()=='pinturas'
+ if is_paint:
+  if not variants:
+   variants=[{'name':'1L','price':'8,90 €','stock':0},{'name':'5L','price':'24,90 €','stock':0},{'name':'15L','price':'69,90 €','stock':0}]
+  priced=[num(v.get('price')) for v in variants if isinstance(v,dict) and num(v.get('price'))>0]
+  if priced and p.get('price_display') in (None,'','Preço sob consulta','Preço por variante'):
+   p['price_display']='Desde '+price_text(min(priced))
+  if priced and p.get('price') in (None,'',0):
+   p['price']=min(priced)
  tech=p.get('tech',[]); tech=json.dumps(tech,ensure_ascii=False) if isinstance(tech,(list,dict)) else str(tech or '')
  c.execute('''INSERT OR REPLACE INTO products(slug,id,name,ref,ean,family,category,subfamily,brand,price_display,price,promo_price,promo_enabled,vat_rate,stock,min_stock,state,featured,supplier,manufacturer_url,allow_backorder,description,description_html,tech,image,gallery_json,permalink,doc,docs_json,variants_json,related_json,seo_title,seo_description,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP)''',(
     slug,str(p.get('id',slug)),str(p.get('name','')),str(p.get('ref',p.get('sku',''))),str(p.get('ean','')),str(p.get('family',p.get('category',''))),str(p.get('category',p.get('family',''))),str(p.get('subfamily','')),str(p.get('brand','')),price_text(p.get('price_display',price_text(price))),price,num(promo) if promo not in (None,'') else None,1 if p.get('promo_enabled') else 0,num(p.get('vat_rate',23)),num(p.get('stock',1 if p.get('is_in_stock',True) else 0)),num(p.get('minStock',p.get('min_stock',5))),str(p.get('state','active')),1 if p.get('featured') else 0,str(p.get('supplier',p.get('manufacturer',''))),str(p.get('manufacturer_url','')),1 if p.get('allow_backorder') else 0,str(p.get('description',p.get('desc',''))),str(p.get('description_html','')),tech,img,json.dumps(gallery,ensure_ascii=False),str(p.get('permalink','')),str(p.get('doc','')),json.dumps(docs,ensure_ascii=False),json.dumps(variants,ensure_ascii=False),json.dumps(related,ensure_ascii=False),str(p.get('seo_title','')),str(p.get('seo_description',''))))
