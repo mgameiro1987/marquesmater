@@ -1,0 +1,11 @@
+/* MarquesMater V7.2 — acabamento profissional + mobile */
+html{scroll-behavior:smooth}
+nav .nav,nav .nav-inner{overflow-x:auto;scrollbar-width:none;white-space:nowrap;-webkit-overflow-scrolling:touch}
+nav .nav::-webkit-scrollbar,nav .nav-inner::-webkit-scrollbar{display:none}
+.search input:focus{border-color:#ef7d00!important;box-shadow:0 0 0 3px #ef7d0018}
+.product{transition:transform .18s ease,box-shadow .18s ease}.product:hover{transform:translateY(-2px);box-shadow:0 10px 25px #0000000c}
+.mmQuick{transition:.18s ease}.mmQuick:active{transform:scale(.98)}
+.cartbox{border-radius:14px}
+@media(max-width:700px){.top{font-size:10px;padding:7px 10px;text-align:center}header .head{gap:10px;flex-wrap:wrap}.search{order:3;width:100%}nav .nav a,nav .nav-inner a{flex:0 0 auto}.section{padding-top:22px}.sectionHead{gap:10px;align-items:flex-start}.sectionHead h2{font-size:24px}.products{gap:12px}.product h3{font-size:14px}.product strong{font-size:17px}}
+.mmChatBtn{letter-spacing:.1px}.mmChatPanel{max-width:calc(100vw - 28px)}.mmChatBody{scroll-behavior:smooth}.mmChatMsg a{color:#ef7d00;font-weight:700}
+@media(max-width:600px){.mmChatPanel{z-index:99999}.mmChatBtn{z-index:99998}}
