@@ -18,7 +18,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Corrigir server.py — Soudal e Woodneuce
+      - name: Corrigir server.py — Soudal, Neuce e Woodneuce
         run: |
           python3 - <<'PY'
           from pathlib import Path
@@ -36,6 +36,12 @@ jobs:
               s=s[:pos]+fn+'ensure_woodneuce_product()\n'+s[pos:]
           else:
               s=s.replace("'image':'','gallery':[]", "'image':'https://www.neuce.com/files/media/13_1.png','gallery':['https://www.neuce.com/files/media/13_1.png']")
+          # Remover definitivamente a marca antiga "Neuce" (sem mexer na marca oficial "NEUCE").
+          cleanup='''\n# MM-REMOVE-NEUCE-LEGACY\ndef ensure_legacy_neuce_removed():\n    try:\n        c=db()\n        c.execute("DELETE FROM products WHERE brand='Neuce'")\n        c.execute("DELETE FROM brands WHERE name='Neuce'")\n        c.commit(); c.close()\n    except Exception as e: print('Legacy Neuce cleanup:',e)\n\nensure_legacy_neuce_removed()\n'''
+          if 'def ensure_legacy_neuce_removed()' not in s:
+              marker2='ensure_v26_runtime_fixes()'
+              if marker2 not in s: raise SystemExit('Startup V26 não encontrado para limpeza Neuce')
+              s=s.replace(marker2,cleanup+'ensure_v26_runtime_fixes()',1)
           s=re.sub(r'\n# MM-NEUCE-FINAL-SERVER.*?(?=\nensure_v26_runtime_fixes\(\))','',s,flags=re.S)
           s=s.replace('\nensure_neuce_final()\n','\n')
           p.write_text(s,encoding='utf-8')
@@ -69,4 +75,4 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add server.py admin.html
-          if git diff --cached --quiet; then echo "Sem alterações"; else git commit -m "Usar imagem oficial da lata Woodneuce"; git push origin main; fi
+          if git diff --cached --quiet; then echo "Sem alterações"; else git commit -m "Remover definitivamente marca Neuce antiga"; git push origin main; fi
