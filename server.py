@@ -384,7 +384,7 @@ def ensure_woodneuce_product():
           'price':11.60,'price_display':'Desde 11,60 €','stock':0,'min_stock':0,'state':'active',
           'description':'Lasur aquoso decorativo para protecção e decoração de madeiras, interior e exterior. Produto microporoso de base acrílica aquosa, inodoro e com protecção contra humidade e intempéries.',
           'variants':[{'name':'0,75 L','price':'11,60 €','stock':0},{'name':'4 L','price':'59,90 €','stock':0}],
-          'image':'','gallery':[],'docs':[{'title':'Ficha técnica WOODNEUCE — NEUCE','url':'https://www.neuce.com/'}],
+          'image':'/assets/woodneuce.svg','gallery':['/assets/woodneuce.svg'],'docs':[{'title':'Ficha técnica WOODNEUCE — NEUCE','url':'https://www.neuce.com/'}],
           'tech':['Tipo: Lasur aquoso decorativo','Aplicação: madeira interior e exterior','Rendimento: 13–15 m²/L por demão','Acabamentos: Mate, Acetinado e Opaco','Embalagens: 0,75 L e 4 L',{'_mm_options':{'finish':{'enabled':True,'options':['Mate','Acetinado','Opaco']},'color':{'enabled':True,'options':['Incolor','Cores de catálogo']}}}]
         }
         put_product(c,p); c.commit(); c.close()
