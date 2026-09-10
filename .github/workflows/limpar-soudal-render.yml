@@ -17,7 +17,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Corrigir server.py para limpar Soudal antigo e NEUCE
+      - name: Corrigir server.py — Soudal e Woodneuce
         run: |
           python3 - <<'PY'
           from pathlib import Path
@@ -27,11 +27,16 @@ jobs:
           if 'def ensure_soudal_only_trex()' not in s:
               if marker not in s: raise SystemExit('Marcador Soudal não encontrado')
               s=s.replace(marker,inject,1)
-          if 'MM-NEUCE-FINAL-SERVER' not in s:
-              fn='''\n# MM-NEUCE-FINAL-SERVER\ndef ensure_neuce_final():\n    c=db(); vals={"neucebel":(89.9,"89,90 €","https://wsrv.nl/?url=https%3A%2F%2Ftemplodastintas.pt%2Fcdn%2Fshop%2Ffiles%2Fneucebel.png%3Fv%3D1705605720%26width%3D533&w=600&h=600&fit=inside"),"neucematt":(69.9,"69,90 €","https://wsrv.nl/?url=https%3A%2F%2Fwww.saniluz.pt%2Fcdn%2Fshop%2Ffiles%2F5602920000587.jpg%3Fv%3D1733586586&w=600&h=600&fit=inside"),"neucesoft":(129.9,"129,90 €","https://wsrv.nl/?url=https%3A%2F%2Fcdn-shopkit.com%2Fusercontent%2Ftintas-vital%2Fmedia%2Fimages%2Fsquare%2F37a3a6a-neucesoft.jpeg&w=600&h=600&fit=inside")};\n    for slug,(price,display,image) in vals.items(): c.execute("UPDATE products SET price=?,price_display=?,image=?,updated_at=CURRENT_TIMESTAMP WHERE slug=?",(price,display,image,slug))\n    c.execute("INSERT OR IGNORE INTO brands(name) VALUES(?)",("NEUCE",)); c.commit(); c.close()\n\n'''
-              pos=s.rfind('ensure_v26_runtime_fixes()')
+          # Do NOT reintroduce NeuceBel/NeuceMatt/NeuceSoft.
+          # Woodneuce is a real NEUCE lasur and is seeded on every startup.
+          if 'def ensure_woodneuce_product()' not in s:
+              fn='''\n# MM-WOODNEUCE\ndef ensure_woodneuce_product():\n    try:\n        c=db()\n        p={\n          'slug':'woodneuce','id':'woodneuce','name':'Woodneuce — Lasur','ref':'WOODNEUCE','family':'Pinturas','category':'Pinturas','subfamily':'Tinta Exterior','brand':'NEUCE',\n          'price':11.60,'price_display':'Desde 11,60 €','stock':0,'min_stock':0,'state':'active',\n          'description':'Lasur aquoso decorativo para protecção e decoração de madeiras, interior e exterior. Produto microporoso de base acrílica aquosa, inodoro e com protecção contra humidade e intempéries.',\n          'variants':[{'name':'0,75 L','price':'11,60 €','stock':0},{'name':'4 L','price':'59,90 €','stock':0}],\n          'image':'','gallery':[],'docs':[{'title':'Ficha técnica WOODNEUCE — NEUCE','url':'https://www.neuce.com/'}],\n          'tech':['Tipo: Lasur aquoso decorativo','Aplicação: madeira interior e exterior','Rendimento: 13–15 m²/L por demão','Acabamentos: Mate, Acetinado e Opaco','Embalagens: 0,75 L e 4 L',{'_mm_options':{'finish':{'enabled':True,'options':['Mate','Acetinado','Opaco']},'color':{'enabled':True,'options':['Incolor','Cores de catálogo']}}}]\n        }\n        put_product(c,p); c.commit(); c.close()\n    except Exception as e: print('Woodneuce seed:',e)\n\n'''
+              pos=s.find('ensure_v26_runtime_fixes()')
               if pos<0: raise SystemExit('Startup V26 não encontrado')
-              s=s[:pos]+fn+'ensure_neuce_final()\n'+s[pos:]
+              s=s[:pos]+fn+'ensure_woodneuce_product()\n'+s[pos:]
+          # Remove any legacy NEUCE reintroduction function/call if a previous workflow left it behind.
+          s=re.sub(r'\n# MM-NEUCE-FINAL-SERVER.*?(?=\nensure_v26_runtime_fixes\(\))','',s,flags=re.S)
+          s=s.replace('\nensure_neuce_final()\n','\n')
           p.write_text(s,encoding='utf-8')
           PY
 
@@ -59,4 +64,4 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add server.py catalogo.html
-          if git diff --cached --quiet; then echo "Sem alterações"; else git commit -m "NEUCE: imagens cacheadas, preços e sem Ver produto"; git push origin main; fi
+          if git diff --cached --quiet; then echo "Sem alterações"; else git commit -m "NEUCE: manter Woodneuce e remover reintrodução antiga"; git push origin main; fi
