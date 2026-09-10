@@ -1,0 +1,117 @@
+name: Corrigir imagens NEUCE em falta
+on:
+  push:
+    paths:
+      - '.github/workflows/fix-missing-neuce-images.yml'
+permissions:
+  contents: write
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Encontrar imagens oficiais NEUCE em falta e atualizar SQLite
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import sqlite3, requests, re, html, json
+          from urllib.parse import urljoin
+          root=Path('.')
+          out=root/'assets'/'neuce'; out.mkdir(parents=True,exist_ok=True)
+          s=requests.Session(); s.headers['User-Agent']='Mozilla/5.0 (compatible; MarquesMater/1.0)'
+
+          def save(slug,r):
+            if not r.ok or len(r.content)<5000: return ''
+            ct=(r.headers.get('content-type') or '').lower()
+            ext='.png' if 'png' in ct else ('.webp' if 'webp' in ct else '.jpg')
+            p=out/(slug+ext); p.write_bytes(r.content)
+            return f'assets/neuce/{p.name}'
+
+          def by_id(slug,pid):
+            for n in range(1,7):
+              for ext in ('jpg','png','jpeg','webp'):
+                try:
+                  r=s.get(f'https://www.neuce.com/files/products/{pid}_{n}.{ext}',timeout=20)
+                  rel=save(slug,r)
+                  if rel:
+                    print('OK',slug,r.url,rel); return rel
+                except Exception: pass
+            return ''
+
+          def page_image(slug,page):
+            try:
+              r=s.get(page,timeout=30); r.raise_for_status(); h=r.text
+              urls=[]
+              for pat in [
+                r'<meta[^>]+property=["\']og:image["\'][^>]+content=["\']([^"\']+)',
+                r'<meta[^>]+content=["\']([^"\']+)["\'][^>]+property=["\']og:image["\']',
+                r'https?://www\.neuce\.com/files/products/[^"\'\s<>]+'
+              ]:
+                urls += re.findall(pat,h,re.I)
+              seen=set()
+              for u in urls:
+                u=html.unescape(u)
+                if u.startswith('/'): u=urljoin(page,u)
+                if u in seen: continue
+                seen.add(u)
+                try:
+                  rr=s.get(u,timeout=20); rel=save(slug,rr)
+                  if rel:
+                    print('PAGE OK',slug,u,rel); return rel
+                except Exception: pass
+            except Exception as e: print('PAGE FAIL',page,e)
+            return ''
+
+          def find_product_page(category,needle):
+            try:
+              h=s.get(category,timeout=30).text
+              hrefs=re.findall(r'href=["\']([^"\']+)["\']',h,re.I)
+              for href in hrefs:
+                clean=html.unescape(href)
+                if re.search(r'p180-p-\d+-[^"\']*'+re.escape(needle),clean,re.I):
+                  return urljoin(category,clean)
+              for href in hrefs:
+                clean=html.unescape(href)
+                if needle.lower() in clean.lower() and 'p180-p-' in clean.lower():
+                  return urljoin(category,clean)
+            except Exception as e: print('CATEGORY FAIL',e)
+            return ''
+
+          paths={}
+          # Confirmed official product id for SuperNeuce.
+          paths['superneuce']=by_id('superneuce',883)
+          # BelNeuce: try its sequential product id and, if necessary, discover its exact page from NEUCE.
+          paths['belneuce']=by_id('belneuce',880)
+          if not paths['belneuce']:
+            page=find_product_page('https://www.neuce.com/p179-cat-159-tinta-plastica-an_pt','belneuce')
+            print('BEL PAGE',page)
+            if page: paths['belneuce']=page_image('belneuce',page)
+          # PlioNeuce facade: discover the facade product, explicitly avoiding Selante/Primário.
+          page=find_product_page('https://www.neuce.com/p179-cat-161-fachada-se_pt','plioneuce')
+          if page and re.search(r'(selante|primario)',page,re.I): page=''
+          print('PLIO PAGE',page)
+          paths['plioneuce']=page_image('plioneuce',page) if page else ''
+
+          db=sqlite3.connect('data/catalog.db'); cur=db.cursor()
+          for slug,rel in paths.items():
+            if not rel: print('MISSING',slug); continue
+            cur.execute('UPDATE products SET image=?, gallery_json=? WHERE slug=?',(rel,json.dumps([rel]),slug))
+            print('UPDATED',slug,rel,cur.rowcount)
+          db.commit(); db.close()
+          ok=[k for k,v in paths.items() if v]
+          if len(ok)<3: raise SystemExit(f'Only fixed {len(ok)}/3 missing NEUCE images: {ok}')
+          PY
+      - name: Commit e publicar
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add assets/neuce data/catalog.db
+          git diff --cached --quiet && exit 0
+          git commit -m 'Completar imagens oficiais NEUCE em falta'
+          git push
+      - name: Remover workflow temporário
+        if: success()
+        run: |
+          git rm .github/workflows/fix-missing-neuce-images.yml
+          git commit -m 'Remover workflow temporário NEUCE'
+          git push
