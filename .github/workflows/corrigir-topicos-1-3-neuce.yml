@@ -34,4 +34,7 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add index.html nav.js server.py admin.html produto-wc.html scripts
           git diff --cached --quiet || git commit -m 'MarquesMater - pinturas NEUCE e WoodNeuce'
-          for i in 1 2 3 4 5; do git pull --rebase origin main && git push && break; sleep 3; done
+          rm -rf __pycache__ scripts/__pycache__
+          git status --porcelain
+          git pull --rebase origin main
+          git push
