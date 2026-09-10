@@ -1,0 +1,40 @@
+name: Localizar imagens dos produtos
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'assets/products/**'
+      - 'assets/products/image-map.json'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  localize:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Localizar imagens externas no servidor
+        run: python scripts/localize_product_images.py
+
+      - name: Verificar ficheiros
+        run: python -m py_compile scripts/localize_product_images.py
+
+      - name: Commit imagens e base de dados
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/products data/catalog.db catalogo.html produto-wc.html index.html carrinho.html *.html *.js *.css server.py rida-products.json 2>/dev/null || true
+          git add scripts/localize_product_images.py assets/products/image-map.json 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "Nenhuma alteração necessária."
+          else
+            git commit -m "Localizar imagens dos produtos no servidor [skip ci]"
+            git push
+          fi
