@@ -1,0 +1,89 @@
+name: Auditoria e limpeza estrutural
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  clean:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Limpar arquitetura e fonte de verdade
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          # 1) server.py: eliminar blocos históricos que reintroduziam produtos e
+          # sobrescreviam alterações feitas no Back Office.
+          p=Path('server.py')
+          s=p.read_text(encoding='utf-8')
+          s=re.sub(r'\ndef ensure_v18_catalog\(\):.*?\nensure_v18_catalog\(\)\n', '\n', s, flags=re.S)
+          s=re.sub(r'\ndef ensure_v19_catalog\(\):.*?\nensure_v19_catalog\(\)\n', '\n', s, flags=re.S)
+          s=re.sub(r'\ndef ensure_woodneuce_product\(\):.*?\nensure_woodneuce_product\(\)\n', '\n', s, flags=re.S)
+          s=re.sub(r'\n# NeuceMatt was intentionally removed.*?\nensure_v26_runtime_fixes\(\)', '\nensure_v26_runtime_fixes()', s, flags=re.S)
+          s=s.replace("brands.add('Neuce')", "")
+          s=s.replace("c.execute(\"UPDATE products SET image='assets/soudal/trex-power-290-branco.jpg',brand='Soudal',price=12.95,price_display='12,95 €' WHERE slug='soudal-t-rex-power-290ml'\");", "")
+          s=s.replace("def ensure_legacy_neuce_removed():\n    try:\n        c=db()\n        c.execute(\"DELETE FROM products WHERE brand='Neuce'\")\n        c.execute(\"DELETE FROM brands WHERE name='Neuce'\")\n        c.commit(); c.close()\n    except Exception as e: print('Legacy Neuce cleanup:',e)\n\nensure_legacy_neuce_removed()\n", "")
+
+          # A única limpeza de dados de arranque fica centralizada e não altera
+          # produtos válidos nem os campos editados no Back Office.
+          integrity='''\n# MM-CATALOG-INTEGRITY\ndef sync_brand_index(c):\n    c.execute("DELETE FROM brands WHERE trim(name)='' OR lower(trim(name))='neuce'")\n    c.execute("INSERT OR IGNORE INTO brands(name) SELECT DISTINCT trim(brand) FROM products WHERE trim(brand)<>''")\n    c.execute("DELETE FROM brands WHERE name NOT IN (SELECT DISTINCT brand FROM products WHERE trim(brand)<>'')")\n    c.execute("INSERT OR IGNORE INTO brands(name) VALUES('NEUCE')")\n    if c.execute("SELECT 1 FROM products WHERE brand='Soudal' LIMIT 1").fetchone():\n        c.execute("INSERT OR IGNORE INTO brands(name) VALUES('Soudal')")\n\ndef ensure_catalog_integrity():\n    try:\n        c=db()\n        # Legado Neuce: remover marca antiga e artigos explicitamente descontinuados.\n        c.execute("DELETE FROM products WHERE lower(trim(brand))='neuce'")\n        c.execute("DELETE FROM products WHERE lower(trim(slug)) IN ('neucebel','neucesoft','neucematt')")\n        c.execute("DELETE FROM brands WHERE lower(trim(name))='neuce'")\n        # Soudal: manter apenas o T-Rex Power 290ml.\n        c.execute("DELETE FROM products WHERE lower(trim(brand))='soudal' AND slug<>'soudal-t-rex-power-290ml'")\n        # Remover duplicados exatos por marca + nome + referência, preservando o mais recente.\n        c.execute("""DELETE FROM products WHERE rowid NOT IN (SELECT MAX(rowid) FROM products WHERE trim(ref)<>'' GROUP BY lower(trim(name)), lower(trim(brand)), trim(ref)) AND trim(ref)<>''""")\n        sync_brand_index(c)\n        c.commit(); c.close()\n    except Exception as e:\n        print('Catalog integrity:',e)\n\n'''
+          if 'def sync_brand_index(c):' not in s:
+              marker='class Handler(http.server.SimpleHTTPRequestHandler):'
+              if marker not in s: raise SystemExit('Handler marker not found')
+              s=s.replace(marker, integrity+marker, 1)
+          s=s.replace("ensure_v26_runtime_fixes()\n_SOUDAL_CACHE", "ensure_v26_runtime_fixes()\nensure_catalog_integrity()\n_SOUDAL_CACHE")
+
+          # Back Office -> frontoffice: sincronizar índice de marcas sempre que um
+          # produto é criado/editado/apagado, sem depender de seeds antigos.
+          s=s.replace("if b.get('_delete'):c.execute('DELETE FROM products WHERE slug=?',(slug,));c.commit();c.close();self.send_json({'ok':True,'deleted':slug});return", "if b.get('_delete'):\n    c.execute('DELETE FROM products WHERE slug=?',(slug,)); sync_brand_index(c); c.commit(); c.close(); self.send_json({'ok':True,'deleted':slug}); return")
+          s=s.replace("existed=bool(old);put_product(c,b);c.commit();r=c.execute('SELECT * FROM products WHERE slug=?',(slug,)).fetchone();c.close();self.send_json({'ok':True,'created':not existed,'product':row_product(r)});return", "existed=bool(old); put_product(c,b); sync_brand_index(c); c.commit(); r=c.execute('SELECT * FROM products WHERE slug=?',(slug,)).fetchone(); c.close(); self.send_json({'ok':True,'created':not existed,'product':row_product(r)}); return")
+          s=s.replace("self.send_json({'ok':True,'version':'V26','database':'sqlite','architecture':'backoffice-commerce-chat'})", "self.send_json({'ok':True,'version':'central-catalog','database':'sqlite','architecture':'backoffice-commerce-chat'})")
+          p.write_text(s,encoding='utf-8')
+
+          # 2) Front Office: catalogo.html passa a ter UMA fonte: /api/products.
+          cat=Path('catalogo.html')
+          cat.write_text(r'''<!doctype html><html lang="pt-PT"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Loja — MarquesMater</title><link rel="stylesheet" href="style.css"></head><body>
+<header class="header"><div class="container head-main"><a href="index.html"><img class="logo" src="assets/marquesmater-logo.svg" alt="MarquesMater"></a><form class="search" onsubmit="event.preventDefault();load(1)"><input id="q" placeholder="Pesquisar produtos..."><button>⌕</button></form><div class="head-actions"><a class="action" href="index.html"><b>⌂</b><span>Início</span></a><a class="action" href="carrinho.html"><b>🛒</b><span>Carrinho</span></a></div></div><div class="menu"><div class="container"><div id="global-menu"></div></div></div></header>
+<main class="catalog"><div class="container"><div class="catalog-top"><div><div class="tag">MarquesMater</div><h1>Loja</h1><p id="count">A carregar catálogo...</p></div><div class="catalog-tools"><select id="cat"><option value="">Todas as famílias</option></select><select id="brand"><option value="">Todas as marcas</option></select><select id="sort"><option value="date">Mais recentes</option><option value="price">Preço ↑</option><option value="price-desc">Preço ↓</option><option value="name">Nome A-Z</option></select></div></div><div id="grid" class="product-grid"></div><div id="pager" class="pager"></div></div></main>
+<footer class="footer"><div class="container footgrid"><div><img class="footlogo" src="assets/marquesmater-logo.svg"><p>Materiais de construção, ferramentas, pinturas, jardim e muito mais.</p></div><div><h4>Loja</h4><a href="catalogo.html">Todos os produtos</a><a href="catalogo-rida.html">Gama RIDA</a></div><div><h4>MarquesMater</h4><a href="empresa.html">Empresa</a><a href="contactos.html">Contactos</a></div><div><h4>Contactos</h4><p>236 961 569<br>loja@marquesmater.pt</p></div></div><div class="container copyright">© 2026 MarquesMater</div></footer>
+<script>
+const API='/api/products',PER=24;let all=[];
+function esc(s=''){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
+function imgUrl(v){v=String(v||'').trim();if(!v)return '/assets/paint-placeholder.svg';if(v.startsWith('soudal-page:'))return '/api/soudal-image?url='+encodeURIComponent(v.slice(12));if(v.startsWith('/'))return v;if(/^https?:\/\//i.test(v))return v;return '/'+v.replace(/^\.\//,'')}
+function card(p){const img=imgUrl(p.image||p.gallery?.[0]||'');const price=p.price>0?new Intl.NumberFormat('pt-PT',{style:'currency',currency:'EUR'}).format(p.promo_price>0?p.promo_price:p.price):(p.price_display||'Consultar');return `<a class="product" href="produto-wc.html?slug=${encodeURIComponent(p.slug||p.id)}"><div class="pimg"><img src="${esc(img)}" alt="${esc(p.name)}" loading="lazy" onerror="this.onerror=null;this.src='/assets/paint-placeholder.svg'"></div><div class="pbody"><small>${esc(p.brand||p.family||'MARQUESMATER')}</small><h3>${esc(p.name)}</h3><div class="price">${esc(price)}</div><div class="stock">${p.is_in_stock?'Em stock':'Disponibilidade a confirmar'}</div><span class="more">Ver produto →</span></div></a>`}
+function render(){let q=(document.getElementById('q').value||'').toLowerCase().trim(),cat=document.getElementById('cat').value,brand=document.getElementById('brand').value,sort=document.getElementById('sort').value;let a=all.filter(p=>(!q||[p.name,p.ref,p.brand,p.family,p.subfamily].some(x=>String(x||'').toLowerCase().includes(q)))&&(!cat||p.family===cat)&&(!brand||p.brand===brand));const val=p=>Number(p.promo_price>0?p.promo_price:p.price)||0;if(sort==='name')a.sort((x,y)=>String(x.name).localeCompare(String(y.name),'pt'));if(sort==='price')a.sort((x,y)=>val(x)-val(y));if(sort==='price-desc')a.sort((x,y)=>val(y)-val(x));let page=Number(new URLSearchParams(location.search).get('page')||1),pages=Math.max(1,Math.ceil(a.length/PER));page=Math.min(page,pages);document.getElementById('grid').innerHTML=a.slice((page-1)*PER,page*PER).map(card).join('')||'<p>Nenhum produto encontrado.</p>';document.getElementById('count').textContent=`${a.length} produtos MarquesMater`;let pg=document.getElementById('pager');pg.innerHTML='';for(let i=1;i<=pages;i++){if(i>5)break;let b=document.createElement('button');b.textContent=i;b.className=i===page?'active':'';b.onclick=()=>{history.replaceState({},'',`catalogo.html?page=${i}`);render()};pg.appendChild(b)}}
+async function init(){try{const site=await fetch('/api/site',{cache:'no-store'}).then(r=>r.json());document.getElementById('cat').innerHTML='<option value="">Todas as famílias</option>'+(site.families||[]).map(f=>{let n=typeof f==='string'?f:f.name;return `<option value="${esc(n)}">${esc(n)}</option>`}).join('');document.getElementById('brand').innerHTML='<option value="">Todas as marcas</option>'+(site.brands||[]).map(b=>`<option value="${esc(b)}">${esc(b)}</option>`).join('')}catch(e){}try{const r=await fetch(API,{cache:'no-store'});all=r.ok?await r.json():[]}catch(e){all=[]}const sp=new URLSearchParams(location.search);document.getElementById('q').value=sp.get('q')||'';document.getElementById('cat').value=sp.get('cat')||'';document.getElementById('brand').value=sp.get('brand')||'';render()}
+document.getElementById('q').addEventListener('input',render);document.getElementById('cat').onchange=render;document.getElementById('brand').onchange=render;document.getElementById('sort').onchange=render;init();
+</script><script src="chat.js?v=22"></script><script src="nav.js?v=22"></script></body></html>''',encoding='utf-8')
+
+          # 3) remover ficheiros de dados/catalogação duplicados e documentação de versões antigas.
+          for f in Path('.').glob('LEIA-ME-V*.txt'): f.unlink()
+          for f in [Path('data/soudal_products.json'),Path('.github/apply_categories_ui.b64'),Path('.github/apply_paint_options.b64'),Path('.github/paint-options-trigger')]:
+              if f.exists(): f.unlink()
+
+          # 4) README atual e .gitignore mínimo.
+          Path('README.md').write_text('''# MarquesMater — NOVO SITE\n\nFonte de verdade do catálogo: SQLite `data/catalog.db`, administrado pelo Back Office.\n\n- Front Office lê produtos, marcas, famílias, preços, stock, variantes, imagens e documentos através da API `/api/products`.\n- Back Office grava produtos em `/api/admin/product`.\n- RIDA e restantes produtos não são lidos por catálogos JSON estáticos no Front Office.\n- Woodneuce usa o produto central `woodneuce` / marca `NEUCE`.\n- Soudal mantém apenas `soudal-t-rex-power-290ml`.\n- Scripts históricos V25/V26/V18/V19 e catálogos hardcoded foram removidos da execução.\n\n## Deploy\nRender faz deploy automático da branch `main` com `python server.py`.\n''',encoding='utf-8')
+          Path('.gitignore').write_text('''__pycache__/\n*.pyc\n*.pyo\n.DS_Store\nThumbs.db\n.env\n''',encoding='utf-8')
+
+          # 5) apagar todos os workflows históricos; manter apenas CI sem mutações.
+          wf=Path('.github/workflows'); wf.mkdir(parents=True,exist_ok=True)
+          for f in wf.glob('*.yml'): f.unlink()
+          for f in wf.glob('*.yaml'): f.unlink()
+          (wf/'ci.yml').write_text('''name: CI\non:\n  push:\n    branches: [main]\n  pull_request:\n    branches: [main]\njobs:\n  validate:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - uses: actions/setup-python@v5\n        with:\n          python-version: "3.13"\n      - run: python -m py_compile server.py\n      - run: python - <<'PY'\n        from pathlib import Path\n        s=Path("catalogo.html").read_text(encoding="utf-8")\n        assert "const PAINTINGS=" not in s\n        assert "rida-products.json" not in s\n        assert "/api/products" in s\n        print("catalogo: fonte central OK")\n        PY\n''',encoding='utf-8')
+          PY
+      - name: Validar e consolidar
+        run: |
+          python3 -m py_compile server.py
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet && exit 0
+          git commit -m "Limpar base e centralizar catalogo no Back Office"
+          git push origin main
