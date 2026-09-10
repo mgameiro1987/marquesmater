@@ -5,14 +5,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - run: python scripts/patch_server_neuce.py
       - run: python scripts/update_neuce_paints.py
       - run: python -m py_compile server.py
       - name: Commit e push
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add server.py admin.html produto-wc.html scripts/update_neuce_paints.py
-          git commit -m "Aplicar pinturas NEUCE e WoodNeuce" || true
+          git add server.py admin.html produto-wc.html scripts
+          git commit -m "Adicionar pinturas NEUCE e WoodNeuce" || true
           for i in 1 2 3 4 5; do
             git pull --rebase origin main && git push && break
             sleep 3
