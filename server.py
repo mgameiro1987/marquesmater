@@ -383,6 +383,23 @@ def fetch_soudal_image(page_url):
         print('[SOUDAL IMAGE]',e)
         return None
 
+def ensure_woodneuce_product():
+    try:
+        c=db()
+        p={
+          'slug':'woodneuce','id':'woodneuce','name':'Woodneuce — Lasur','ref':'WOODNEUCE','family':'Pinturas','category':'Pinturas','subfamily':'Tinta Exterior','brand':'NEUCE',
+          'price':11.60,'price_display':'Desde 11,60 €','stock':0,'min_stock':0,'state':'active',
+          'description':'Lasur aquoso decorativo para protecção e decoração de madeiras, interior e exterior. Produto microporoso de base acrílica aquosa, inodoro e com protecção contra humidade e intempéries.',
+          'variants':[{'name':'0,75 L','price':'11,60 €','stock':0},{'name':'4 L','price':'59,90 €','stock':0}],
+          'image':'','gallery':[],'docs':[{'title':'Ficha técnica WOODNEUCE — NEUCE','url':'https://www.neuce.com/'}],
+          'tech':['Tipo: Lasur aquoso decorativo','Aplicação: madeira interior e exterior','Rendimento: 13–15 m²/L por demão','Acabamentos: Mate, Acetinado e Opaco','Embalagens: 0,75 L e 4 L',{'_mm_options':{'finish':{'enabled':True,'options':['Mate','Acetinado','Opaco']},'color':{'enabled':True,'options':['Incolor','Cores de catálogo']}}}]
+        }
+        put_product(c,p); c.commit(); c.close()
+    except Exception as e: print('Woodneuce seed:',e)
+
+ensure_woodneuce_product()
+
+
 class Handler(http.server.SimpleHTTPRequestHandler):
  def __init__(self,*a,**kw):super().__init__(*a,directory=str(ROOT),**kw)
  def log_message(self,f,*a):print('[SITE]',f%a)
