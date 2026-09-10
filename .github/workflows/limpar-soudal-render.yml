@@ -1,6 +1,6 @@
 name: Corrigir Soudal no Render
 
-# Woodneuce + opções de acabamento/cor + imagem do produto.
+# Woodneuce + opções de acabamento/cor + imagem do produto + cache bust do editor de tintas.
 
 on:
   push:
@@ -35,10 +35,23 @@ jobs:
               if pos<0: raise SystemExit('Startup V26 não encontrado')
               s=s[:pos]+fn+'ensure_woodneuce_product()\n'+s[pos:]
           else:
-              # Ensure existing Woodneuce seed always points to the repository image.
               s=s.replace("'image':'','gallery':[]", "'image':'/assets/woodneuce.svg','gallery':['/assets/woodneuce.svg']")
           s=re.sub(r'\n# MM-NEUCE-FINAL-SERVER.*?(?=\nensure_v26_runtime_fixes\(\))','',s,flags=re.S)
           s=s.replace('\nensure_neuce_final()\n','\n')
+          p.write_text(s,encoding='utf-8')
+          PY
+      - name: Forçar versão nova do editor de tintas
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('admin.html')
+          s=p.read_text(encoding='utf-8')
+          old='<script src="/assets/paint-options.js"></script>'
+          new='<script src="/assets/paint-options.js?v=20260910-3"></script>'
+          if old in s:
+              s=s.replace(old,new,1)
+          elif 'paint-options.js?v=20260910-3' not in s and 'paint-options.js' in s:
+              s=s.replace('/assets/paint-options.js','/assets/paint-options.js?v=20260910-3',1)
           p.write_text(s,encoding='utf-8')
           PY
       - name: Validar
@@ -47,5 +60,5 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add server.py
-          if git diff --cached --quiet; then echo "Sem alterações"; else git commit -m "NEUCE: imagem Woodneuce no catálogo"; git push origin main; fi
+          git add server.py admin.html
+          if git diff --cached --quiet; then echo "Sem alterações"; else git commit -m "Forcar novo visual do editor de tintas"; git push origin main; fi
