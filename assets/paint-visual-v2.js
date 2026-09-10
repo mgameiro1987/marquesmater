@@ -2,6 +2,7 @@
   'use strict';
   const STYLE_ID='mm-paint-visual-v2-css';
   const MARK='data-mm-paint-v2';
+  const WOODNEUCE_IMAGE='https://www.jonobras.pt/admin/APP/upload/artigos/5fad1bfa1dc83woodneuce.png';
   function isPaintModal(modal){
     const t=(modal.innerText||'').toLowerCase();
     const vals=[...modal.querySelectorAll('input,select,textarea')].map(x=>(x.value||x.placeholder||'').toLowerCase()).join(' ');
@@ -26,8 +27,10 @@
   }
   function imageFor(modal){
     const urls=[...modal.querySelectorAll('input')].map(x=>x.value).filter(v=>/^https?:\/\//i.test(v));
-    const good=urls.find(v=>/neuce|wood|paint|1128/i.test(v))||urls[0];
-    return good||'/assets/woodneuce.svg';
+    const good=urls.find(v=>/neuce|wood|paint|1128/i.test(v));
+    if(good)return good;
+    const text=(modal.innerText||'').toLowerCase();
+    return /woodneuce|lasur/.test(text)?WOODNEUCE_IMAGE:(urls[0]||'/assets/woodneuce.svg');
   }
   function enhance(modal){
     if(!modal||modal.getAttribute(MARK)||!isPaintModal(modal))return;
@@ -39,7 +42,7 @@
     if(oldTitle)oldTitle.style.display='none';
     const head=document.createElement('div');head.className='mmv-head';head.innerHTML=`<div><div class="mmv-title">Editar produto</div><div class="mmv-sub">${title!== 'Editar Produto'?title:sub} · Gestão profissional de tintas</div></div><div class="mmv-head-actions"><button type="button" data-mmv-close>× Fechar</button><button type="button" data-mmv-save>Guardar produto</button></div>`;
     card.insertBefore(head,card.firstChild);
-    const ov=document.createElement('div');ov.className='mmv-overview';ov.innerHTML=`<div class="mmv-photo"><img src="${imageFor(modal)}" onerror="this.src='/assets/woodneuce.svg'"></div><div class="mmv-meta"><strong>${title}</strong><span>Produto do setor de tintas</span><div class="mmv-badges"><span class="mmv-badge ok">● Ativo</span><span class="mmv-badge">NEUCE</span><span class="mmv-badge">Pinturas</span></div></div><div><span class="mmv-badge">Editor de produto</span></div>`;
+    const ov=document.createElement('div');ov.className='mmv-overview';ov.innerHTML=`<div class="mmv-photo"><img src="${imageFor(modal)}" onerror="this.src='${WOODNEUCE_IMAGE}'"></div><div class="mmv-meta"><strong>${title}</strong><span>Produto do setor de tintas</span><div class="mmv-badges"><span class="mmv-badge ok">● Ativo</span><span class="mmv-badge">NEUCE</span><span class="mmv-badge">Pinturas</span></div></div><div><span class="mmv-badge">Editor de produto</span></div>`;
     const tabs=card.querySelector('.tabs');if(tabs)tabs.parentNode.insertBefore(ov,tabs);else card.insertBefore(ov,head.nextSibling);
     const footer=document.createElement('div');footer.className='mmv-footer';footer.innerHTML='<button type="button" class="danger" data-mmv-delete>Apagar produto</button><div><button type="button" data-mmv-cancel>Cancelar</button><button type="button" data-mmv-save2>Guardar produto</button></div>';
     card.appendChild(footer);
@@ -49,7 +52,6 @@
     footer.querySelector('[data-mmv-cancel]').onclick=close;
     footer.querySelector('[data-mmv-save2]').onclick=()=>head.querySelector('[data-mmv-save]').click();
     footer.querySelector('[data-mmv-delete]').onclick=()=>{const b=[...card.querySelectorAll('button')].find(x=>/Apagar produto/i.test(x.textContent)&&!x.hasAttribute('data-mmv-delete'));if(b)b.click();};
-    // Convert loose tab content into visual cards without changing existing fields or save logic.
     card.querySelectorAll('.tabpane').forEach(p=>{if(!p.querySelector('.mmv-card')&&p.children.length){const wrap=document.createElement('div');wrap.className='mmv-card';while(p.firstChild)wrap.appendChild(p.firstChild);p.appendChild(wrap);}});
   }
   function scan(){document.querySelectorAll('.modal.open').forEach(enhance);}
