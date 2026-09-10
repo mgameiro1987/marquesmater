@@ -7,7 +7,7 @@ DEFAULT_FAMILIES=[
  {'name':'Ferramentas','subs':['Ferramentas a Bateria','Ferramentas Eléctricas','Ferramentas Pneumáticas','Medição'],'icon':'assets/family-icons/tools.png'},
  {'name':'Construção','subs':['Materiais de Construção','Colas e Fitas','Níveis','Silicone','Máquinas de cortar azulejo'],'icon':'assets/family-icons/construction.png'},
  {'name':'Jardim/Agricultura','subs':['Rega','Poda','Máquinas de Jardim','Pulverização'],'icon':'assets/family-icons/garden-vito.png'},
- {'name':'Pinturas','subs':['Tinta Interior','Tinta Exterior','Acessórios','Diluentes','Tintas em Spray'],'icon':'assets/family-icons/paint-neuce.png'},
+ {'name':'Pinturas','subs':['Primários','Primários - Interiores','Primários - Exteriores','Primários - Ferro','Primários - Madeira','Tintas','Tintas - Interiores','Tintas - Exteriores','Tintas - Tetos','Tintas - Especiais','Esmaltes','Esmaltes - Ferro','Esmaltes - Madeira','Esmaltes - Industriais','Lasures e Vernizes','Lasures','Vernizes para Madeira','Preparação e Tratamento','Massas e Regularização','Tratamento de Superfícies'],'icon':'assets/family-icons/paint-neuce.png'},
  {'name':'Ferragens','subs':['Fixação','Diferenciais','Acessórios'],'icon':'assets/family-icons/hardware.png'}, {'name':'Iluminação','subs':['Interior','Exterior','LED'],'icon':'assets/family-icons/lighting.png'},
  {'name':'Casa','subs':['Limpeza','Organização'],'icon':'assets/family-icons/home.png'}, {'name':'Bricolage','subs':['Consumíveis','Acessórios'],'icon':'assets/family-icons/diy.png'},
  {'name':'Material Elétrico','subs':['Cabos','Tomadas','Acessórios'],'icon':'assets/family-icons/electric.png'}, {'name':'Protecção Individual','subs':['Luvas','Calçado','Vestuário'],'icon':'assets/family-icons/ppe.png'},
@@ -208,6 +208,33 @@ def ensure_rida_pricing():
  c.execute("UPDATE products SET featured=0 WHERE brand='RIDA'")
  c.executemany("UPDATE products SET featured=1 WHERE ref=?",[(x,) for x in featured])
  c.commit();c.close()
+
+# MM_NEUCE_PAINTS_RUNTIME_20260910
+def ensure_neuce_paints_runtime():
+ c=db(); PR={'0.75L':'6,90 €','1L':'8,90 €','2.5L':'14,90 €','4L':'19,90 €','5L':'24,90 €','15L':'89,90 €'}
+ products=[
+ ('neucegold-ng','NeuceGold NG','Tintas - Exteriores','https://www.neuce.com/p180-p-1128-neucegold-ng-pt_pt'),
+ ('superneuce','SuperNeuce','Tintas - Interiores','https://www.neuce.com/p179-cat-159-tinta-plastica-ni_pt'),
+ ('superneuce-sn','SuperNeuce SN','Tintas - Interiores','https://www.neuce.com/p180-p-1144-superneuce-sn-ni_pt'),
+ ('belneuce','BelNeuce','Tintas - Interiores','https://www.neuce.com/p179-cat-159-tinta-plastica-ni_pt'),
+ ('aquaneuce','AquaNeuce','Primários - Interiores','https://www.neuce.com/p180-p-885-aquaneuce-pt_pt'),
+ ('primaneuce','PrimaNeuce','Primários - Interiores','https://www.neuce.com/p180-p-1029-primaneuce-co_pt'),
+ ('multineuce','MultiNeuce','Primários - Interiores','https://www.neuce.com/p180-p-882-multineuce-mo_pt'),
+ ('hydroneuce','HydroNeuce','Primários - Exteriores','https://www.neuce.com/p180-p-884-hydroneuce-primario-pt_pt'),
+ ('plioneuce','PlioNeuce','Tintas - Exteriores','https://www.neuce.com/p179-cat-161-fachada-se_pt'),
+ ('textuneuce','TextuNeuce','Tintas - Exteriores','https://www.neuce.com/p180-p-894-textuneuce-pt_pt'),
+ ('neucetext','NeuceText','Tintas - Exteriores','https://www.neuce.com/p179-cat-160-tinta-texturada-pt_pt')]
+ for slug,name,sub,url in products:
+  vars=[{'name':x,'price':PR[x],'stock':'Disponível'} for x in (['5L','15L'] if slug in ('neucegold-ng','plioneuce','textuneuce','neucetext','aquaneuce','primaneuce','multineuce','hydroneuce') else ['1L','5L','15L'])]
+  put_product(c,{'slug':slug,'name':name,'ref':'','family':'Pinturas','category':'Pinturas','subfamily':sub,'brand':'NEUCE','price_display':'Desde '+vars[0]['price'],'price':num(vars[0]['price']),'stock':0,'min_stock':5,'state':'active','description':'Produto NEUCE para pinturas, preparação e proteção de superfícies.','image':'assets/paint-placeholder.svg','gallery':['assets/paint-placeholder.svg'],'variants':vars,'docs':[{'title':'Produto no site oficial NEUCE','url':url}]})
+ for slug,sub in {'neucebel':'Tintas - Interiores','neucematt':'Tintas - Interiores','neucesoft':'Tintas - Interiores'}.items(): c.execute("UPDATE products SET family='Pinturas',category='Pinturas',subfamily=?,brand='NEUCE' WHERE slug=?",(sub,slug))
+ colors=[('215','Pinho Oregon','#9a5b2f'),('205','Carvalho','#b17a45'),('220','Teca','#9b5a32'),('265','Cedro','#a56b43'),('230','Castanho','#74452e'),('210','Nogueira','#5a3828'),('225','Palissandro','#4b2926'),('270','Ébano','#25201e'),('235','Mogno','#6b3026'),('300','Branco','#f4f4f0'),('245','Manga','#e29a36'),('260','Verde Cacto','#63764b'),('250','Laranja','#df6f28'),('255','Verde Feto','#526b43'),('275','Groselha','#8e3344'),('280','Azul Lírio','#5c7194'),('285','Ginja','#8a3030'),('295','Cinza Pombo','#8b8881'),('290','Chocolate','#68452e'),('240','Preto','#242424')]
+ w=[]
+ for finish in ('Mate','Brilhante'):
+  for code,label,hx in colors:w.append({'name':finish+' — '+code+' '+label,'finish':finish,'color_code':code,'color':label,'color_hex':hx,'price':PR['1L'],'stock':'Disponível'})
+ put_product(c,{'slug':'woodneuce','name':'WoodNeuce','ref':'','family':'Pinturas','category':'Pinturas','subfamily':'Lasures','brand':'NEUCE','price_display':'Desde '+PR['1L'],'price':num(PR['1L']),'stock':0,'state':'active','description':'Lasur NEUCE para proteção e decoração de madeiras. Escolha acabamento Mate ou Brilhante e depois a cor.','image':'assets/paint-placeholder.svg','gallery':['assets/paint-placeholder.svg'],'variants':w,'docs':[{'title':'WoodNeuce oficial','url':'https://www.neuce.com/p158-cs-ca_pt'}]})
+ c.commit(); c.close()
+ensure_neuce_paints_runtime()
 
 seed_db()
 ensure_rida_pricing()
@@ -627,6 +654,35 @@ class Handler(http.server.SimpleHTTPRequestHandler):
    if ext not in allowed:self.send_json({'error':'Formato não suportado'},400);return
    safe=secrets.token_hex(5)+ext;(UPLOADS/safe).write_bytes(content);self.send_json({'ok':True,'url':'uploads/'+safe,'filename':filename});return
   self.send_json({'error':'not_found'},404)
+
+# MM_NEUCE_PAINTS_20260910
+def ensure_neuce_paintings_20260910():
+ c=db(); PR={'0.75L':'6,90 €','1L':'8,90 €','2.5L':'14,90 €','4L':'19,90 €','5L':'24,90 €','15L':'89,90 €'}
+ products=[
+ ('neucegold-ng','NeuceGold NG','Tintas - Exteriores','https://www.neuce.com/p180-p-1128-neucegold-ng-pt_pt','Tinta 100% acrílica de nova geração para proteção e pintura de fachadas.'),
+ ('superneuce','SuperNeuce','Tintas - Interiores','https://www.neuce.com/p179-cat-159-tinta-plastica-ni_pt','Tinta exterior/interior de alta qualidade.'),
+ ('superneuce-sn','SuperNeuce SN','Tintas - Interiores','https://www.neuce.com/p180-p-1144-superneuce-sn-ni_pt','Tinta aquosa extra mate para paredes.'),
+ ('belneuce','BelNeuce','Tintas - Interiores','https://www.neuce.com/p179-cat-159-tinta-plastica-ni_pt','Tinta interior/exterior para paredes.'),
+ ('aquaneuce','AquaNeuce','Primários - Interiores','https://www.neuce.com/p180-p-885-aquaneuce-pt_pt','Primário acrílico aquoso branco anti-manchas.'),
+ ('primaneuce','PrimaNeuce','Primários - Interiores','https://www.neuce.com/p180-p-1029-primaneuce-co_pt','Primário aquoso branco para paredes e tetos.'),
+ ('multineuce','MultiNeuce','Primários - Interiores','https://www.neuce.com/p180-p-882-multineuce-mo_pt','Primário acrílico aquoso multiusos.'),
+ ('hydroneuce','HydroNeuce','Tintas - Exteriores','https://www.neuce.com/p180-p-884-hydroneuce-primario-pt_pt','Solução Hydro para preparação e proteção de paredes.'),
+ ('plioneuce','PlioNeuce','Tintas - Exteriores','https://www.neuce.com/p179-cat-161-fachada-se_pt','Tinta para fachadas de elevada durabilidade.'),
+ ('textuneuce','TextuNeuce','Tintas - Exteriores','https://www.neuce.com/p180-p-894-textuneuce-pt_pt','Tinta areada exterior para acabamentos texturados.'),
+ ('neucetext','NeuceText','Tintas - Exteriores','https://www.neuce.com/p179-cat-160-tinta-texturada-pt_pt','Tinta texturada decorativa para paredes.') ]
+ def add(slug,name,sub,page,desc,variants):
+  img='https://www.neuce.com'+('/files/products/881_3.png?dp=20260227101359' if slug=='neucebel' else '')
+  put_product(c,{'slug':slug,'name':name,'ref':'','family':'Pinturas','category':'Pinturas','subfamily':sub,'brand':'NEUCE','price_display':'Desde '+variants[0]['price'],'price':num(variants[0]['price']),'stock':0,'min_stock':5,'state':'active','featured':False,'description':desc,'image':img or 'assets/paint-placeholder.svg','gallery':[img or 'assets/paint-placeholder.svg'],'variants':variants,'docs':[{'title':'Página oficial NEUCE','url':page}]})
+ for slug,name,sub,page,desc in products:
+  add(slug,name,sub,page,desc,[{'name':'1L','price':PR['1L'],'stock':'Disponível'},{'name':'5L','price':PR['5L'],'stock':'Disponível'},{'name':'15L','price':PR['15L'],'stock':'Disponível'}])
+ for slug,sub in {'neucebel':'Tintas - Interiores','neucematt':'Tintas - Interiores','neucesoft':'Tintas - Interiores'}.items(): c.execute("UPDATE products SET family='Pinturas',category='Pinturas',subfamily=? WHERE slug=?",(sub,slug))
+ colors=[('215','Pinho Oregon','#9a5b2f'),('205','Carvalho','#b17a45'),('220','Teca','#9b5a32'),('265','Cedro','#a56b43'),('230','Castanho','#74452e'),('210','Nogueira','#5a3828'),('225','Palissandro','#4b2926'),('270','Ébano','#25201e'),('235','Mogno','#6b3026'),('300','Branco','#f4f4f0'),('245','Manga','#e29a36'),('260','Verde Cacto','#63764b'),('250','Laranja','#df6f28'),('255','Verde Feto','#526b43'),('275','Groselha','#8e3344'),('280','Azul Lírio','#5c7194'),('285','Ginja','#8a3030'),('295','Cinza Pombo','#8b8881'),('290','Chocolate','#68452e'),('240','Preto','#242424')]
+ w=[]
+ for f in ('Mate','Brilhante'):
+  for code,label,hx in colors: w.append({'name':f+' — '+code+' '+label,'finish':f,'color_code':code,'color':label,'color_hex':hx,'price':PR['1L'],'stock':'Disponível'})
+ put_product(c,{'slug':'woodneuce','name':'WoodNeuce','ref':'','family':'Pinturas','category':'Pinturas','subfamily':'Lasures','brand':'NEUCE','price_display':'Desde '+PR['1L'],'price':num(PR['1L']),'stock':0,'min_stock':5,'state':'active','featured':False,'description':'Lasur para proteção e decoração de madeiras interiores e exteriores.','image':'assets/paint-placeholder.svg','gallery':['assets/paint-placeholder.svg'],'variants':w,'docs':[{'title':'WoodNeuce oficial','url':'https://www.neuce.com/p180-p-934-woodneuce-mo_en'},{'title':'Catálogo de cores NEUCE','url':'https://www.neuce.com/p158-cs-ca_pt'}]})
+ c.commit(); c.close()
+ensure_neuce_paintings_20260910()
 
 def admin_data():return read_json(DATA/'admin.json',{})
 if __name__=='__main__':
