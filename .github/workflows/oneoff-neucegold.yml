@@ -1,0 +1,22 @@
+name: One-off add Neucegold NG
+on:
+  push:
+    paths:
+      - 'scripts/add_neucegold.py'
+permissions:
+  contents: write
+jobs:
+  add-product:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Update catalog database
+        run: python scripts/add_neucegold.py
+      - name: Commit database and remove one-off files
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data/catalog.db
+          git rm -f scripts/add_neucegold.py .github/workflows/oneoff-neucegold.yml
+          git commit -m 'Adicionar Neucegold NG ao catálogo'
+          git push
