@@ -81,6 +81,23 @@ def price_text(v):
 def put_product(c,p):
  slug=str(p.get('slug') or p.get('id') or '').strip()
  if not slug:return
+ existing=c.execute('SELECT image,gallery_json,variants_json,docs_json,related_json,price_display,description,tech FROM products WHERE slug=?',(slug,)).fetchone()
+ if existing:
+  ex=dict(existing)
+  if not p.get('image') and not p.get('gallery'):
+   p['image']=ex.get('image') or ''
+   try:p['gallery']=json.loads(ex.get('gallery_json') or '[]')
+   except:p['gallery']=[]
+  if not p.get('variants'):
+   try:p['variants']=json.loads(ex.get('variants_json') or '[]')
+   except:p['variants']=[]
+  if not p.get('docs'):
+   try:p['docs']=json.loads(ex.get('docs_json') or '[]')
+   except:p['docs']=[]
+  if not p.get('related'):
+   try:p['related']=json.loads(ex.get('related_json') or '[]')
+   except:p['related']=[]
+  if p.get('price_display') in ('','Preço por variante',None) and ex.get('price_display'):p['price_display']=ex['price_display']
  price=num(p.get('price') if p.get('price') not in (None,'') else p.get('price_display','')); promo=p.get('promo_price',p.get('promo'))
  imgs=p.get('images') or []; gallery=p.get('gallery') or [x.get('src','') for x in imgs if isinstance(x,dict) and x.get('src')]
  img=str(p.get('image') or (gallery[0] if gallery else ''))
@@ -96,6 +113,8 @@ def row_product(r):
  for k,j in [('gallery','gallery_json'),('docs','docs_json'),('variants','variants_json'),('related','related_json')]:
   try:p[k]=json.loads(p.get(j) or '[]')
   except:p[k]=[]
+ if not p.get('gallery') and p.get('image'):p['gallery']=[p['image']]
+ if p.get('gallery'):p['image']=p['gallery'][0]
 
  def official_image(x):
   return '/api/soudal-image?url='+urllib.parse.quote(x[12:],safe='') if isinstance(x,str) and x.startswith('soudal-page:') else x
@@ -138,9 +157,9 @@ def seed_db():
     p=dict(p); p.setdefault('slug',p.get('sku')); p['brand']='RIDA'; p['family']='Máquinas'; p['category']='Máquinas'; p['subfamily']='Máquinas sem fio' if ('sem fio' in str(p.get('name','')).lower() or 'bateria' in str(p.get('name','')).lower() or p.get('kit')) else 'Máquinas sem fio'; p['price_display']=p.get('price','Preço sob consulta'); p['description']=p.get('description') or p.get('desc',''); p['tech']=p.get('spec',''); put_product(c,p)
   # Paint examples, with configurable variants and official docs. Prices per size can be edited in BO.
   paints=[
-   {'slug':'neucebel','name':'NeuceBel','family':'Pinturas','category':'Pinturas','subfamily':'Tinta Interior','brand':'Neuce','price_display':'Preço por variante','stock':0,'image':'assets/paint-placeholder.svg','description':'Tinta estireno-acrílica extra mate para interiores e exteriores, com boa cobertura, rendimento e resistência ao desenvolvimento de fungos e algas.','tech':['Densidade: 1,380 ± 0,030 (cor branca)','Teor de sólidos em peso: 53 ± 2 %','Viscosidade: 109 ± 3 Ku (25 ºC)','Cor: Branca e outras','Acabamento: Liso mate','Secagem superficial: ± 30 minutos','Repintura: 3–4 horas','Ponto de inflamação: Não inflamável','Resistência à esfrega húmida: Classe 1','Poder de cobertura: Classe 3'],'variants':[{'name':'1L','price':'','stock':0},{'name':'5L','price':'','stock':0},{'name':'15L','price':'','stock':0}], 'related':['neucematt','neucesoft'], 'docs':[{'title':'Ficha técnica NEUCEBEL (PDF)','url':'https://www.neuce.com/files/ficha_tec/ft_03-03_vr8_pt.pdf'},{'title':'NeuceBel no site NEUCE','url':'https://www.neuce.com/p180-p-881-neucebel-pt_pt'}]},
-   {'slug':'neucematt','name':'NeuceMatt','family':'Pinturas','category':'Pinturas','subfamily':'Tinta Interior','brand':'Neuce','price_display':'Preço por variante','stock':0,'description':'Tinta plástica mate para interiores e exteriores, indicada para reboco liso, areado e vários outros suportes. Boa cobertura, rendimento e resistência à lavagem.','variants':[{'name':'5L','price':'','stock':0},{'name':'15L','price':'','stock':0}], 'docs':[{'title':'Informação oficial NEUCE','url':'https://www.neuce.com/p180-p-1026-neucematt-pt_pt'}]},
-   {'slug':'neucesoft','name':'NeuceSoft','family':'Pinturas','category':'Pinturas','subfamily':'Tinta Interior','brand':'Neuce','price_display':'Preço por variante','stock':0,'description':'Tinta plástica sedosa de alta qualidade para paredes interiores. Boa lacagem, opacidade e brancura, fácil aplicação e elevada resistência à esfrega húmida.','variants':[{'name':'1L','price':'','stock':0},{'name':'5L','price':'','stock':0},{'name':'15L','price':'','stock':0}], 'docs':[{'title':'NeuceSoft no site MarquesMater','url':'https://www.marquesmater.pt/novo/produto/neucesoft/'}]},
+   {'slug':'neucebel','name':'NeuceBel','family':'Pinturas','category':'Pinturas','subfamily':'Tinta Interior','brand':'Neuce','price_display':'Preço por variante','stock':0,'image':'assets/neucebel-real.jpg','gallery':['assets/neucebel-real.jpg','assets/neucebel-normal.svg'],'description':'Tinta estireno-acrílica extra mate para interiores e exteriores, com boa cobertura, rendimento e resistência ao desenvolvimento de fungos e algas.','tech':['Densidade: 1,380 ± 0,030 (cor branca)','Teor de sólidos em peso: 53 ± 2 %','Viscosidade: 109 ± 3 Ku (25 ºC)','Cor: Branca e outras','Acabamento: Liso mate','Secagem superficial: ± 30 minutos','Repintura: 3–4 horas','Ponto de inflamação: Não inflamável','Resistência à esfrega húmida: Classe 1','Poder de cobertura: Classe 3'],'variants':[{'name':'1L','price':'','stock':0},{'name':'5L','price':'','stock':0},{'name':'15L','price':'','stock':0}], 'related':['neucematt','neucesoft'], 'docs':[{'title':'Ficha técnica NEUCEBEL (PDF)','url':'https://www.neuce.com/files/ficha_tec/ft_03-03_vr8_pt.pdf'},{'title':'NeuceBel no site NEUCE','url':'https://www.neuce.com/p180-p-881-neucebel-pt_pt'}]},
+   {'slug':'neucematt','name':'NeuceMatt','family':'Pinturas','category':'Pinturas','subfamily':'Tinta Interior','brand':'Neuce','price_display':'Preço por variante','stock':0,'image':'assets/neucematt-real.png','gallery':['assets/neucematt-real.png','assets/neucematt-normal.svg'],'description':'Tinta plástica mate para interiores e exteriores, indicada para reboco liso, areado e vários outros suportes. Boa cobertura, rendimento e resistência à lavagem.','variants':[{'name':'5L','price':'','stock':0},{'name':'15L','price':'','stock':0}], 'docs':[{'title':'Informação oficial NEUCE','url':'https://www.neuce.com/p180-p-1026-neucematt-pt_pt'}]},
+   {'slug':'neucesoft','name':'NeuceSoft','family':'Pinturas','category':'Pinturas','subfamily':'Tinta Interior','brand':'Neuce','price_display':'Preço por variante','stock':0,'image':'assets/neucesoft-real.jpg','gallery':['assets/neucesoft-real.jpg','assets/neucesoft-normal.svg'],'description':'Tinta plástica sedosa de alta qualidade para paredes interiores. Boa lacagem, opacidade e brancura, fácil aplicação e elevada resistência à esfrega húmida.','variants':[{'name':'1L','price':'','stock':0},{'name':'5L','price':'','stock':0},{'name':'15L','price':'','stock':0}], 'docs':[{'title':'NeuceSoft no site MarquesMater','url':'https://www.marquesmater.pt/novo/produto/neucesoft/'}]},
   ]
   for p in paints:put_product(c,p)
  # V3 migration: make the existing NeuceBel record presentable even when the
