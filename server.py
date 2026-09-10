@@ -236,6 +236,16 @@ def ensure_neuce_paints_runtime():
  c.commit(); c.close()
 ensure_neuce_paints_runtime()
 
+# MM_NEUCE_LOCAL_IMAGES_RUNTIME_20260910
+def ensure_neuce_local_images_runtime():
+ c=db(); local={
+  'neucegold-ng':'assets/products/6e80f7f25b22.png','superneuce':'assets/products/f75a704e3035.png','superneuce-sn':'assets/products/db85743313f0.png','belneuce':'assets/products/fe07c3d90546.png','aquaneuce':'assets/products/ff7c8f6fac86.jpg','primaneuce':'assets/products/a4d20107612f.png','multineuce':'assets/products/cd1ccfe26cad.jpg','hydroneuce':'assets/products/e63753742102.png','plioneuce':'assets/products/dda5d40c4e9b.png','textuneuce':'assets/products/3e8f17fb9750.jpg','neucetext':'assets/products/2321aa6501ee.png','woodneuce':'assets/products/9a1aabdd39bd.png','neucebel':'assets/neucebel-real.jpg','neucematt':'assets/neucematt-real.png','neucesoft':'assets/neucesoft-real.jpg'}
+ for slug,img in local.items():
+  row=c.execute('SELECT slug FROM products WHERE slug=?',(slug,)).fetchone()
+  if row:c.execute('UPDATE products SET image=?,gallery_json=?,updated_at=CURRENT_TIMESTAMP WHERE slug=?',(img,json.dumps([img],ensure_ascii=False),slug))
+ c.commit(); c.close()
+ensure_neuce_local_images_runtime()
+
 seed_db()
 ensure_rida_pricing()
 def ensure_v18_catalog():
