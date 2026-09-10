@@ -1,6 +1,6 @@
 name: Corrigir Soudal no Render
 
-# Woodneuce + opções de acabamento/cor + imagem do produto + cache bust do editor de tintas.
+# Woodneuce + opções de acabamento/cor + imagem do produto + visual profissional do Back Office.
 
 on:
   push:
@@ -40,19 +40,16 @@ jobs:
           s=s.replace('\nensure_neuce_final()\n','\n')
           p.write_text(s,encoding='utf-8')
           PY
-      - name: Forçar versão nova do editor de tintas
+      - name: Ligar visual profissional V2 do editor de tintas
         run: |
           python3 - <<'PY'
           from pathlib import Path
           p=Path('admin.html')
           s=p.read_text(encoding='utf-8')
-          old='<script src="/assets/paint-options.js"></script>'
-          new='<script src="/assets/paint-options.js?v=20260910-3"></script>'
-          if old in s:
-              s=s.replace(old,new,1)
-          elif 'paint-options.js?v=20260910-3' not in s and 'paint-options.js' in s:
-              s=s.replace('/assets/paint-options.js','/assets/paint-options.js?v=20260910-3',1)
-          p.write_text(s,encoding='utf-8')
+          tag='<script src="/assets/paint-visual-v2.js?v=20260910-1"></script>'
+          if tag not in s:
+              s=s.replace('</body>',tag+'</body>')
+              p.write_text(s,encoding='utf-8')
           PY
       - name: Validar
         run: python3 -m py_compile server.py
@@ -61,4 +58,4 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add server.py admin.html
-          if git diff --cached --quiet; then echo "Sem alterações"; else git commit -m "Forcar novo visual do editor de tintas"; git push origin main; fi
+          if git diff --cached --quiet; then echo "Sem alterações"; else git commit -m "Aplicar visual profissional V2 ao editor de tintas"; git push origin main; fi
