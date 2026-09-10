@@ -138,9 +138,8 @@ def seed_db():
     p=dict(p); p.setdefault('slug',p.get('sku')); p['brand']='RIDA'; p['family']='Máquinas'; p['category']='Máquinas'; p['subfamily']='Máquinas sem fio' if ('sem fio' in str(p.get('name','')).lower() or 'bateria' in str(p.get('name','')).lower() or p.get('kit')) else 'Máquinas sem fio'; p['price_display']=p.get('price','Preço sob consulta'); p['description']=p.get('description') or p.get('desc',''); p['tech']=p.get('spec',''); put_product(c,p)
   # Paint examples, with configurable variants and official docs. Prices per size can be edited in BO.
   paints=[
-   {'slug':'neucebel','name':'NeuceBel','family':'Pinturas','category':'Pinturas','subfamily':'Tinta Interior','brand':'Neuce','price_display':'Preço por variante','stock':0,'image':'assets/paint-placeholder.svg','description':'Tinta estireno-acrílica extra mate para interiores e exteriores, com boa cobertura, rendimento e resistência ao desenvolvimento de fungos e algas.','tech':['Densidade: 1,380 ± 0,030 (cor branca)','Teor de sólidos em peso: 53 ± 2 %','Viscosidade: 109 ± 3 Ku (25 ºC)','Cor: Branca e outras','Acabamento: Liso mate','Secagem superficial: ± 30 minutos','Repintura: 3–4 horas','Ponto de inflamação: Não inflamável','Resistência à esfrega húmida: Classe 1','Poder de cobertura: Classe 3'],'variants':[{'name':'1L','price':'','stock':0},{'name':'5L','price':'','stock':0},{'name':'15L','price':'','stock':0}], 'related':['neucematt','neucesoft'], 'docs':[{'title':'Ficha técnica NEUCEBEL (PDF)','url':'https://www.neuce.com/files/ficha_tec/ft_03-03_vr8_pt.pdf'},{'title':'NeuceBel no site NEUCE','url':'https://www.neuce.com/p180-p-881-neucebel-pt_pt'}]},
-   {'slug':'neucematt','name':'NeuceMatt','family':'Pinturas','category':'Pinturas','subfamily':'Tinta Interior','brand':'Neuce','price_display':'Preço por variante','stock':0,'description':'Tinta plástica mate para interiores e exteriores, indicada para reboco liso, areado e vários outros suportes. Boa cobertura, rendimento e resistência à lavagem.','variants':[{'name':'5L','price':'','stock':0},{'name':'15L','price':'','stock':0}], 'docs':[{'title':'Informação oficial NEUCE','url':'https://www.neuce.com/p180-p-1026-neucematt-pt_pt'}]},
-   {'slug':'neucesoft','name':'NeuceSoft','family':'Pinturas','category':'Pinturas','subfamily':'Tinta Interior','brand':'Neuce','price_display':'Preço por variante','stock':0,'description':'Tinta plástica sedosa de alta qualidade para paredes interiores. Boa lacagem, opacidade e brancura, fácil aplicação e elevada resistência à esfrega húmida.','variants':[{'name':'1L','price':'','stock':0},{'name':'5L','price':'','stock':0},{'name':'15L','price':'','stock':0}], 'docs':[{'title':'NeuceSoft no site MarquesMater','url':'https://www.marquesmater.pt/novo/produto/neucesoft/'}]},
+   {'slug':'neucebel','name':'NeuceBel','family':'Pinturas','category':'Pinturas','subfamily':'Tinta Interior','brand':'Neuce','price_display':'Preço por variante','stock':0,'image':'assets/paint-placeholder.svg','description':'Tinta estireno-acrílica extra mate para interiores e exteriores, com boa cobertura, rendimento e resistência ao desenvolvimento de fungos e algas.','tech':['Densidade: 1,380 ± 0,030 (cor branca)','Teor de sólidos em peso: 53 ± 2 %','Viscosidade: 109 ± 3 Ku (25 ºC)','Cor: Branca e outras','Acabamento: Liso mate','Secagem superficial: ± 30 minutos','Repintura: 3–4 horas','Ponto de inflamação: Não inflamável','Resistência à esfrega húmida: Classe 1','Poder de cobertura: Classe 3'],'variants':[{'name':'1L','price':'','stock':0},{'name':'5L','price':'','stock':0},{'name':'15L','price':'','stock':0}], 'related':['neucesoft'], 'docs':[{'title':'Ficha técnica NEUCEBEL (PDF)','url':'https://www.neuce.com/files/ficha_tec/ft_03-03_vr8_pt.pdf'},{'title':'NeuceBel no site NEUCE','url':'https://www.neuce.com/p180-p-881-neucebel-pt_pt'}]},
+      {'slug':'neucesoft','name':'NeuceSoft','family':'Pinturas','category':'Pinturas','subfamily':'Tinta Interior','brand':'Neuce','price_display':'Preço por variante','stock':0,'description':'Tinta plástica sedosa de alta qualidade para paredes interiores. Boa lacagem, opacidade e brancura, fácil aplicação e elevada resistência à esfrega húmida.','variants':[{'name':'1L','price':'','stock':0},{'name':'5L','price':'','stock':0},{'name':'15L','price':'','stock':0}], 'docs':[{'title':'NeuceSoft no site MarquesMater','url':'https://www.marquesmater.pt/novo/produto/neucesoft/'}]},
   ]
   for p in paints:put_product(c,p)
  # V3 migration: make the existing NeuceBel record presentable even when the
@@ -150,7 +149,7 @@ def seed_db():
   c.execute("UPDATE products SET image=?, tech=?, related_json=?, description=? WHERE slug='neucebel'",(
    'assets/paint-placeholder.svg',
    json.dumps(['Densidade: 1,380 ± 0,030 (cor branca)','Teor de sólidos em peso: 53 ± 2 %','Viscosidade: 109 ± 3 Ku (25 ºC)','Cor: Branca e outras','Acabamento: Liso mate','Secagem superficial: ± 30 minutos','Repintura: 3–4 horas','Ponto de inflamação: Não inflamável','Resistência à esfrega húmida: Classe 1','Poder de cobertura: Classe 3'],ensure_ascii=False),
-   json.dumps(['neucematt','neucesoft'],ensure_ascii=False),
+   json.dumps(['neucesoft'],ensure_ascii=False),
    'Tinta estireno-acrílica extra mate para interiores e exteriores, com boa cobertura, rendimento e resistência ao desenvolvimento de fungos e algas.'
   ))
  # categories
@@ -321,7 +320,6 @@ def ensure_v26_neuce_prices():
     c=db()
     vals={
       'neucebel':(89.0,'Desde 89,00 €','https://www.marquesmater.pt/novo/wp-content/uploads/2024/03/Neucebel-600x638.png'),
-      'neucematt':(79.0,'Desde 79,00 €','https://www.marquesmater.pt/novo/wp-content/uploads/2024/03/Neucematt-600x638.png'),
       'neucesoft':(129.0,'Desde 129,00 €','https://www.marquesmater.pt/novo/wp-content/uploads/2024/03/Neucesoft-600x638.png'),
     }
     for slug,(price,display,image) in vals.items():
@@ -351,6 +349,11 @@ def ensure_neuce_final():
     c.commit(); c.close()
 
 ensure_neuce_final()
+# NeuceMatt was intentionally removed; purge any legacy row left in an older DB.
+try:
+    _c=db(); _c.execute("DELETE FROM products WHERE lower(slug)='neucematt' OR lower(name)='neucematt'"); _c.execute("UPDATE products SET related_json=REPLACE(related_json, 'neucematt', '') WHERE related_json LIKE '%neucematt%'"); _c.commit(); _c.close()
+except Exception as _e:
+    print('[NEUCEMATT CLEANUP]',_e)
 ensure_v26_runtime_fixes()
 _SOUDAL_CACHE={}
 def fetch_soudal_image(page_url):
