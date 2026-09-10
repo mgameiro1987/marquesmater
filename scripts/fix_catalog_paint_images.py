@@ -8,16 +8,16 @@ DB = ROOT / 'data' / 'catalog.db'
 UA = 'Mozilla/5.0 (compatible; MarquesMater/1.0)'
 
 PRODUCTS = {
-    'aquaneuce': {'name':'AquaNeuce','direct':['https://www.neuce.com/files/products/885_1.jpg'],'pages':['https://www.marquesmater.pt/novo/produto/aquaneuce/','https://www.neuce.com/p180-p-885-aquaneuce-pt_pt']},
+    'aquaneuce': {'name':'AquaNeuce','direct':['/assets/products/ff7c8f6fac86.jpg'],'pages':['https://www.marquesmater.pt/novo/produto/aquaneuce/','https://www.neuce.com/p180-p-885-aquaneuce-pt_pt']},
     'belneuce': {'name':'BelNeuce','direct':[],'pages':['https://www.marquesmater.pt/novo/produto/belneuce/','https://www.neuce.com/p179-cat-159-tinta-plastica-an_pt']},
-    'hydroneuce': {'name':'HydroNeuce','direct':['https://www.neuce.com/files/products/884_1.jpg'],'pages':['https://www.marquesmater.pt/novo/produto/hydroneuce/','https://www.neuce.com/p180-p-884-hydroneuce-primario-pt_pt']},
-    'neucegold-ng': {'name':'NeuceGold NG','direct':['https://www.neuce.com/files/products/1128_1.png'],'pages':['https://www.marquesmater.pt/novo/produto/neucegold-ng/','https://www.neuce.com/p180-p-1128-neucegold-ng-pt_pt']},
+    'hydroneuce': {'name':'HydroNeuce','direct':['/assets/products/6bc216f87e52.jpg'],'pages':['https://www.marquesmater.pt/novo/produto/hydroneuce/','https://www.neuce.com/p180-p-884-hydroneuce-primario-pt_pt']},
+    'neucegold-ng': {'name':'NeuceGold NG','direct':['/assets/products/6e80f7f25b22.png'],'pages':['https://www.marquesmater.pt/novo/produto/neucegold-ng/','https://www.neuce.com/p180-p-1128-neucegold-ng-pt_pt']},
     'neucetext': {'name':'NeuceText','direct':[],'pages':['https://www.marquesmater.pt/novo/produto/neucetext/','https://www.neuce.com/p179-cat-160-tinta-texturada-pt_pt']},
-    'plioneuce': {'name':'PlioNeuce','direct':['https://www.neuce.com/files/products/898_1.jpg'],'pages':['https://www.marquesmater.pt/novo/produto/plioneuce/','https://www.neuce.com/p180-p-898-plioneuce-primario-pt_pt']},
-    'primaneuce': {'name':'PrimaNeuce','direct':['https://www.neuce.com/files/products/1029_1.jpg'],'pages':['https://www.marquesmater.pt/novo/produto/primaneuce/','https://www.neuce.com/p180-p-1029-primaneuce-co_pt']},
+    'plioneuce': {'name':'PlioNeuce','direct':['/assets/products/a6d0b08bfa1f.jpg'],'pages':['https://www.marquesmater.pt/novo/produto/plioneuce/','https://www.neuce.com/p180-p-898-plioneuce-primario-pt_pt']},
+    'primaneuce': {'name':'PrimaNeuce','direct':['/assets/products/12ceffe9dde7.jpg'],'pages':['https://www.marquesmater.pt/novo/produto/primaneuce/','https://www.neuce.com/p180-p-1029-primaneuce-co_pt']},
     'superneuce': {'name':'SuperNeuce','direct':[],'pages':['https://www.marquesmater.pt/novo/produto/superneuce/','https://www.neuce.com/p179-cat-159-tinta-plastica-an_pt']},
     'superneuce-sn': {'name':'SuperNeuce SN','direct':['https://www.neuce.com/files/products/1144_1.jpg'],'pages':['https://www.marquesmater.pt/novo/produto/superneuce-sn/','https://www.neuce.com/p180-p-1144-superneuce-sn-ni_pt']},
-    'textuneuce': {'name':'TextuNeuce','direct':['https://www.neuce.com/files/products/894_1.jpg'],'pages':['https://www.marquesmater.pt/novo/produto/textuneuce/','https://www.neuce.com/p180-p-894-textuneuce-pt_pt']},
+    'textuneuce': {'name':'TextuNeuce','direct':['/assets/products/3e8f17fb9750.jpg'],'pages':['https://www.marquesmater.pt/novo/produto/textuneuce/','https://www.neuce.com/p180-p-894-textuneuce-pt_pt']},
     'woodneuce': {'name':'WoodNeuce','direct':['https://www.neuce.com/files/products/934_1.jpg'],'pages':['https://www.marquesmater.pt/novo/produto/woodneuce/','https://www.neuce.com/p180-p-934-woodneuce-mo_en']},
 }
 
