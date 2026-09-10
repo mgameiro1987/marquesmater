@@ -1,0 +1,35 @@
+/* MarquesMater V7 — homepage carousel + visual polish */
+.heroV7{padding:0!important;background:#101820!important;position:relative;overflow:hidden}
+.mmCarousel{position:relative;min-height:430px}
+.mmSlides{position:relative;min-height:430px}
+.mmSlide{position:absolute;inset:0;opacity:0;pointer-events:none;transition:opacity .45s ease;display:flex;align-items:center}
+.mmSlide.active{opacity:1;pointer-events:auto}
+.mmSlideInner{width:100%;display:grid;grid-template-columns:1.05fr .95fr;gap:30px;align-items:center;padding:54px 0}
+.mmSlideCopy{max-width:650px;color:#fff}
+.mmSlideCopy .eyebrow{color:#f59a32!important}
+.mmSlideCopy h1{font-size:clamp(34px,5vw,62px);line-height:1.02;margin:12px 0 16px;color:#fff}
+.mmSlideCopy h1 strong{color:#fff}
+.mmSlideCopy p{font-size:18px;line-height:1.55;max-width:600px;color:#d8e0e6;margin-bottom:24px}
+.mmVisual{display:flex;justify-content:center;align-items:center;min-height:310px}
+.mmVisual img{width:min(100%,390px);max-height:310px;object-fit:contain;filter:drop-shadow(0 22px 28px #0008)}
+.mmSlide.rida{background:linear-gradient(110deg,#101820,#1b2935)}
+.mmSlide.paint{background:linear-gradient(110deg,#26343d,#182128)}
+.mmSlide.trex{background:linear-gradient(110deg,#202a31,#11171c)}
+.mmSlide.promo{background:linear-gradient(110deg,#3b2817,#171b20)}
+.mmControls{position:absolute;left:0;right:0;bottom:22px;z-index:4;display:flex;justify-content:space-between;align-items:center}
+.mmArrows{display:flex;gap:8px}
+.mmArrow{width:42px;height:42px;border:1px solid #ffffff45;background:#ffffff12;color:#fff;border-radius:50%;font-size:22px;cursor:pointer;backdrop-filter:blur(4px)}
+.mmArrow:hover{background:#ffffff25}
+.mmDots{display:flex;gap:7px;justify-content:center;flex:1}
+.mmDot{width:9px;height:9px;border:0;border-radius:50%;padding:0;background:#ffffff55;cursor:pointer}
+.mmDot.active{background:#fff;transform:scale(1.25)}
+.mmProgress{position:absolute;left:0;bottom:0;height:3px;background:#ef7d00;width:0;z-index:5}
+.mmTrust{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:22px}
+.mmTrustItem{border:1px solid #e5e8ea;background:#fff;padding:16px 18px;display:flex;gap:12px;align-items:center}
+.mmTrustIcon{font-size:24px}.mmTrustItem b{display:block}.mmTrustItem span{font-size:12px;color:#69737a}
+.product{position:relative}
+.mmQuick{margin-top:10px;width:100%;border:1px solid #dfe4e7;background:#fff;padding:9px 12px;font-weight:700;cursor:pointer}
+.mmQuick:hover{background:#101820;color:#fff}
+.mmSectionIntro{max-width:700px;color:#68737a}
+@media(max-width:800px){.mmSlides,.mmCarousel{min-height:560px}.mmSlideInner{grid-template-columns:1fr;padding:38px 0 70px;text-align:center;gap:10px}.mmSlideCopy{margin:auto}.mmSlideCopy p{font-size:15px;margin-left:auto;margin-right:auto}.mmVisual{min-height:190px;order:-1}.mmVisual img{max-height:185px;width:230px}.mmControls{bottom:16px}.mmTrust{grid-template-columns:1fr 1fr}.mmArrow{width:38px;height:38px}.mmDots{margin:0 12px}}
+@media(max-width:480px){.mmTrust{grid-template-columns:1fr}.mmSlides,.mmCarousel{min-height:590px}.mmSlideCopy h1{font-size:38px}}
