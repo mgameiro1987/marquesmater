@@ -356,9 +356,9 @@ def migrate_neuce_legacy_images():
     # A partir daqui, a imagem/galeria guardada no Back Office é a única fonte.
     c=db()
     legacy={
-        'neucebel': ('https://www.neuce.com/files/products/881_3.png?dp=20260227101359','assets/neucebel-real.jpg'),
+        'neucebel': ('/assets/products/814c809e7143.png','assets/neucebel-real.jpg'),
         'neucematt': ('https://www.saniluz.pt/cdn/shop/files/5602920000587.jpg?v=1733586586','assets/neucematt-real.png'),
-        'neucesoft': ('https://cdn-shopkit.com/usercontent/tintas-vital/media/images/square/37a3a6a-neucesoft.jpeg','assets/neucesoft-real.jpg')
+        'neucesoft': ('/assets/products/d060535f0b2b.jpg','assets/neucesoft-real.jpg')
     }
     for slug,(legacy_url,local) in legacy.items():
         r=c.execute('SELECT image,gallery_json FROM products WHERE lower(slug)=?',(slug,)).fetchone()
@@ -380,7 +380,7 @@ def ensure_v26_neuce_prices():
     """Mantém os preços/imagens NEUCE definidos no V26 na base persistente."""
     c=db()
     vals={
-      'neucebel':(89.0,'Desde 89,00 €','https://www.marquesmater.pt/novo/wp-content/uploads/2024/03/Neucebel-600x638.png'),
+      'neucebel':(89.0,'Desde 89,00 €','/assets/products/782c64fd8303.png'),
       'neucematt':(79.0,'Desde 79,00 €','https://www.marquesmater.pt/novo/wp-content/uploads/2024/03/Neucematt-600x638.png'),
       'neucesoft':(129.0,'Desde 129,00 €','https://www.marquesmater.pt/novo/wp-content/uploads/2024/03/Neucesoft-600x638.png'),
     }
@@ -695,11 +695,11 @@ def ensure_paint_catalog_final_20260910():
     PR={'0.75L':'6,90 €','1L':'8,90 €','2.5L':'14,90 €','4L':'19,90 €','5L':'24,90 €','15L':'89,90 €'}
     imgs={
       'neucebel':'assets/neucebel-real.jpg','neucematt':'assets/neucematt-real.png','neucesoft':'assets/neucesoft-real.jpg',
-      'neucegold-ng':'https://www.neuce.com/files/products/1128_1.png?dp=20260319193436',
-      'aquaneuce':'https://www.neuce.com/files/products/885_1.jpg?dp=20260627134217',
-      'multineuce':'https://www.neuce.com/files/products/882_1.jpg','hydroneuce':'https://www.neuce.com/files/products/884_1.jpg',
-      'primaneuce':'https://www.neuce.com/files/products/1029_1.jpg','plioneuce':'https://www.neuce.com/files/products/898_1.jpg',
-      'textuneuce':'https://www.neuce.com/files/products/894_1.jpg?dp=20260731213705'}
+      'neucegold-ng':'/assets/products/4c416f91e31b.png',
+      'aquaneuce':'/assets/products/7d4d5db8ef7d.jpg',
+      'multineuce':'/assets/products/f21c3f0ad3ee.jpg','hydroneuce':'/assets/products/6bc216f87e52.jpg',
+      'primaneuce':'/assets/products/12ceffe9dde7.jpg','plioneuce':'/assets/products/a6d0b08bfa1f.jpg',
+      'textuneuce':'/assets/products/b4a1bb51ce2c.jpg'}
     subs={'neucebel':'Tintas - Interiores','neucematt':'Tintas - Interiores','neucesoft':'Tintas - Interiores','neucegold-ng':'Tintas - Exteriores','belneuce':'Tintas - Interiores','superneuce':'Tintas - Interiores','superneuce-sn':'Tintas - Interiores','aquaneuce':'Primários - Interiores','primaneuce':'Primários - Interiores','multineuce':'Primários - Interiores','hydroneuce':'Primários - Exteriores','plioneuce':'Primários - Exteriores','textuneuce':'Tintas - Exteriores','neucetext':'Tintas - Exteriores','woodneuce':'Lasures'}
     names=list(subs)
     for slug in names:
