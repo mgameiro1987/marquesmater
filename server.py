@@ -324,13 +324,27 @@ def normalize_product_taxonomy():
 normalize_product_taxonomy()
 
 
-def ensure_v26_neuce_images():
+def migrate_neuce_legacy_images():
+    # Migração única dos URLs antigos que eram impostos pelo servidor.
+    # A partir daqui, a imagem/galeria guardada no Back Office é a única fonte.
     c=db()
-    m={"NeuceBel":"https://templodastintas.pt/cdn/shop/files/neucebel.png?v=1705605720&width=533","NeuceMatt":"https://www.saniluz.pt/cdn/shop/files/5602920000587.jpg?v=1733586586","NeuceSoft":"https://cdn-shopkit.com/usercontent/tintas-vital/media/images/square/37a3a6a-neucesoft.jpeg"}
-    for name,img in m.items(): c.execute("UPDATE products SET brand='NEUCE',supplier='NEUCE',price_display='Preço por variante',image=?,gallery_json=? WHERE lower(name)=lower(?)",(img,json.dumps([img]),name))
+    legacy={
+        'neucebel': ('https://templodastintas.pt/cdn/shop/files/neucebel.png?v=1705605720&width=533','assets/neucebel-real.jpg'),
+        'neucematt': ('https://www.saniluz.pt/cdn/shop/files/5602920000587.jpg?v=1733586586','assets/neucematt-real.png'),
+        'neucesoft': ('https://cdn-shopkit.com/usercontent/tintas-vital/media/images/square/37a3a6a-neucesoft.jpeg','assets/neucesoft-real.jpg')
+    }
+    for slug,(legacy_url,local) in legacy.items():
+        r=c.execute('SELECT image,gallery_json FROM products WHERE lower(slug)=?',(slug,)).fetchone()
+        if not r: continue
+        image=r['image'] or ''
+        try: gallery=json.loads(r['gallery_json'] or '[]')
+        except: gallery=[]
+        if image==legacy_url or (gallery and gallery[0]==legacy_url):
+            gallery=[local]+[x for x in gallery if x and x!=legacy_url and x!=local]
+            c.execute('UPDATE products SET image=?,gallery_json=?,updated_at=CURRENT_TIMESTAMP WHERE lower(slug)=?',(local,json.dumps(gallery,ensure_ascii=False),slug))
     c.commit(); c.close()
 
-ensure_v26_neuce_images()
+migrate_neuce_legacy_images()
 
 
 
