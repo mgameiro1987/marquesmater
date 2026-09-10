@@ -1,0 +1,3 @@
+BACKUP COMPLETO DA BASE DE DADOS MARQUESMATER
+Contém a base SQLite catalog.db e todos os ficheiros de dados usados pelo site/Back Office.
+O catalog.db é a base de dados principal.
