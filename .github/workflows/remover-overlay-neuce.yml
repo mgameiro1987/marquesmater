@@ -1,0 +1,39 @@
+name: Remover overlay antigo NEUCE do catálogo
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Remover código antigo de Pinturas
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          p=Path('catalogo.html')
+          s=p.read_text(encoding='utf-8')
+          old=s
+          s=re.sub(r'<!-- MM-PINTURAS-V26-OPEN-FIX -->.*?</script>\s*<style id="MM-NEUCE-FINAL">.*?</script>', '', s, flags=re.S)
+          s=re.sub(r"\{slug:'neucematt',name:'Neucematt'.*?\},", '', s, flags=re.S)
+          if s==old:
+            raise SystemExit('Nenhuma alteração encontrada em catalogo.html')
+          p.write_text(s,encoding='utf-8')
+          PY
+      - name: Commit e limpar workflow
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add catalogo.html
+          git commit -m 'Remover sobreposição antiga NEUCE do catálogo'
+          rm -f .github/workflows/remover-overlay-neuce.yml
+          git add -u .github/workflows/remover-overlay-neuce.yml
+          git commit -m 'Limpar workflow temporário NEUCE' || true
+          git push
