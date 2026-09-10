@@ -1,7 +1,9 @@
 name: Remover overlay antigo NEUCE do catálogo
 
 on:
-  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/remover-overlay-neuce.yml'
 
 permissions:
   contents: write
