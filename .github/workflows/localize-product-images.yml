@@ -23,12 +23,16 @@ jobs:
       - name: Localizar imagens externas no servidor
         run: python scripts/localize_product_images.py
 
+      - name: Corrigir imagens das pinturas NEUCE no catálogo
+        run: python scripts/fix_catalog_paint_images.py
+
       - name: Fixar imagens principais locais
         run: python scripts/finalize_local_product_images.py
 
       - name: Verificar ficheiros
         run: |
           python -m py_compile scripts/localize_product_images.py
+          python -m py_compile scripts/fix_catalog_paint_images.py
           python -m py_compile scripts/finalize_local_product_images.py
 
       - name: Commit imagens e base de dados
@@ -36,10 +40,10 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add assets/products data/catalog.db catalogo.html produto-wc.html index.html carrinho.html *.html *.js *.css server.py rida-products.json 2>/dev/null || true
-          git add scripts/localize_product_images.py scripts/finalize_local_product_images.py assets/products/image-map.json 2>/dev/null || true
+          git add scripts/localize_product_images.py scripts/fix_catalog_paint_images.py scripts/finalize_local_product_images.py assets/products/image-map.json 2>/dev/null || true
           if git diff --cached --quiet; then
             echo "Nenhuma alteração necessária."
           else
-            git commit -m "Fixar imagens dos produtos localmente [skip ci]"
+            git commit -m "Fixar imagens NEUCE localmente [skip ci]"
             git push
           fi
