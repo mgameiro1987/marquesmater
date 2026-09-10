@@ -3,7 +3,7 @@ services:
     name: marquesmater
     runtime: python
     plan: free
-    buildCommand: "pip install -r requirements.txt"
+    buildCommand: "pip install -r requirements.txt && python scripts/sync_missing_neuce_images.py"
     startCommand: "python server.py"
     healthCheckPath: /api/health
     envVars:
