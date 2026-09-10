@@ -10,6 +10,8 @@ jobs:
       - run: python scripts/patch_server_neuce.py
       - run: python scripts/update_neuce_paints.py
       - run: python scripts/finalize_paint_catalog.py
+      - name: Fixar imagens locais dos produtos
+        run: python scripts/finalize_local_product_images.py
       - run: python -m py_compile server.py
       - name: Clean generated files
         run: rm -rf __pycache__ scripts/__pycache__
