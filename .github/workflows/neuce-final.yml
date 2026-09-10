@@ -16,15 +16,64 @@ jobs:
       - name: Aplicar correção
         run: python3 - <<'PY'
           from pathlib import Path
-          import urllib.request
+          import urllib.request, re, html, sqlite3
+          from urllib.parse import urljoin
+          import requests
           a=Path('assets/neuce'); a.mkdir(parents=True,exist_ok=True)
+          def get(url,timeout=30):
+            r=urllib.request.Request(url,headers={'User-Agent':'Mozilla/5.0'})
+            return urllib.request.urlopen(r,timeout=timeout).read()
           urls={'neucebel':'https://www.marquesmater.pt/novo/wp-content/uploads/2024/03/Neucebel-600x638.png','neucematt':'https://www.saniluz.pt/cdn/shop/files/5602920000587.jpg?v=1733586586','neucesoft':'https://www.marquesmater.pt/novo/wp-content/uploads/2024/03/Neucesoft-600x638.png'}
           for k,u in urls.items():
             ext='.jpg' if k=='neucematt' else '.png'; p=a/(k+ext)
-            r=urllib.request.Request(u,headers={'User-Agent':'Mozilla/5.0'})
-            data=urllib.request.urlopen(r,timeout=30).read()
+            data=get(u)
             if len(data)<1000: raise SystemExit('Imagem inválida: '+k)
             p.write_bytes(data)
+
+          # Imagens oficiais NEUCE que estavam a faltar no catálogo.
+          def save_official(slug,url):
+            data=get(url)
+            if len(data)<5000: raise SystemExit('Imagem oficial inválida: '+slug)
+            ext='.png' if url.lower().split('?')[0].endswith('.png') else '.jpg'
+            p=a/(slug+ext); p.write_bytes(data); return 'assets/neuce/'+p.name
+          missing={}
+          missing['superneuce']=save_official('superneuce','https://www.neuce.com/files/products/883_1.jpg')
+
+          # BelNeuce: ID 880; se a NEUCE mudar a numeração, descobrir a página oficial.
+          try:
+            missing['belneuce']=save_official('belneuce','https://www.neuce.com/files/products/880_1.jpg')
+          except Exception:
+            h=requests.get('https://www.neuce.com/p179-cat-159-tinta-plastica-an_pt',headers={'User-Agent':'Mozilla/5.0'},timeout=30).text
+            hrefs=re.findall(r'href=["\']([^"\']+)["\']',h,re.I)
+            page=next((urljoin('https://www.neuce.com/p179-cat-159-tinta-plastica-an_pt',html.unescape(x)) for x in hrefs if 'p180-p-' in x.lower() and 'belneuce' in x.lower()),'')
+            if not page: raise SystemExit('Não foi encontrada a página oficial BelNeuce')
+            ph=requests.get(page,headers={'User-Agent':'Mozilla/5.0'},timeout=30).text
+            imgs=re.findall(r'https?://www\.neuce\.com/files/products/[^"\'\s<>]+',ph,re.I)
+            if not imgs: raise SystemExit('Não foi encontrada imagem oficial BelNeuce')
+            missing['belneuce']=save_official('belneuce',html.unescape(imgs[0]))
+
+          # PlioNeuce: descobrir o produto de fachada, excluindo Selante/Primário.
+          h=requests.get('https://www.neuce.com/p179-cat-161-fachada-se_pt',headers={'User-Agent':'Mozilla/5.0'},timeout=30).text
+          hrefs=re.findall(r'href=["\']([^"\']+)["\']',h,re.I)
+          page=''
+          for x in hrefs:
+            u=urljoin('https://www.neuce.com/p179-cat-161-fachada-se_pt',html.unescape(x))
+            if 'p180-p-' in u.lower() and 'plioneuce' in u.lower() and not re.search(r'(selante|primario)',u,re.I): page=u; break
+          if not page:
+            # fallback: procurar diretamente na página de fachada por uma imagem ligada ao nome PlioNeuce
+            raise SystemExit('Não foi encontrada a página oficial PlioNeuce de fachada')
+          ph=requests.get(page,headers={'User-Agent':'Mozilla/5.0'},timeout=30).text
+          imgs=re.findall(r'https?://www\.neuce\.com/files/products/[^"\'\s<>]+',ph,re.I)
+          if not imgs: raise SystemExit('Não foi encontrada imagem oficial PlioNeuce')
+          missing['plioneuce']=save_official('plioneuce',html.unescape(imgs[0]))
+
+          # Associar todas as imagens à linha correta na base persistente.
+          db=sqlite3.connect('data/catalog.db'); c=db.cursor()
+          for slug,rel in missing.items():
+            c.execute('UPDATE products SET image=?, gallery_json=? WHERE slug=?',(rel,'["'+rel+'"]',slug))
+            print('UPDATED',slug,rel,c.rowcount)
+          db.commit(); db.close()
+
           p=Path('catalogo.html'); s=p.read_text(encoding='utf-8')
           if 'MM-NEUCE-FINAL' not in s:
             s=s.replace('</body>', '<style id="MM-NEUCE-FINAL">body.mm-neuce-final .more{display:none!important}</style><script>(function(){function f(){var p=new URLSearchParams(location.search);if(p.get("cat")!=="Pinturas")return;document.body.classList.add("mm-neuce-final");document.querySelectorAll("#grid .product").forEach(function(c){var n=(c.querySelector("h3")||{}).textContent||"";var v={"NeuceBel":"89,90 €","NeuceMatt":"69,90 €","NeuceSoft":"129,90 €"}[n.trim()];if(v){var q=c.querySelector(".price");if(q)q.textContent=v;var m=c.querySelector(".more");if(m)m.remove()}})}if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",function(){setTimeout(f,200);setTimeout(f,1000)});else{setTimeout(f,200);setTimeout(f,1000)}})();</script></body>')
@@ -44,8 +93,11 @@ jobs:
           test -s assets/neuce/neucebel.png
           test -s assets/neuce/neucematt.jpg
           test -s assets/neuce/neucesoft.png
+          test -s assets/neuce/superneuce.jpg
+          test -s assets/neuce/belneuce.jpg
+          test -s assets/neuce/plioneuce.jpg
           git config user.name 'mgameiro1987'
           git config user.email 'infomydreambox@gmail.com'
-          git add catalogo.html server.py assets/neuce
-          git diff --cached --quiet || git commit -m 'NEUCE final: imagens locais, preços e sem Ver produto'
+          git add catalogo.html server.py assets/neuce data/catalog.db
+          git diff --cached --quiet || git commit -m 'NEUCE final: imagens oficiais completas'
           git push
