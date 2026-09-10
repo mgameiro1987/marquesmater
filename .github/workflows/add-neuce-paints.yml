@@ -1,0 +1,154 @@
+name: Add NEUCE paints and WoodNeuce
+on:
+  push:
+    branches: [main]
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Atualizar catálogo, servidor e Back Office
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re, json, html as htmlmod
+          import requests
+
+          root=Path('.')
+          server=root/'server.py'
+          admin=root/'admin.html'
+          product=root/'produto-wc.html'
+          s=server.read_text(encoding='utf-8')
+          a=admin.read_text(encoding='utf-8')
+          p=product.read_text(encoding='utf-8')
+
+          # 1) Estrutura definitiva da família Pinturas.
+          old="{'name':'Pinturas','subs':['Tinta Interior','Tinta Exterior','Acessórios','Diluentes','Tintas em Spray'],'icon':'assets/family-icons/paint-neuce.png'}"
+          new="{'name':'Pinturas','subs':['Primários','Primários - Interiores','Primários - Exteriores','Primários - Ferro','Primários - Madeira','Tintas','Tintas - Interiores','Tintas - Exteriores','Tintas - Tetos','Tintas - Especiais','Esmaltes','Esmaltes - Ferro','Esmaltes - Madeira','Esmaltes - Industriais','Lasures e Vernizes','Lasures','Vernizes para Madeira','Preparação e Tratamento','Massas e Regularização','Tratamento de Superfícies'],'icon':'assets/family-icons/paint-neuce.png'}"
+          if old in s: s=s.replace(old,new,1)
+
+          # 2) Produtos NEUCE a semear na base persistente.
+          seed_marker='MM_NEUCE_PAINTS_20260910'
+          if seed_marker not in s:
+            seed=r'''
+# MM_NEUCE_PAINTS_20260910
+
+def ensure_neuce_paintings_20260910():
+    c=db()
+    PR={'0.75L':'6,90 €','1L':'8,90 €','2.5L':'14,90 €','4L':'19,90 €','5L':'24,90 €','15L':'89,90 €'}
+    products=[
+      ('neucegold-ng','NeuceGold NG','Tintas - Exteriores','https://www.neuce.com/p180-p-1128-neucegold-ng-pt_pt','Tinta 100% acrílica de nova geração para proteção e pintura de fachadas.'),
+      ('superneuce','SuperNeuce','Tintas - Interiores','https://www.neuce.com/p179-cat-159-tinta-plastica-ni_pt','Tinta exterior/interior de alta qualidade para rebocos, betão e paredes estucadas.'),
+      ('superneuce-sn','SuperNeuce SN','Tintas - Interiores','https://www.neuce.com/p180-p-1144-superneuce-sn-ni_pt','Tinta aquosa extra mate para paredes interiores e também exteriores.'),
+      ('belneuce','BelNeuce','Tintas - Interiores','https://www.neuce.com/p179-cat-159-tinta-plastica-ni_pt','Tinta interior/exterior para pintura de paredes.'),
+      ('aquaneuce','AquaNeuce','Primários - Interiores','https://www.neuce.com/p180-p-885-aquaneuce-pt_pt','Primário acrílico aquoso branco anti-manchas para paredes interiores e exteriores.'),
+      ('primaneuce','PrimaNeuce','Primários - Interiores','https://www.neuce.com/p180-p-1029-primaneuce-co_pt','Primário aquoso branco para isolamento de paredes e tetos.'),
+      ('multineuce','MultiNeuce','Primários - Interiores','https://www.neuce.com/p180-p-882-multineuce-mo_pt','Primário acrílico aquoso multiusos para preparação de superfícies interiores e exteriores.'),
+      ('hydroneuce','HydroNeuce','Primários - Exteriores','https://www.neuce.com/p180-p-884-hydroneuce-primario-pt_pt','Primário acrílico Hydro para preparação de paredes interiores, exteriores e tetos.'),
+      ('plioneuce','PlioNeuce','Tintas - Exteriores','https://www.neuce.com/p179-cat-161-fachada-se_pt','Tinta para fachadas de elevada durabilidade e resistência à intempérie.'),
+      ('textuneuce','TextuNeuce','Tintas - Exteriores','https://www.neuce.com/p180-p-894-textuneuce-pt_pt','Tinta areada exterior para acabamentos texturados e proteção de fachadas.'),
+      ('neucetext','NeuceText','Tintas - Exteriores','https://www.neuce.com/p179-cat-160-tinta-texturada-pt_pt','Tinta texturada decorativa para acabamentos de paredes.'),
+    ]
+    def image_from_page(url,slug):
+      try:
+        r=requests.get(url,headers={'User-Agent':'MarquesMater/1.0'},timeout=20); r.raise_for_status(); txt=r.text
+        m=re.search(r'<meta[^>]+property=["\']og:image["\'][^>]+content=["\']([^"\']+)',txt,re.I)
+        if not m: m=re.search(r'<meta[^>]+content=["\']([^"\']+)["\'][^>]+property=["\']og:image["\']',txt,re.I)
+        if not m: return ''
+        u=htmlmod.unescape(m.group(1));
+        if u.startswith('/'): u='https://www.neuce.com'+u
+        rr=requests.get(u,headers={'User-Agent':'MarquesMater/1.0'},timeout=20); rr.raise_for_status()
+        ext='.jpg'
+        ct=(rr.headers.get('content-type') or '').lower()
+        if 'png' in ct: ext='.png'
+        elif 'webp' in ct: ext='.webp'
+        path=root/'assets'/'neuce'/f'{slug}{ext}'; path.parent.mkdir(parents=True,exist_ok=True); path.write_bytes(rr.content)
+        return str(path.relative_to(root)).replace('\\','/')
+      except Exception:
+        return ''
+    for slug,name,sub,page,desc in products:
+      img=image_from_page(page,slug)
+      if not img: img='assets/paint-placeholder.svg'
+      vars=[]
+      for cap,price in PR.items(): vars.append({'name':cap,'price':price,'stock':'Disponível'})
+      if slug in ('neucegold-ng','plioneuce','textuneuce'): vars=[{'name':'5L','price':PR['5L'],'stock':'Disponível'},{'name':'15L','price':PR['15L'],'stock':'Disponível'}]
+      if slug in ('aquaneuce','primaneuce','hydroneuce','multineuce'): vars=[{'name':'5L','price':PR['5L'],'stock':'Disponível'},{'name':'15L','price':PR['15L'],'stock':'Disponível'}]
+      if slug in ('neucetext',): vars=[{'name':'5L','price':PR['5L'],'stock':'Disponível'},{'name':'15L','price':PR['15L'],'stock':'Disponível'}]
+      if slug=='superneuce-sn': vars=[{'name':'1L','price':PR['1L'],'stock':'Disponível'},{'name':'5L','price':PR['5L'],'stock':'Disponível'},{'name':'15L','price':PR['15L'],'stock':'Disponível'}]
+      put_product(c,{'slug':slug,'name':name,'ref':'','family':'Pinturas','category':'Pinturas','subfamily':sub,'brand':'NEUCE','price_display':'Desde '+vars[0]['price'],'price':num(vars[0]['price']),'stock':0,'min_stock':5,'state':'active','featured':False,'description':desc,'image':img,'gallery':[img],'variants':vars,'docs':[{'title':'Página oficial NEUCE','url':page}],'seo_title':name+' | MarquesMater','seo_description':desc})
+    # Existing products stay on the same family and receive the new taxonomy.
+    remap={'neucebel':'Tintas - Interiores','neucematt':'Tintas - Interiores','neucesoft':'Tintas - Interiores'}
+    for slug,sub in remap.items(): c.execute("UPDATE products SET family='Pinturas',category='Pinturas',subfamily=? WHERE slug=?",(sub,slug))
+    # WoodNeuce: one product, finish + colour variants. Swatch values are approximate screen representations.
+    colors=[('215','Pinho Oregon','#9a5b2f'),('205','Carvalho','#b17a45'),('220','Teca','#9b5a32'),('265','Cedro','#a56b43'),('230','Castanho','#74452e'),('210','Nogueira','#5a3828'),('225','Palissandro','#4b2926'),('270','Ébano','#25201e'),('235','Mogno','#6b3026'),('300','Branco','#f4f4f0'),('245','Manga','#e29a36'),('260','Verde Cacto','#63764b'),('250','Laranja','#df6f28'),('255','Verde Feto','#526b43'),('275','Groselha','#8e3344'),('280','Azul Lírio','#5c7194'),('285','Ginja','#8a3030'),('295','Cinza Pombo','#8b8881'),('290','Chocolate','#68452e'),('240','Preto','#242424')]
+    wvars=[]
+    for finish in ('Mate','Brilhante'):
+      for code,label,hexv in colors:
+        wvars.append({'name':f'{finish} — {code} {label}','finish':finish,'color_code':code,'color':label,'color_hex':hexv,'price':PR['0.75L'],'stock':'Disponível'})
+    wimg=image_from_page('https://www.neuce.com/p180-p-934-woodneuce-mo_en','woodneuce') or 'assets/paint-placeholder.svg'
+    put_product(c,{'slug':'woodneuce','name':'WoodNeuce','ref':'','family':'Pinturas','category':'Pinturas','subfamily':'Lasures','brand':'NEUCE','price_display':'Desde '+PR['0.75L'],'price':num(PR['0.75L']),'stock':0,'min_stock':5,'state':'active','featured':False,'description':'Lasur colorido para proteção e decoração de madeiras interiores e exteriores. Seleção por acabamento e cor.','image':wimg,'gallery':[wimg],'variants':wvars,'docs':[{'title':'Produto oficial NEUCE — WoodNeuce','url':'https://www.neuce.com/p180-p-934-woodneuce-mo_en'},{'title':'Catálogos e carta de cores NEUCE','url':'https://www.neuce.com/p158-cs-ca_pt'}],'seo_title':'WoodNeuce — Lasur para Madeira | MarquesMater','seo_description':'WoodNeuce NEUCE com seleção de acabamento e cor.'})
+    c.commit(); c.close()
+
+ensure_neuce_paintings_20260910()
+'''
+            s=s.replace("\ndef admin_data():return read_json(DATA/'admin.json',{})", "\n"+seed+"\ndef admin_data():return read_json(DATA/'admin.json',{})",1)
+
+          # 3) Produto WoodNeuce: acabamento + cor com amostra visual, tal como T-Rex.
+          if 'MM_WOODNEUCE_FINAL_JS' not in p:
+            js=r'''<script id="MM_WOODNEUCE_FINAL_JS">
+(function(){
+ const key=(new URLSearchParams(location.search).get('slug')||'').toLowerCase(); if(key!=='woodneuce')return;
+ let I=0;
+ const apply=()=>{if(!window.P||!document.getElementById('priceBox')||!document.querySelector('.variant-grid'))return false;
+   const vars=P.variants||[]; if(!vars.length)return false;
+   const box=document.querySelector('.variant-grid'), title=document.querySelector('.variant-title');
+   if(title)title.textContent='Escolha o acabamento e a cor';
+   box.className='mm-wood-grid';
+   box.innerHTML=vars.map((v,i)=>`<button type="button" class="mm-wood-btn ${i===I?'active':''}" data-i="${i}"><span class="mm-wood-dot" style="background:${esc(v.color_hex||'#ddd')}"></span><span><b>${esc(v.finish||'')}</b><small>${esc(v.color_code||'')} — ${esc(v.color||v.name||'')}</small></span></button>`).join('');
+   box.querySelectorAll('.mm-wood-btn').forEach(b=>b.onclick=()=>{I=Number(b.dataset.i);variant=vars[I];box.querySelectorAll('.mm-wood-btn').forEach((x,k)=>x.classList.toggle('active',k===I));document.getElementById('priceBox').innerHTML='<div class="price">'+money(variant.price)+'</div>'});
+   return true;
+ };
+ const boot=()=>{let n=0,t=setInterval(()=>{if(apply()||++n>80)clearInterval(t)},100)};
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
+})();
+</script>'''
+            css='''<style id="MM_WOODNEUCE_CSS">.mm-wood-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.mm-wood-btn{display:flex;align-items:center;gap:9px;text-align:left;border:1px solid #d5dbe0;background:#fff;border-radius:11px;padding:9px 10px;cursor:pointer}.mm-wood-btn.active{border:2px solid #f28c00;box-shadow:0 0 0 3px rgba(242,140,0,.12)}.mm-wood-dot{width:30px;height:30px;border-radius:50%;border:1px solid #c5cbd0;box-shadow:inset 0 0 0 2px #fff;flex:none}.mm-wood-btn b{display:block;font-size:12px}.mm-wood-btn small{display:block;color:#69747e;font-size:10px;margin-top:2px}@media(max-width:600px){.mm-wood-grid{grid-template-columns:1fr}}</style>'''
+            p=p.replace('</head>',css+'</head>',1).replace('</script>\n<script src="chat.js', '</script>\n'+js+'\n<script src="chat.js',1)
+
+          # 4) Back Office: painel de teste para todos os campos especiais de pinturas.
+          if 'MM_PAINT_FIELDS_20260910' not in a:
+            css='''<style id="MM_PAINT_FIELDS_20260910">.mm-paint-test{margin-top:16px;border:1px solid #e0e5e9;border-radius:14px;padding:16px;background:#fff}.mm-paint-test h3{margin:0 0 6px}.mm-paint-test .mmf{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.mm-paint-test .mmf label{font-size:11px;font-weight:900;color:#59656f}.mm-paint-test input,.mm-paint-test select{width:100%;margin-top:4px;border:1px solid #cfd7dd;border-radius:8px;padding:9px}.mm-wood-preview{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.mm-wood-preview span{display:inline-flex;align-items:center;gap:5px;border:1px solid #dfe4e8;border-radius:999px;padding:5px 8px;font-size:10px}.mm-wood-preview i{width:16px;height:16px;border-radius:50%;border:1px solid #bbb}</style>'''
+            js=r'''<script id="MM_PAINT_FIELDS_20260910">
+(function(){
+ function add(){if(document.getElementById('mmPaintTest'))return;const host=document.querySelector('.content')||document.querySelector('.main');if(!host)return;
+  const el=document.createElement('section');el.id='mmPaintTest';el.className='panel mm-paint-test';el.innerHTML=`<h3>🎨 Campos especiais — Pinturas</h3><p class="muted">Área de teste para produtos de pintura. Estes campos são gravados no mesmo produto e podem ser alterados depois no Back Office.</p><div class="mmf"><label>Slug do produto<input id="mmPaintSlug" placeholder="ex.: woodneuce"></label><label>Família<select id="mmPaintFamily"><option>Pinturas</option></select></label><label>Subfamília<select id="mmPaintSub"><option>Primários - Interiores</option><option>Primários - Exteriores</option><option>Tintas - Interiores</option><option>Tintas - Exteriores</option><option>Esmaltes - Ferro</option><option>Esmaltes - Madeira</option><option>Esmaltes - Industriais</option><option>Lasures</option></select></label><label>Acabamento<select id="mmPaintFinish"><option>Mate</option><option>Brilhante</option></select></label><label>Cor / código<input id="mmPaintColor" placeholder="ex.: 215 — Pinho Oregon"></label><label>Embalagem<input id="mmPaintPack" placeholder="ex.: 5L"></label><label>Preço<input id="mmPaintPrice" placeholder="ex.: 24,90 €"></label><label>Imagem principal<input id="mmPaintImage" placeholder="assets/neuce/...jpg"></label></div><div class="mm-wood-preview" id="mmWoodPreview"></div><div class="actions" style="margin-top:12px"><button class="btn" id="mmPaintLoad">Carregar produto</button><button class="btn primary" id="mmPaintSave">Guardar campos</button></div><div class="muted" id="mmPaintMsg" style="margin-top:8px"></div>`;host.appendChild(el);
+  const q=id=>document.getElementById(id), msg=t=>q('mmPaintMsg').textContent=t;
+  q('mmPaintLoad').onclick=async()=>{try{const r=await fetch('/api/product/slug/'+encodeURIComponent(q('mmPaintSlug').value));if(!r.ok)throw Error('Produto não encontrado');const p=await r.json();q('mmPaintFamily').value=p.family||'Pinturas';q('mmPaintSub').value=p.subfamily||'Lasures';q('mmPaintImage').value=p.gallery?.[0]||p.image||'';const v=p.variants?.[0]||{};q('mmPaintFinish').value=v.finish||'Mate';q('mmPaintColor').value=(v.color_code?v.color_code+' — ':'')+(v.color||'');q('mmPaintPack').value=v.name||'';q('mmPaintPrice').value=v.price||p.price_display||'';msg('Produto carregado.');}catch(e){msg(e.message)}};
+  q('mmPaintSave').onclick=async()=>{try{const slug=q('mmPaintSlug').value.trim();if(!slug)throw Error('Indica o slug');const body={slug,family:'Pinturas',category:'Pinturas',subfamily:q('mmPaintSub').value,image:q('mmPaintImage').value,variants:[{name:q('mmPaintPack').value||'5L',finish:q('mmPaintFinish').value,color:q('mmPaintColor').value,price:q('mmPaintPrice').value,stock:'Disponível'}]};const r=await fetch('/api/admin/product',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const x=await r.json();if(!r.ok)throw Error(x.error||'Erro ao guardar');msg('✓ Guardado no produto '+slug); }catch(e){msg(e.message)}};
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',add);else add();
+})();
+</script>'''
+            a=a.replace('</body>',css+js+'</body>',1)
+
+          server.write_text(s,encoding='utf-8'); admin.write_text(a,encoding='utf-8'); product.write_text(p,encoding='utf-8')
+          PY
+      - name: Validar Python e HTML/JS básicos
+        run: |
+          python -m py_compile server.py
+          test -s admin.html
+          test -s produto-wc.html
+      - name: Commit alterações geradas
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add server.py admin.html produto-wc.html assets/neuce
+          git commit -m "Adicionar pinturas NEUCE e WoodNeuce" || exit 0
+          git push
+      - name: Remover workflow temporário
+        if: success()
+        run: |
+          git rm .github/workflows/add-neuce-paints.yml
+          git commit -m "Remover workflow temporário NEUCE pinturas"
+          git push
