@@ -1,9 +1,0 @@
-MarquesMater V16
-
-Melhoria principal: rodapé público totalmente reorganizado e responsivo.
-- Secções separadas com cabeçalhos.
-- Contactos, Quem somos, Categorias e Informação legal.
-- Termos e Condições, Política de Privacidade, Política de Cookies, Entregas/Trocas/Devoluções e Livro de Reclamações.
-- Sem ligação ao Back Office.
-- Sem elementos colados; links apresentados em linhas próprias.
-- Mantido o acesso secreto ao Back Office pelos 3 cliques no logótipo.

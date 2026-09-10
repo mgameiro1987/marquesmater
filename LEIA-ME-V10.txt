@@ -1,5 +1,0 @@
-MARQUESMATER V10
-
-Homepage profissional: menu horizontal, carrossel, famílias em cartões com ícones pequenos e destaques RIDA.
-Back Office: ícones de famílias, homepage e atendimento com fila de espera/atribuição.
-Chat: cliente -> fila -> administrador -> resposta, com vários administradores e histórico.

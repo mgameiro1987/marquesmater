@@ -1,4 +1,0 @@
-V34 — Back Office sem Python.
-Abrir ABRIR-BACKOFFICE.html
-Utilizador: admin
-Password: admin123

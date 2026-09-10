@@ -1,0 +1,1 @@
+.hero:after{content:"";position:absolute;right:-120px;top:-160px;width:520px;height:520px;border:1px solid #ffffff18;border-radius:50%}.hero{position:relative}.heroIn{position:relative;z-index:1}.types a:hover,.categories a:hover,.product:hover{border-color:#ef7d00;transform:translateY(-2px);transition:.18s}.promo{border-radius:0}.detail>div:nth-child(2){padding-top:8px}
