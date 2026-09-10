@@ -1,0 +1,92 @@
+name: Finalizar catálogo pinturas NEUCE
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Corrigir preços, imagens e variantes NEUCE
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          p=Path('server.py')
+          s=p.read_text(encoding='utf-8')
+          marker='# MM_PAINT_CATALOG_FINAL_20260910'
+          if marker not in s:
+            block=r'''
+# MM_PAINT_CATALOG_FINAL_20260910
+# Última camada de normalização: vence seeds antigos e mantém uma única fonte de dados.
+def ensure_paint_catalog_final_20260910():
+    c=db()
+    PR={'0.75L':'6,90 €','1L':'8,90 €','2.5L':'14,90 €','4L':'19,90 €','5L':'24,90 €','15L':'89,90 €'}
+    imgs={
+      'neucebel':'assets/neucebel-real.jpg',
+      'neucematt':'assets/neucematt-real.png',
+      'neucesoft':'assets/neucesoft-real.jpg',
+      'neucegold-ng':'https://www.neuce.com/files/products/1128_1.png?dp=20260319193436',
+      'aquaneuce':'https://www.neuce.com/files/products/885_1.jpg?dp=20260627134217',
+      'multineuce':'https://www.neuce.com/files/products/882_1.jpg',
+      'hydroneuce':'https://www.neuce.com/files/products/884_1.jpg',
+      'primaneuce':'https://www.neuce.com/files/products/1029_1.jpg',
+      'plioneuce':'https://www.neuce.com/files/products/898_1.jpg',
+      'textuneuce':'https://www.neuce.com/files/products/894_1.jpg?dp=20260731213705'
+    }
+    subs={
+      'neucebel':'Tintas - Interiores','neucematt':'Tintas - Interiores','neucesoft':'Tintas - Interiores',
+      'neucegold-ng':'Tintas - Exteriores','belneuce':'Tintas - Interiores','superneuce':'Tintas - Interiores','superneuce-sn':'Tintas - Interiores',
+      'aquaneuce':'Primários - Interiores','primaneuce':'Primários - Interiores','multineuce':'Primários - Interiores','hydroneuce':'Primários - Exteriores','plioneuce':'Primários - Exteriores',
+      'textuneuce':'Tintas - Exteriores','neucetext':'Tintas - Exteriores','woodneuce':'Lasures'
+    }
+    names=['neucebel','neucematt','neucesoft','neucegold-ng','belneuce','superneuce','superneuce-sn','aquaneuce','primaneuce','multineuce','hydroneuce','plioneuce','textuneuce','neucetext','woodneuce']
+    for slug in names:
+      r=c.execute('SELECT variants_json FROM products WHERE slug=?',(slug,)).fetchone()
+      if not r: continue
+      try: vs=json.loads(r['variants_json'] or '[]')
+      except: vs=[]
+      if slug=='woodneuce':
+        # Preserva as 40 variantes (acabamento + cor) já criadas.
+        price=min([num(v.get('price')) for v in vs if num(v.get('price'))>0] or [8.90])
+        display='Desde '+price_text(price)
+      else:
+        if not vs: vs=[{'name':'1L','price':PR['1L'],'stock':'Disponível'},{'name':'5L','price':PR['5L'],'stock':'Disponível'},{'name':'15L','price':PR['15L'],'stock':'Disponível'}]
+        # Padroniza apenas o preço, mantendo outras propriedades existentes.
+        for v in vs:
+          if not isinstance(v,dict): continue
+          n=str(v.get('name','')).lower().replace(' ','')
+          if n in ('750ml','0.75l','0,75l'): v['price']=PR['0.75L']
+          elif n in ('1l','1lt','1000ml'): v['price']=PR['1L']
+          elif n in ('2.5l','2,5l','2500ml'): v['price']=PR['2.5L']
+          elif n in ('4l','4lt'): v['price']=PR['4L']
+          elif n in ('5l','5lt','5000ml'): v['price']=PR['5L']
+          elif n in ('15l','15lt','15000ml'): v['price']=PR['15L']
+        vals=[num(v.get('price')) for v in vs if isinstance(v,dict) and num(v.get('price'))>0]
+        price=min(vals or [8.90]); display='Desde '+price_text(price)
+      image=imgs.get(slug,'assets/paint-placeholder.svg')
+      c.execute("UPDATE products SET family='Pinturas',category='Pinturas',subfamily=?,brand='NEUCE',image=?,gallery_json=?,price=?,price_display=?,variants_json=?,updated_at=CURRENT_TIMESTAMP WHERE slug=?",(subs.get(slug,'Tintas'),image,json.dumps([image],ensure_ascii=False),price,display,json.dumps(vs,ensure_ascii=False),slug))
+    c.commit(); c.close()
+ensure_paint_catalog_final_20260910()
+'''
+            s += '\n'+block
+            p.write_text(s,encoding='utf-8')
+          PY
+          python -m py_compile server.py
+      - name: Commit
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add server.py
+          git diff --cached --quiet || git commit -m 'Finalizar catálogo e preços das pinturas NEUCE'
+          git push
+      - name: Remover workflow temporário
+        if: success()
+        run: |
+          rm .github/workflows/finalizar-pinturas-catalogo.yml
+          git add .github/workflows/finalizar-pinturas-catalogo.yml
+          git commit -m 'Remover workflow temporário pinturas' || true
+          git push || true
