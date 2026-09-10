@@ -1,0 +1,26 @@
+/* MarquesMater V7.2.2 — refinamento mobile final */
+@media(max-width:700px){
+  main.section{padding-top:18px!important}
+  .breadcrumbs,.crumb{margin:4px 0 12px!important}
+  nav .nav,nav .nav-inner{border-bottom:1px solid #e6e9eb}
+  .v6-gallery{display:flex!important;flex-direction:column!important;gap:0!important}
+  .v6-main-image{order:1!important;margin-top:0!important}
+  .v6-thumbs{order:2!important;width:100%!important;justify-content:flex-start!important;overflow-x:auto!important;flex-wrap:nowrap!important;padding:0 2px 4px!important;margin:8px 0 12px!important;scrollbar-width:none}
+  .v6-thumbs::-webkit-scrollbar{display:none}
+  .v6-thumbs button{flex:0 0 58px!important;width:58px!important;height:58px!important}
+  .v6-thumbs button img{max-width:100%!important;max-height:100%!important}
+  .v6-details{order:3!important;margin-top:4px!important}
+  header .head,header .header-main{padding-top:8px!important;padding-bottom:8px!important}
+  header .logo{font-weight:800!important}
+  .search input{border-radius:8px 0 0 8px!important}
+  .search button{border-radius:0 8px 8px 0!important}
+}
+@media(max-width:480px){
+  main.section{padding-top:14px!important}
+  .v6-main-image{height:280px!important;min-height:280px!important}
+  .v6-main-image img{width:82%!important;height:82%!important}
+}
+@media(max-width:380px){
+  .v6-main-image{height:250px!important;min-height:250px!important}
+  .v6-thumbs button{flex-basis:54px!important;width:54px!important;height:54px!important}
+}
