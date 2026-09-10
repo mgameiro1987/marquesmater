@@ -315,27 +315,10 @@ def normalize_product_taxonomy():
 normalize_product_taxonomy()
 
 
-def ensure_v26_neuce_images():
-    c=db()
-    m={"NeuceBel":"https://templodastintas.pt/cdn/shop/files/neucebel.png?v=1705605720&width=533","NeuceMatt":"https://www.saniluz.pt/cdn/shop/files/5602920000587.jpg?v=1733586586","NeuceSoft":"https://cdn-shopkit.com/usercontent/tintas-vital/media/images/square/37a3a6a-neucesoft.jpeg"}
-    for name,img in m.items(): c.execute("UPDATE products SET brand='NEUCE',supplier='NEUCE',price_display='Preço por variante',image=?,gallery_json=? WHERE lower(name)=lower(?)",(img,json.dumps([img]),name))
-    c.commit(); c.close()
-
-ensure_v26_neuce_images()
 
 
 
 
-def ensure_v26_neuce_prices():
-    """Mantém os preços/imagens NEUCE definidos no V26 na base persistente."""
-    c=db()
-    vals={
-      'neucebel':(89.0,'Desde 89,00 €','https://www.marquesmater.pt/novo/wp-content/uploads/2024/03/Neucebel-600x638.png'),
-      'neucesoft':(129.0,'Desde 129,00 €','https://www.marquesmater.pt/novo/wp-content/uploads/2024/03/Neucesoft-600x638.png'),
-    }
-    for slug,(price,display,image) in vals.items():
-        c.execute("UPDATE products SET price=?, price_display=?, image=?, updated_at=CURRENT_TIMESTAMP WHERE slug=?",(price,display,image,slug))
-    c.commit(); c.close()
 
 def ensure_v26_runtime_fixes():
     c=db(); h=hashlib.sha256(b"admin").hexdigest(); c.execute("UPDATE admin_users SET password_sha256=? WHERE username='admin'",(h,)); c.execute("INSERT OR IGNORE INTO brands(name) VALUES('NEUCE')"); c.execute("UPDATE products SET image='assets/soudal/trex-power-290-branco.jpg',brand='Soudal',price=12.95,price_display='12,95 €' WHERE slug='soudal-t-rex-power-290ml'"); d=site_data(); top={"Ferramentas","Pinturas","Máquinas","Colas e Selantes","Sprays e Aerossóis"}; st=d.setdefault('settings',{})
@@ -346,20 +329,6 @@ def ensure_v26_runtime_fixes():
     c.commit(); c.close()
 
 
-# MM-NEUCE-FINAL-SERVER
-def ensure_neuce_final():
-    c=db()
-    vals={
-      "neucebel":(89.9,"89,90 €","https://wsrv.nl/?url=https%3A%2F%2Ftemplodastintas.pt%2Fcdn%2Fshop%2Ffiles%2Fneucebel.png%3Fv%3D1705605720%26width%3D533&w=600&h=600&fit=inside"),
-      "neucematt":(69.9,"69,90 €","https://wsrv.nl/?url=https%3A%2F%2Fwww.saniluz.pt%2Fcdn%2Fshop%2Ffiles%2F5602920000587.jpg%3Fv%3D1733586586&w=600&h=600&fit=inside"),
-      "neucesoft":(129.9,"129,90 €","https://wsrv.nl/?url=https%3A%2F%2Fcdn-shopkit.com%2Fusercontent%2Ftintas-vital%2Fmedia%2Fimages%2Fsquare%2F37a3a6a-neucesoft.jpeg&w=600&h=600&fit=inside")
-    }
-    for slug,(price,display,image) in vals.items():
-      c.execute("UPDATE products SET price=?, price_display=?, image=?, updated_at=CURRENT_TIMESTAMP WHERE slug=?",(price,display,image,slug))
-    c.execute("INSERT OR IGNORE INTO brands(name) VALUES(?)",("NEUCE",))
-    c.commit(); c.close()
-
-ensure_neuce_final()
 # NeuceMatt was intentionally removed; purge any legacy row left in an older DB.
 try:
     _c=db(); _c.execute("DELETE FROM products WHERE lower(slug)='neucematt' OR lower(name)='neucematt'"); _c.execute("UPDATE products SET related_json=REPLACE(related_json, 'neucematt', '') WHERE related_json LIKE '%neucematt%'"); _c.commit(); _c.close()
