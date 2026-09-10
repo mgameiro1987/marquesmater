@@ -329,7 +329,7 @@ def migrate_neuce_legacy_images():
     # A partir daqui, a imagem/galeria guardada no Back Office é a única fonte.
     c=db()
     legacy={
-        'neucebel': ('https://templodastintas.pt/cdn/shop/files/neucebel.png?v=1705605720&width=533','assets/neucebel-real.jpg'),
+        'neucebel': ('https://www.neuce.com/files/products/881_3.png?dp=20260227101359','assets/neucebel-real.jpg'),
         'neucematt': ('https://www.saniluz.pt/cdn/shop/files/5602920000587.jpg?v=1733586586','assets/neucematt-real.png'),
         'neucesoft': ('https://cdn-shopkit.com/usercontent/tintas-vital/media/images/square/37a3a6a-neucesoft.jpeg','assets/neucesoft-real.jpg')
     }
