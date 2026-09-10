@@ -335,13 +335,6 @@ try:
 except Exception as _e:
     print('[NEUCEMATT CLEANUP]',_e)
 
-# MM-NEUCE-FINAL-SERVER
-def ensure_neuce_final():
-    c=db(); vals={"neucebel":(89.9,"89,90 €","https://wsrv.nl/?url=https%3A%2F%2Ftemplodastintas.pt%2Fcdn%2Fshop%2Ffiles%2Fneucebel.png%3Fv%3D1705605720%26width%3D533&w=600&h=600&fit=inside"),"neucematt":(69.9,"69,90 €","https://wsrv.nl/?url=https%3A%2F%2Fwww.saniluz.pt%2Fcdn%2Fshop%2Ffiles%2F5602920000587.jpg%3Fv%3D1733586586&w=600&h=600&fit=inside"),"neucesoft":(129.9,"129,90 €","https://wsrv.nl/?url=https%3A%2F%2Fcdn-shopkit.com%2Fusercontent%2Ftintas-vital%2Fmedia%2Fimages%2Fsquare%2F37a3a6a-neucesoft.jpeg&w=600&h=600&fit=inside")};
-    for slug,(price,display,image) in vals.items(): c.execute("UPDATE products SET price=?,price_display=?,image=?,updated_at=CURRENT_TIMESTAMP WHERE slug=?",(price,display,image,slug))
-    c.execute("INSERT OR IGNORE INTO brands(name) VALUES(?)",("NEUCE",)); c.commit(); c.close()
-
-ensure_neuce_final()
 ensure_v26_runtime_fixes()
 _SOUDAL_CACHE={}
 def fetch_soudal_image(page_url):
