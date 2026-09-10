@@ -10,32 +10,65 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Download real product images
-        run: |
-          mkdir -p assets
-          curl -L --fail --retry 3 'https://www.marquesmater.pt/novo/wp-content/uploads/2024/03/Neucebel-600x638.png' -o assets/neucebel-real.png
-          curl -L --fail --retry 3 'https://www.marquesmater.pt/novo/wp-content/uploads/2024/03/Neucematt-600x638.png' -o assets/neucematt-real.png
-          curl -L --fail --retry 3 'https://www.marquesmater.pt/novo/wp-content/uploads/2024/03/Neucesoft-600x638.png' -o assets/neucesoft-real.png
-      - name: Point catalog to real images
+      - name: Download official NEUCE packshots and update SQLite catalog
         run: |
           python - <<'PY'
           from pathlib import Path
-          p=Path('catalogo.html');s=p.read_text(encoding='utf-8')
-          s=s.replace('assets/neucebel-normal.svg','assets/neucebel-real.png').replace('assets/neucematt-normal.svg','assets/neucematt-real.png').replace('assets/neucesoft-normal.svg','assets/neucesoft-real.png')
-          p.write_text(s,encoding='utf-8')
-          for f in ['produto-wc.html']:
-            q=Path(f)
-            if q.exists():
-              x=q.read_text(encoding='utf-8').replace('assets/neucebel-normal.svg','assets/neucebel-real.png').replace('assets/neucematt-normal.svg','assets/neucematt-real.png').replace('assets/neucesoft-normal.svg','assets/neucesoft-real.png')
-              q.write_text(x,encoding='utf-8')
+          import sqlite3, requests
+          root=Path('.')
+          out=root/'assets'/'neuce'
+          out.mkdir(parents=True,exist_ok=True)
+          s=requests.Session();s.headers.update({'User-Agent':'Mozilla/5.0 MarquesMater'})
+          urls={
+            'aquaneuce':'https://www.neuce.com/files/products/885_1.jpg',
+            'hydroneuce':'https://www.neuce.com/files/products/884_1.jpg',
+            'multineuce':'https://www.neuce.com/files/products/882_1.jpg',
+            'neucebel':'https://www.neuce.com/files/products/881_1.jpg',
+            'neucematt':'https://www.neuce.com/files/products/1026_1.jpg',
+            'neucesoft':'https://www.neuce.com/files/products/886_1.jpg',
+            'primaneuce':'https://www.neuce.com/files/products/1029_1.jpg',
+            'textuneuce':'https://www.neuce.com/files/products/894_1.jpg',
+            'neucetex':'https://www.neuce.com/files/products/892_1.jpg',
+            'neucegold-ng':'https://www.neuce.com/files/products/904_2.jpg',
+            'woodneuce':'https://www.neuce.com/files/products/934_1.jpg',
+          }
+          done={}
+          for slug,url in urls.items():
+            try:
+              r=s.get(url,timeout=30);r.raise_for_status()
+              if len(r.content)<5000: raise RuntimeError('image too small')
+              p=out/(slug+'.jpg');p.write_bytes(r.content);done[slug]='assets/neuce/'+p.name
+              print('OK',slug,p)
+            except Exception as e: print('FAIL',slug,e)
+          db=sqlite3.connect('data/catalog.db');cur=db.cursor()
+          for slug,rel in done.items():
+            cur.execute('UPDATE products SET image=?, gallery=? WHERE slug=?',(rel,'["'+rel+'"]',slug))
+          db.commit();db.close()
+          print('UPDATED',len(done),'products')
+          if len(done)<10: raise SystemExit('Refusing partial update: fewer than 10 official images downloaded')
           PY
-      - name: Commit and remove workflow
+      - name: Keep catalog references for the three existing real NEUCE images
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          for f in ['catalogo.html','produto-wc.html']:
+            p=Path(f)
+            if not p.exists(): continue
+            x=p.read_text(encoding='utf-8')
+            x=x.replace('assets/neucebel-normal.svg','assets/neuce/neucebel.jpg')
+            x=x.replace('assets/neucematt-normal.svg','assets/neuce/neucematt.jpg')
+            x=x.replace('assets/neucesoft-normal.svg','assets/neuce/neucesoft.jpg')
+            p.write_text(x,encoding='utf-8')
+          PY
+      - name: Commit images and database
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add assets/neuce*-real.png catalogo.html produto-wc.html
-          git commit -m 'Usar imagens reais principais NEUCE' || true
+          git add assets/neuce data/catalog.db catalogo.html produto-wc.html
+          git commit -m 'Usar imagens oficiais NEUCE no catálogo'
           git push
-          git rm .github/workflows/fix-neuce-real-images.yml || true
-          git commit -m 'Remover workflow temporário imagens NEUCE' || true
+      - name: Remove temporary workflows
+        run: |
+          git rm .github/workflows/fix-neuce-real-images.yml .github/workflows/sync-neuce-db-images.yml || true
+          git commit -m 'Remover workflows temporários de imagens NEUCE' || true
           git push
