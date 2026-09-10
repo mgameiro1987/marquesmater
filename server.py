@@ -687,3 +687,42 @@ ensure_neuce_paintings_20260910()
 def admin_data():return read_json(DATA/'admin.json',{})
 if __name__=='__main__':
  host=os.environ.get('MM_HOST','0.0.0.0');port=int(os.environ.get('PORT') or os.environ.get('MM_PORT','8000'));print(f'MarquesMater V26 server: http://{host}:{port}',flush=True);ThreadingHTTPServer((host,port),Handler).serve_forever()
+
+
+# MM_PAINT_CATALOG_FINAL_20260910
+def ensure_paint_catalog_final_20260910():
+    c=db()
+    PR={'0.75L':'6,90 €','1L':'8,90 €','2.5L':'14,90 €','4L':'19,90 €','5L':'24,90 €','15L':'89,90 €'}
+    imgs={
+      'neucebel':'assets/neucebel-real.jpg','neucematt':'assets/neucematt-real.png','neucesoft':'assets/neucesoft-real.jpg',
+      'neucegold-ng':'https://www.neuce.com/files/products/1128_1.png?dp=20260319193436',
+      'aquaneuce':'https://www.neuce.com/files/products/885_1.jpg?dp=20260627134217',
+      'multineuce':'https://www.neuce.com/files/products/882_1.jpg','hydroneuce':'https://www.neuce.com/files/products/884_1.jpg',
+      'primaneuce':'https://www.neuce.com/files/products/1029_1.jpg','plioneuce':'https://www.neuce.com/files/products/898_1.jpg',
+      'textuneuce':'https://www.neuce.com/files/products/894_1.jpg?dp=20260731213705'}
+    subs={'neucebel':'Tintas - Interiores','neucematt':'Tintas - Interiores','neucesoft':'Tintas - Interiores','neucegold-ng':'Tintas - Exteriores','belneuce':'Tintas - Interiores','superneuce':'Tintas - Interiores','superneuce-sn':'Tintas - Interiores','aquaneuce':'Primários - Interiores','primaneuce':'Primários - Interiores','multineuce':'Primários - Interiores','hydroneuce':'Primários - Exteriores','plioneuce':'Primários - Exteriores','textuneuce':'Tintas - Exteriores','neucetext':'Tintas - Exteriores','woodneuce':'Lasures'}
+    names=list(subs)
+    for slug in names:
+      r=c.execute('SELECT variants_json FROM products WHERE slug=?',(slug,)).fetchone()
+      if not r: continue
+      try: vs=json.loads(r['variants_json'] or '[]')
+      except: vs=[]
+      if slug=='woodneuce':
+        price=min([num(v.get('price')) for v in vs if isinstance(v,dict) and num(v.get('price'))>0] or [8.90])
+      else:
+        if not vs: vs=[{'name':'1L','price':PR['1L'],'stock':'Disponível'},{'name':'5L','price':PR['5L'],'stock':'Disponível'},{'name':'15L','price':PR['15L'],'stock':'Disponível'}]
+        for v in vs:
+          if not isinstance(v,dict): continue
+          n=str(v.get('name','')).lower().replace(' ','')
+          if n in ('750ml','0.75l','0,75l'): v['price']=PR['0.75L']
+          elif n in ('1l','1lt','1000ml'): v['price']=PR['1L']
+          elif n in ('2.5l','2,5l','2500ml'): v['price']=PR['2.5L']
+          elif n in ('4l','4lt'): v['price']=PR['4L']
+          elif n in ('5l','5lt','5000ml'): v['price']=PR['5L']
+          elif n in ('15l','15lt','15000ml'): v['price']=PR['15L']
+        price=min([num(v.get('price')) for v in vs if isinstance(v,dict) and num(v.get('price'))>0] or [8.90])
+      display='Desde '+price_text(price)
+      image=imgs.get(slug,'assets/paint-placeholder.svg')
+      c.execute("UPDATE products SET family='Pinturas',category='Pinturas',subfamily=?,brand='NEUCE',image=?,gallery_json=?,price=?,price_display=?,variants_json=?,updated_at=CURRENT_TIMESTAMP WHERE slug=?",(subs[slug],image,json.dumps([image],ensure_ascii=False),price,display,json.dumps(vs,ensure_ascii=False),slug))
+    c.commit(); c.close()
+ensure_paint_catalog_final_20260910()
