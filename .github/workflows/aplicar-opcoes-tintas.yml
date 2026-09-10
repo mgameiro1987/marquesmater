@@ -7,7 +7,6 @@ on:
 
 jobs:
   apply:
-    if: github.event.head_commit.message != 'Aplicar opções de tintas - trigger'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -21,7 +20,6 @@ jobs:
           import re
 
           root=Path('.')
-
           admin=root/'admin.html'
           s=admin.read_text(encoding='utf-8')
           tag='<script src="/assets/paint-options.js"></script>'
@@ -31,126 +29,22 @@ jobs:
 
           prod=root/'produto-wc.html'
           s=prod.read_text(encoding='utf-8')
-          tag2='<script src="/assets/paint-options.js"></script>'
-          # Produto e backoffice usam o mesmo módulo; o script deteta automaticamente a página.
-          if tag2 not in s:
-              s=s.replace('</body></html>',tag2+'</body></html>')
+          if tag not in s:
+              s=s.replace('</body></html>',tag+'</body></html>')
               prod.write_text(s,encoding='utf-8')
 
           js=r'''/* MarquesMater — opções de tintas / acabamentos */
           (function(){
-            const FINISHES=['Mate','Acetinado','Opaco'];
-            const COLORS=['Incolor','Cores de catálogo'];
             const META_KEY='_mm_options';
-            function parseTech(t){
-              let x=t;
-              if(typeof x==='string'){try{x=JSON.parse(x)}catch{return {base:[x],meta:null}}}
-              if(Array.isArray(x)){
-                let meta=null,base=[];
-                x.forEach(v=>{if(v&&typeof v==='object'&&v[META_KEY]) meta=v[META_KEY]; else base.push(v)});
-                return {base,meta};
-              }
-              if(x&&typeof x==='object'&&x[META_KEY]) return {base:[],meta:x[META_KEY]};
-              return {base:x?[x]:[],meta:null};
-            }
+            function parseTech(t){let x=t;if(typeof x==='string'){try{x=JSON.parse(x)}catch{return {base:[x],meta:null}}}if(Array.isArray(x)){let meta=null,base=[];x.forEach(v=>{if(v&&typeof v==='object'&&v[META_KEY])meta=v[META_KEY];else base.push(v)});return {base,meta}}if(x&&typeof x==='object'&&x[META_KEY])return {base:[],meta:x[META_KEY]};return {base:x?[x]:[],meta:null}}
             function getMeta(p){return parseTech(p&&p.tech).meta||{finish:{enabled:false,options:[]},color:{enabled:false,options:[]}}}
-            function setMsg(t){const e=document.getElementById('mmPaintMsg');if(e)e.textContent=t||''}
-
-            function adminUI(){
-              const modal=document.getElementById('productModal');
-              if(!modal)return;
-              if(document.getElementById('mmPaintOptions'))return;
-              const grid=modal.querySelector('.grid'); if(!grid)return;
-              const box=document.createElement('div'); box.id='mmPaintOptions'; box.className='field full';
-              box.style.cssText='margin-top:14px;padding:15px;border:1px solid #e1e6eb;border-radius:12px;background:#fafbfc';
-              box.innerHTML=`<div style="font-weight:900;font-size:14px;margin-bottom:5px">Opções de tinta</div>
-                <div class="muted" style="margin-bottom:12px">Controla se o cliente pode escolher acabamento e cor na ficha do produto. Pode ser configurado em qualquer tinta.</div>
-                <div class="grid" style="margin:0">
-                  <div class="field"><label>Mostrar escolha de acabamento</label><select class="input" id="mmFinishEnabled"><option value="false">Não</option><option value="true">Sim</option></select></div>
-                  <div class="field"><label>Acabamentos disponíveis</label><div style="display:flex;gap:12px;flex-wrap:wrap;padding:9px 0"><label><input type="checkbox" id="mmFinishMate"> Mate</label><label><input type="checkbox" id="mmFinishAcetinado"> Acetinado</label><label><input type="checkbox" id="mmFinishOpaco"> Opaco</label></div></div>
-                  <div class="field"><label>Mostrar escolha de cor</label><select class="input" id="mmColorEnabled"><option value="false">Não</option><option value="true">Sim</option></select></div>
-                  <div class="field"><label>Cores disponíveis</label><div style="display:flex;gap:12px;flex-wrap:wrap;padding:9px 0"><label><input type="checkbox" id="mmColorIncolor"> Incolor</label><label><input type="checkbox" id="mmColorCatalogo"> Cores de catálogo</label></div></div>
-                </div><div id="mmPaintMsg" class="muted" style="margin-top:8px"></div>`;
-              grid.insertAdjacentElement('afterend',box);
-            }
-            function readUI(){
-              adminUI();
-              const finishOptions=[];
-              if(document.getElementById('mmFinishMate')?.checked)finishOptions.push('Mate');
-              if(document.getElementById('mmFinishAcetinado')?.checked)finishOptions.push('Acetinado');
-              if(document.getElementById('mmFinishOpaco')?.checked)finishOptions.push('Opaco');
-              const colorOptions=[];
-              if(document.getElementById('mmColorIncolor')?.checked)colorOptions.push('Incolor');
-              if(document.getElementById('mmColorCatalogo')?.checked)colorOptions.push('Cores de catálogo');
-              return {finish:{enabled:document.getElementById('mmFinishEnabled')?.value==='true',options:finishOptions},color:{enabled:document.getElementById('mmColorEnabled')?.value==='true',options:colorOptions}};
-            }
-            function fillUI(p){
-              adminUI(); const m=getMeta(p||{});
-              const f=m.finish||{},c=m.color||{};
-              document.getElementById('mmFinishEnabled').value=f.enabled?'true':'false';
-              document.getElementById('mmFinishMate').checked=(f.options||[]).includes('Mate');
-              document.getElementById('mmFinishAcetinado').checked=(f.options||[]).includes('Acetinado');
-              document.getElementById('mmFinishOpaco').checked=(f.options||[]).includes('Opaco');
-              document.getElementById('mmColorEnabled').value=c.enabled?'true':'false';
-              document.getElementById('mmColorIncolor').checked=(c.options||[]).includes('Incolor');
-              document.getElementById('mmColorCatalogo').checked=(c.options||[]).includes('Cores de catálogo');
-            }
-            function mergeProduct(p){
-              const tech=parseTech(p&&p.tech); let meta=tech.meta;
-              const modal=document.getElementById('productModal');
-              if(modal&&modal.classList.contains('open')) meta=readUI();
-              else if(!meta) meta={finish:{enabled:false,options:[]},color:{enabled:false,options:[]}};
-              const base=tech.base||[];
-              const clean=base.filter(v=>!(v&&typeof v==='object'&&v[META_KEY]));
-              clean.push({[META_KEY]:meta});
-              return {...p,tech:clean};
-            }
-
-            function hookAdmin(){
-              if(typeof window.openProduct==='function'&&!window.__mmOpenHook){
-                const oldOpen=window.openProduct;
-                window.openProduct=function(i=null){
-                  adminUI(); oldOpen(i); setTimeout(()=>{try{fillUI(i===null?{}:data.products[i])}catch(e){}},0);
-                };
-                window.__mmOpenHook=true;
-              }
-              if(typeof window.saveProductObj==='function'&&!window.__mmSaveHook){
-                const oldSave=window.saveProductObj;
-                window.saveProductObj=function(p){return oldSave(mergeProduct(p));};
-                window.__mmSaveHook=true;
-              }
-            }
-
-            function productPage(){
-              let tries=0;
-              const timer=setInterval(()=>{
-                tries++;
-                try{
-                  if(typeof P==='undefined'||!P){if(tries>100)clearInterval(timer);return;}
-                  const m=getMeta(P);
-                  const f=m.finish||{},c=m.color||{};
-                  if(!((f.enabled&&f.options?.length)||(c.enabled&&c.options?.length))){
-                    document.querySelectorAll('.tech-item').forEach(e=>{if(e.textContent.includes(META_KEY))e.remove()});
-                    clearInterval(timer); return;
-                  }
-                  const buy=document.querySelector('.buy-card'); if(!buy){if(tries>100)clearInterval(timer);return;}
-                  if(!document.getElementById('mmFinishPublic')&&f.enabled&&f.options?.length){
-                    const w=document.createElement('div');w.id='mmFinishPublic';w.innerHTML='<div class="variant-title">Acabamento</div><div class="variant-grid">'+f.options.map((x,i)=>'<button type="button" class="variant-btn mm-opt-finish '+(i===0?'active':'')+'">'+x+'</button>').join('')+'</div>';
-                    const vg=buy.querySelector('.variant-grid'); (vg?vg.parentElement:buy.querySelector('.buy-row'))?.insertAdjacentElement('afterend',w);
-                    w.querySelectorAll('.mm-opt-finish').forEach(b=>b.onclick=()=>{w.querySelectorAll('.mm-opt-finish').forEach(x=>x.classList.remove('active'));b.classList.add('active')});
-                  }
-                  if(!document.getElementById('mmColorPublic')&&c.enabled&&c.options?.length){
-                    const w=document.createElement('div');w.id='mmColorPublic';w.innerHTML='<div class="variant-title">Cor</div><div class="variant-grid">'+c.options.map((x,i)=>'<button type="button" class="variant-btn mm-opt-color '+(i===0?'active':'')+'">'+x+'</button>').join('')+'</div>';
-                    const anchor=document.getElementById('mmFinishPublic')||buy.querySelector('.variant-grid'); (anchor||buy.querySelector('.buy-row'))?.insertAdjacentElement('afterend',w);
-                    w.querySelectorAll('.mm-opt-color').forEach(b=>b.onclick=()=>{w.querySelectorAll('.mm-opt-color').forEach(x=>x.classList.remove('active'));b.classList.add('active')});
-                  }
-                  document.querySelectorAll('.tech-item').forEach(e=>{if(e.textContent.includes(META_KEY))e.remove()});
-                  clearInterval(timer);
-                }catch(e){if(tries>100)clearInterval(timer)}
-              },200);
-            }
-            if(document.getElementById('productModal')){hookAdmin();setInterval(hookAdmin,500);}
-            else{productPage();}
+            function adminUI(){const modal=document.getElementById('productModal');if(!modal||document.getElementById('mmPaintOptions'))return;const grid=modal.querySelector('.grid');if(!grid)return;const box=document.createElement('div');box.id='mmPaintOptions';box.className='field full';box.style.cssText='margin-top:14px;padding:15px;border:1px solid #e1e6eb;border-radius:12px;background:#fafbfc';box.innerHTML='<div style="font-weight:900;font-size:14px;margin-bottom:5px">Opções de tinta</div><div class="muted" style="margin-bottom:12px">Escolha se este produto mostra acabamento e cor na ficha da loja.</div><div class="grid" style="margin:0"><div class="field"><label>Mostrar escolha de acabamento</label><select class="input" id="mmFinishEnabled"><option value="false">Não</option><option value="true">Sim</option></select></div><div class="field"><label>Acabamentos disponíveis</label><div style="display:flex;gap:12px;flex-wrap:wrap;padding:9px 0"><label><input type="checkbox" id="mmFinishMate"> Mate</label><label><input type="checkbox" id="mmFinishAcetinado"> Acetinado</label><label><input type="checkbox" id="mmFinishOpaco"> Opaco</label></div></div><div class="field"><label>Mostrar escolha de cor</label><select class="input" id="mmColorEnabled"><option value="false">Não</option><option value="true">Sim</option></select></div><div class="field"><label>Cores disponíveis</label><div style="display:flex;gap:12px;flex-wrap:wrap;padding:9px 0"><label><input type="checkbox" id="mmColorIncolor"> Incolor</label><label><input type="checkbox" id="mmColorCatalogo"> Cores de catálogo</label></div></div></div>' ;grid.insertAdjacentElement('afterend',box)}
+            function fillUI(p){adminUI();const m=getMeta(p||{}),f=m.finish||{},c=m.color||{};mmFinishEnabled.value=f.enabled?'true':'false';mmFinishMate.checked=(f.options||[]).includes('Mate');mmFinishAcetinado.checked=(f.options||[]).includes('Acetinado');mmFinishOpaco.checked=(f.options||[]).includes('Opaco');mmColorEnabled.value=c.enabled?'true':'false';mmColorIncolor.checked=(c.options||[]).includes('Incolor');mmColorCatalogo.checked=(c.options||[]).includes('Cores de catálogo')}
+            function readUI(){return {finish:{enabled:mmFinishEnabled.value==='true',options:[mmFinishMate.checked?'Mate':null,mmFinishAcetinado.checked?'Acetinado':null,mmFinishOpaco.checked?'Opaco':null].filter(Boolean)},color:{enabled:mmColorEnabled.value==='true',options:[mmColorIncolor.checked?'Incolor':null,mmColorCatalogo.checked?'Cores de catálogo':null].filter(Boolean)}}}
+            function merge(p){const t=parseTech(p&&p.tech),modal=document.getElementById('productModal');let meta=t.meta;if(modal&&modal.classList.contains('open'))meta=readUI();else if(!meta)meta={finish:{enabled:false,options:[]},color:{enabled:false,options:[]}};return {...p,tech:[...(t.base||[]),{[META_KEY]:meta}]}}
+            function hook(){adminUI();if(typeof window.openProduct==='function'&&!window.__mmOpenHook){const old=window.openProduct;window.openProduct=function(i=null){adminUI();old(i);setTimeout(()=>{try{fillUI(i===null?{}:data.products[i])}catch(e){}},0)};window.__mmOpenHook=true}if(typeof window.saveProductObj==='function'&&!window.__mmSaveHook){const old=window.saveProductObj;window.saveProductObj=function(p){return old(merge(p))};window.__mmSaveHook=true}}
+            function page(){let n=0;const timer=setInterval(()=>{n++;try{if(typeof P==='undefined'||!P){if(n>100)clearInterval(timer);return}const m=getMeta(P),f=m.finish||{},c=m.color||{},buy=document.querySelector('.buy-card');if(!buy){if(n>100)clearInterval(timer);return}if(f.enabled&&f.options?.length&&!document.getElementById('mmFinishPublic')){const w=document.createElement('div');w.id='mmFinishPublic';w.innerHTML='<div class="variant-title">Acabamento</div><div class="variant-grid">'+f.options.map((x,i)=>'<button type="button" class="variant-btn mm-opt-finish '+(i?'':'active')+'">'+x+'</button>').join('')+'</div>';const a=buy.querySelector('.variant-grid');(a?a.parentElement:buy.querySelector('.buy-row')).insertAdjacentElement('afterend',w);w.querySelectorAll('.mm-opt-finish').forEach(b=>b.onclick=()=>{w.querySelectorAll('button').forEach(x=>x.classList.remove('active'));b.classList.add('active')})}if(c.enabled&&c.options?.length&&!document.getElementById('mmColorPublic')){const w=document.createElement('div');w.id='mmColorPublic';w.innerHTML='<div class="variant-title">Cor</div><div class="variant-grid">'+c.options.map((x,i)=>'<button type="button" class="variant-btn mm-opt-color '+(i?'':'active')+'">'+x+'</button>').join('')+'</div>';const a=document.getElementById('mmFinishPublic')||buy.querySelector('.variant-grid');(a||buy.querySelector('.buy-row')).insertAdjacentElement('afterend',w);w.querySelectorAll('.mm-opt-color').forEach(b=>b.onclick=()=>{w.querySelectorAll('button').forEach(x=>x.classList.remove('active'));b.classList.add('active')})}document.querySelectorAll('.tech-item').forEach(e=>{if(e.textContent.includes(META_KEY))e.remove()});clearInterval(timer)}catch(e){if(n>100)clearInterval(timer)}},200)}
+            if(document.getElementById('productModal')){hook();setInterval(hook,500)}else page();
           })();
           '''
           (root/'assets').mkdir(exist_ok=True)
@@ -162,7 +56,7 @@ jobs:
               block=r'''
 
 def ensure_woodneuce_product():
-    """Seed the Woodneuce lasur with package + finish + colour choices."""
+    """Seed Woodneuce with package, finish and colour choices."""
     try:
         c=db()
         p={
@@ -173,29 +67,23 @@ def ensure_woodneuce_product():
           'image':'','gallery':[],'docs':[{'title':'Ficha técnica WOODNEUCE — NEUCE','url':'https://www.neuce.com/'}],
           'tech':['Tipo: Lasur aquoso decorativo','Aplicação: madeira interior e exterior','Rendimento: 13–15 m²/L por demão','Acabamentos: Mate, Acetinado e Opaco','Embalagens: 0,75 L e 4 L',{'_mm_options':{'finish':{'enabled':True,'options':['Mate','Acetinado','Opaco']},'color':{'enabled':True,'options':['Incolor','Cores de catálogo']}}}]
         }
-        put_product(c,p)
-        c.commit(); c.close()
-    except Exception as e:
-        print('Woodneuce seed:',e)
+        put_product(c,p); c.commit(); c.close()
+    except Exception as e: print('Woodneuce seed:',e)
 
 '''
               m=re.search(r'\nclass\s+\w+\(',s)
               if not m: raise SystemExit('Não encontrei a classe principal no server.py')
-              s=s[:m.start()]+block+s[m.start():]
-              s=s.replace(block+'\n',block+'\nensure_woodneuce_product()\n\n',1)
+              s=s[:m.start()]+block+'ensure_woodneuce_product()\n\n'+s[m.start():]
               server.write_text(s,encoding='utf-8')
-
-          # Remove trigger after applying, so the repository stays clean.
           trig=root/'.github/paint-options-trigger'
-          if trig.exists(): trig.unlink()
+          if trig.exists():trig.unlink()
           PY
-
       - name: Commit alterações
         shell: bash
         run: |
           git config user.name 'MarquesMater Bot'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add admin.html produto-wc.html server.py assets/paint-options.js .github/paint-options-trigger || true
+          git add admin.html produto-wc.html server.py assets/paint-options.js .github/paint-options-trigger
           git diff --cached --quiet && exit 0
           git commit -m 'Adicionar opções de acabamento e cor às tintas'
           git push
