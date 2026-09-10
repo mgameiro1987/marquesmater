@@ -17,13 +17,38 @@
 .mmQuick{background:var(--v8-orange)!important;color:#fff!important;border:0!important;border-radius:8px!important;font-weight:900!important}
 .promo{border-radius:16px!important;overflow:hidden;box-shadow:0 14px 34px #00000014}
 footer .copy{font-size:0!important}footer .copy:after{content:'© MarquesMater · V8 · Front Office';font-size:11px}
-
-/* faixa V8 de navegação/benefícios */
-.v8-extra{display:block}
-.v8-kicker{display:inline-block;background:var(--v8-dark);color:#fff;padding:7px 11px;border-left:4px solid var(--v8-orange);font-size:10px;font-weight:900;letter-spacing:1.2px}
-.v8-highlight{position:relative;overflow:hidden;border-radius:18px;background:linear-gradient(110deg,#101820,#293640);color:#fff;padding:30px 34px;margin:22px 0;box-shadow:0 16px 36px #00000018}.v8-highlight:after{content:'V8';position:absolute;right:-20px;bottom:-70px;font-size:190px;font-weight:900;color:#fff08}.v8-highlight h2{font-size:32px;margin:4px 0 8px}.v8-highlight p{color:#d6dde1;max-width:680px}.v8-highlight .btn{position:relative;z-index:2}
-.v8-strip{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--v8-line);margin:18px 0 0;background:#fff}.v8-strip>div{padding:17px;display:flex;gap:10px;align-items:center;border-right:1px solid var(--v8-line)}.v8-strip>div:last-child{border-right:0}.v8-strip b{display:block;font-size:12px}.v8-strip span{font-size:10px;color:#758087}
-.v8-mobile-bottom{display:none}
+.v8-extra{display:block}.v8-kicker{display:inline-block;background:var(--v8-dark);color:#fff;padding:7px 11px;border-left:4px solid var(--v8-orange);font-size:10px;font-weight:900;letter-spacing:1.2px}.v8-highlight{position:relative;overflow:hidden;border-radius:18px;background:linear-gradient(110deg,#101820,#293640);color:#fff;padding:30px 34px;margin:22px 0;box-shadow:0 16px 36px #00000018}.v8-highlight:after{content:'V8';position:absolute;right:-20px;bottom:-70px;font-size:190px;font-weight:900;color:#fff08}.v8-highlight h2{font-size:32px;margin:4px 0 8px}.v8-highlight p{color:#d6dde1;max-width:680px}.v8-highlight .btn{position:relative;z-index:2}.v8-strip{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--v8-line);margin:18px 0 0;background:#fff}.v8-strip>div{padding:17px;display:flex;gap:10px;align-items:center;border-right:1px solid var(--v8-line)}.v8-strip>div:last-child{border-right:0}.v8-strip b{display:block;font-size:12px}.v8-strip span{font-size:10px;color:#758087}.v8-mobile-bottom{display:none}
 @media(max-width:800px){.v8-strip{grid-template-columns:1fr 1fr}.v8-strip>div:nth-child(2){border-right:0}.v8-strip>div:nth-child(-n+2){border-bottom:1px solid var(--v8-line)}.v8-highlight{padding:24px 20px}.v8-highlight h2{font-size:25px}}
-@media(max-width:600px){.mmTrust{grid-template-columns:1fr 1fr!important}.v8-strip{margin-left:12px;margin-right:12px}.v8-strip>div{padding:13px 10px}.v8-highlight{margin:14px 12px;border-radius:14px}.v8-highlight h2{font-size:23px}.v8-highlight p{font-size:12px}.v8-mobile-bottom{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:9997;background:#101820;color:#fff;height:56px;justify-content:space-around;align-items:center;box-shadow:0 -5px 20px #0003}.v8-mobile-bottom a{color:#fff;text-decoration:none;font-size:10px;text-align:center}.v8-mobile-bottom b{display:block;font-size:17px;margin-bottom:2px}}
-@media(max-width:380px){.v8-strip>div{padding:11px 8px}.v8-strip b{font-size:10px}.v8-strip span{font-size:9px}}
+
+/* V8.1 — ajuste fino do banner e da barra mobile */
+@media(max-width:600px){
+  .mmSlides,.mmCarousel{min-height:500px!important}
+  .mmSlideInner{grid-template-columns:1fr!important;padding:24px 0 66px!important;gap:4px!important;text-align:center!important}
+  .mmSlideCopy{max-width:100%!important;margin:auto!important}
+  .mmVisual{min-height:135px!important;order:-1!important}
+  .mmVisual img{width:190px!important;max-height:135px!important}
+  .mmSlideCopy .pill{padding:6px 10px!important}
+  .mmSlideCopy .eyebrow{font-size:11px!important;margin-top:5px!important}
+  .mmSlideCopy h1{font-size:32px!important;line-height:1.02!important;margin:7px 0 9px!important;letter-spacing:-.8px!important}
+  .mmSlideCopy p{font-size:13px!important;line-height:1.35!important;max-width:95%!important;margin:0 auto 13px!important}
+  .mmSlideCopy .btn{padding:11px 15px!important;font-size:12px!important;display:inline-flex!important}
+  .mmControls{bottom:13px!important}
+  .mmTrust{margin-top:14px!important}
+  .v8-mobile-bottom{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:9997;background:#101820;color:#fff;height:56px;justify-content:space-around;align-items:center;box-shadow:0 -5px 20px #0003}
+  .v8-mobile-bottom a{color:#fff;text-decoration:none;font-size:10px;text-align:center}
+  .v8-mobile-bottom b{display:block;font-size:17px;margin-bottom:2px}
+  .mmChatBtn{right:12px!important;bottom:68px!important;padding:10px 13px!important;font-size:11px!important;z-index:9998!important}
+  .mmChatPanel{bottom:68px!important;max-height:calc(100dvh - 84px)!important;height:min(560px,calc(100dvh - 84px))!important}
+  .v8-highlight{margin:12px!important;padding:20px 16px!important}
+  .v8-highlight h2{font-size:22px!important}
+  .v8-highlight p{font-size:12px!important}
+}
+@media(max-width:380px){
+  .mmSlides,.mmCarousel{min-height:470px!important}
+  .mmSlideInner{padding-bottom:62px!important}
+  .mmVisual{min-height:115px!important}
+  .mmVisual img{width:165px!important;max-height:115px!important}
+  .mmSlideCopy h1{font-size:29px!important}
+  .mmSlideCopy p{font-size:12px!important}
+  .mmSlideCopy .btn{padding:10px 13px!important}
+}
