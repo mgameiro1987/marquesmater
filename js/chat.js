@@ -1,4 +1,4 @@
-/* MarquesMater V8.19 — Assistente + navegação mobile + swipe robusto */
+/* MarquesMater V8.20 — Assistente + navegação mobile */
 (function(){
   const css=document.createElement('link');css.rel='stylesheet';css.href='v8.6.css';document.head.appendChild(css);
   const wrap=document.createElement('div');
@@ -12,33 +12,5 @@
   document.getElementById('mmChatForm').onsubmit=e=>{e.preventDefault();send(input.value);input.value=''};
   body.querySelectorAll('.mmChatQuick button').forEach(b=>b.onclick=()=>send(b.dataset.q));
   const bottom=document.createElement('nav');bottom.className='v8-mobile-bottom';bottom.innerHTML='<a href="index.html"><b>⌂</b><span>Início</span></a><a href="category.html?cat=Construção"><b>▦</b><span>Categorias</span></a><a href="#" onclick="document.getElementById(\'mmChatBtn\').click();return false"><b>💬</b><span>Ajuda</span></a><a href="cart.html"><b>🛒</b><span>Carrinho</span></a>';document.body.appendChild(bottom);
-
-  /* V8.19: swipe mobile com Touch Events + deteção de direção. Evita conflito com o handler antigo do index. */
-  const carousel=document.getElementById('carousel');
-  if(carousel){
-    let startX=0,startY=0,lastX=0,lastY=0,tracking=false,locked=false;
-    carousel.style.touchAction='pan-y pinch-zoom';
-    carousel.addEventListener('touchstart',e=>{
-      if(!e.changedTouches.length)return;
-      const t=e.changedTouches[0];startX=lastX=t.clientX;startY=lastY=t.clientY;tracking=true;locked=false;
-    },{capture:true,passive:true});
-    carousel.addEventListener('touchmove',e=>{
-      if(!tracking||!e.changedTouches.length)return;
-      const t=e.changedTouches[0];lastX=t.clientX;lastY=t.clientY;
-      const dx=lastX-startX,dy=lastY-startY;
-      if(!locked&&Math.abs(dx)>12&&Math.abs(dx)>Math.abs(dy)*1.15){locked=true;}
-      if(locked)e.stopImmediatePropagation();
-    },{capture:true,passive:true});
-    carousel.addEventListener('touchend',e=>{
-      if(!tracking||!e.changedTouches.length)return;
-      const t=e.changedTouches[0],dx=t.clientX-startX,dy=t.clientY;tracking=false;
-      if(Math.abs(dx)>=40&&Math.abs(dx)>Math.abs(dy)*1.1){
-        e.stopImmediatePropagation();
-        const btn=document.getElementById(dx<0?'next':'prev');
-        if(btn)btn.click();
-      }
-    },{capture:true,passive:true});
-    carousel.addEventListener('touchcancel',()=>{tracking=false;locked=false},{capture:true,passive:true});
-  }
   const s=document.createElement('script');s.src='js/store.js';document.body.appendChild(s);
 })();
