@@ -1,9 +1,10 @@
-/* MarquesMater V8.13 — conta, favoritos e carrinho local */
+/* MarquesMater V8.9 — conta, favoritos e carrinho local */
 (function(){
  if(window.MMStore)return;
  const css=document.createElement('link');css.rel='stylesheet';css.href='v8.8.css';document.head.appendChild(css);
  const css89=document.createElement('link');css89.rel='stylesheet';css89.href='v8.9.css';document.head.appendChild(css89);
  const css813=document.createElement('link');css813.rel='stylesheet';css813.href='v8.13-cart.css';document.head.appendChild(css813);
+ const css813fav=document.createElement('link');css813fav.rel='stylesheet';css813fav.href='v8.13-favorites.css';document.head.appendChild(css813fav);
  const KEY='mm_store_v85';
  function state(){try{return JSON.parse(localStorage.getItem(KEY))||{favorites:[],cart:[]}}catch(e){return {favorites:[],cart:[]}}}
  function save(s){localStorage.setItem(KEY,JSON.stringify(s));sync()}
