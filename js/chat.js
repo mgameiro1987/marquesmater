@@ -1,4 +1,4 @@
-/* MarquesMater V8.6 — Assistente + navegação mobile */
+/* MarquesMater V8.15 — Assistente + navegação mobile + swipe robusto */
 (function(){
   const css=document.createElement('link');css.rel='stylesheet';css.href='v8.6.css';document.head.appendChild(css);
   const wrap=document.createElement('div');
@@ -12,5 +12,29 @@
   document.getElementById('mmChatForm').onsubmit=e=>{e.preventDefault();send(input.value);input.value=''};
   body.querySelectorAll('.mmChatQuick button').forEach(b=>b.onclick=()=>send(b.dataset.q));
   const bottom=document.createElement('nav');bottom.className='v8-mobile-bottom';bottom.innerHTML='<a href="index.html"><b>⌂</b><span>Início</span></a><a href="category.html?cat=Construção"><b>▦</b><span>Categorias</span></a><a href="#" onclick="document.getElementById(\'mmChatBtn\').click();return false"><b>💬</b><span>Ajuda</span></a><a href="cart.html"><b>🛒</b><span>Carrinho</span></a>';document.body.appendChild(bottom);
+
+  /* V8.15: swipe real no hero. Captura antes do touchend antigo para evitar conflito. */
+  const carousel=document.getElementById('carousel');
+  if(carousel){
+    let startX=0,startY=0,tracking=false;
+    carousel.addEventListener('touchstart',e=>{
+      if(!e.touches.length)return;
+      startX=e.touches[0].clientX;startY=e.touches[0].clientY;tracking=true;
+    },{passive:true,capture:true});
+    carousel.addEventListener('touchend',e=>{
+      if(!tracking||!e.changedTouches.length)return;
+      tracking=false;
+      e.stopImmediatePropagation();
+      const dx=e.changedTouches[0].clientX-startX;
+      const dy=e.changedTouches[0].clientY-startY;
+      if(Math.abs(dx)>50&&Math.abs(dx)>Math.abs(dy)*1.15){
+        const id=dx<0?'next':'prev';
+        const btn=document.getElementById(id);
+        if(btn)btn.click();
+      }
+    },{passive:true,capture:true});
+    carousel.addEventListener('touchcancel',()=>{tracking=false},{passive:true,capture:true});
+  }
+
   const s=document.createElement('script');s.src='js/store.js';document.body.appendChild(s);
 })();
