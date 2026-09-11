@@ -1,0 +1,10 @@
+/* MarquesMater V8.25 — checkout mobile */
+@media(max-width:700px){
+ body{padding-bottom:78px;overflow-x:hidden}
+ #checkoutApp{width:100%!important;min-width:0!important}
+ #checkoutApp form,.v824-checkout,.v824-checkout-grid{width:100%!important;max-width:100%!important;box-sizing:border-box!important}
+ #checkoutApp input,#checkoutApp select,#checkoutApp textarea{max-width:100%!important;box-sizing:border-box!important}
+ #checkoutApp .v824-payment-grid{grid-template-columns:1fr!important}
+ #checkoutApp .v824-summary{width:100%!important;box-sizing:border-box!important;overflow:hidden!important}
+ .mmChatBtn{right:10px!important;bottom:86px!important;max-width:calc(100vw - 20px)!important}
+}
