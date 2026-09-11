@@ -1,5 +1,6 @@
-/* MarquesMater V8.31 — bootstrap do catálogo expandido antes do render */
-if(!window.__MM_V831_BOOTSTRAP){window.__MM_V831_BOOTSTRAP=true;document.write('<script src="js/v8.31-catalog-expansion.js"><\/script>');}
+/* MarquesMater V8.32 — bootstrap do catálogo expandido e preços de variantes antes do render */
+if(!window.__MM_V831_BOOTSTRAP){window.__MM_V831_BOOTSTRAP=true;document.write('<script src="js/v8.31-catalog-expansion.js"><\\/script>');}
+if(!window.__MM_V831_PRICE_BOOTSTRAP){window.__MM_V831_PRICE_BOOTSTRAP=true;document.write('<script src="js/v8.31-audit-catalog.js"><\\/script>');}
 /* MarquesMater V8.23 — banner mobile: apenas setas */
 (function(){
   const css=document.createElement('link');css.rel='stylesheet';css.href='v8.6.css';document.head.appendChild(css);
@@ -14,10 +15,11 @@ if(!window.__MM_V831_BOOTSTRAP){window.__MM_V831_BOOTSTRAP=true;document.write('
     .heroV7 .mmArrow:first-child{left:8px!important}
     .heroV7 .mmArrow:last-child{right:8px!important}
     .heroV7 .mmDots{display:none!important}
-    .heroV7 .mmProgress{display:none!important}
+    .heroV7 .mmProgress{display:block!important}
   }
   @media(max-width:380px){.heroV7 .mmArrow{width:36px!important;height:36px!important}.heroV7 .mmArrow:first-child{left:6px!important}.heroV7 .mmArrow:last-child{right:6px!important}}
   `;document.head.appendChild(style);
+  const progressCss=document.createElement('link');progressCss.rel='stylesheet';progressCss.href='js/v8.32-banner-progress.css';document.head.appendChild(progressCss);
   const wrap=document.createElement('div');
   wrap.innerHTML=`<button class="mmChatBtn" id="mmChatBtn" aria-label="Abrir assistente">💬 Precisa de ajuda?</button><section class="mmChatPanel" id="mmChatPanel" aria-label="Assistente MarquesMater"><header class="mmChatHead"><div><strong>🤖 Assistente MarquesMater</strong><small>Ajuda a encontrar o produto certo</small></div><button class="mmChatClose" id="mmChatClose" aria-label="Fechar">×</button></header><div class="mmChatBody" id="mmChatBody"><div class="mmChatMsg">Olá! 👋 Posso ajudar-te a encontrar materiais, ferramentas, tintas, selantes e outros produtos.</div><div class="mmChatQuick"><button data-q="Preciso de ajuda a escolher um produto">Escolher produto</button><button data-q="Quero saber sobre entregas">Entregas</button><button data-q="Preciso de ajuda com tintas">Tintas</button><button data-q="Preciso de ajuda com ferramentas RIDA">Ferramentas RIDA</button></div></div><form class="mmChatForm" id="mmChatForm"><input id="mmChatInput" autocomplete="off" placeholder="Escreve a tua dúvida..."><button>Enviar</button></form></section>`;
   document.body.appendChild(wrap);
@@ -37,5 +39,5 @@ if(!window.__MM_V831_BOOTSTRAP){window.__MM_V831_BOOTSTRAP=true;document.write('
     carousel.addEventListener('touchend',e=>{if(blockSwipe())e.stopImmediatePropagation()},{capture:true,passive:true});
     carousel.addEventListener('touchcancel',e=>{if(blockSwipe())e.stopImmediatePropagation()},{capture:true,passive:true});
   }
-  const s=document.createElement('script');s.src='js/store.js';s.onload=()=>{const a=document.createElement('script');a.src='js/v8.29-audit-fixes.js';document.body.appendChild(a)};document.body.appendChild(s);
+  const s=document.createElement('script');s.src='js/store.js';s.onload=()=>{const a=document.createElement('script');a.src='js/v8.29-audit-fixes.js';document.body.appendChild(a);const b=document.createElement('script');b.src='js/v8.32-stability.js';document.body.appendChild(b)};document.body.appendChild(s);
 })();
