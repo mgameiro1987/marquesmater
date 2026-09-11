@@ -42,8 +42,7 @@ def ensure_customer(conn, email, name='', phone=''):
                        phone=CASE WHEN EXCLUDED.phone<>'' THEN EXCLUDED.phone ELSE customers.phone END,
                        updated_at=NOW()
                        RETURNING id,email,name,phone""", (email, name, phone))
-        row = cur.fetchone()
-    return row
+        return cur.fetchone()
 
 
 class Handler(SimpleHTTPRequestHandler):
@@ -51,7 +50,7 @@ class Handler(SimpleHTTPRequestHandler):
         ".svg": "image/svg+xml", ".js": "application/javascript", ".css": "text/css"}
 
     def _json(self, status, payload):
-        raw = json.dumps(payload, ensure_ascii=False).encode('utf-8')
+        raw = json.dumps(payload, ensure_ascii=False, default=str).encode('utf-8')
         self.send_response(status)
         self.send_header('Content-Type', 'application/json; charset=utf-8')
         self.send_header('Cache-Control', 'no-store')
@@ -134,6 +133,10 @@ class Handler(SimpleHTTPRequestHandler):
                     for injection in injections:
                         if marker in data and injection not in data:
                             data = data.replace(marker, injection + marker, 1)
+                    body_marker = b'</body>'
+                    db_script = b'<script src="/js/v10-db-sync.js?v=10"></script>'
+                    if body_marker in data and db_script not in data:
+                        data = data.replace(body_marker, db_script + body_marker, 1)
                     self.send_response(200)
                     self.send_header('Content-Type', 'text/html; charset=utf-8')
                     self.send_header('Content-Length', str(len(data)))
@@ -181,7 +184,8 @@ class Handler(SimpleHTTPRequestHandler):
                 with conn.cursor() as cur:
                     cur.execute('DELETE FROM customer_favorites WHERE customer_id=%s', (row[0],))
                     for sku in data.get('favorites', []) or []:
-                        if sku: cur.execute('INSERT INTO customer_favorites(customer_id,sku) VALUES(%s,%s) ON CONFLICT DO NOTHING', (row[0], str(sku)))
+                        if sku:
+                            cur.execute('INSERT INTO customer_favorites(customer_id,sku) VALUES(%s,%s) ON CONFLICT DO NOTHING', (row[0], str(sku)))
             self._json(200, {'ok': True})
             return
         if path == '/api/orders':
