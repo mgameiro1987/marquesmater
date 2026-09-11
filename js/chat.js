@@ -35,5 +35,5 @@
     carousel.addEventListener('touchend',e=>{if(blockSwipe())e.stopImmediatePropagation()},{capture:true,passive:true});
     carousel.addEventListener('touchcancel',e=>{if(blockSwipe())e.stopImmediatePropagation()},{capture:true,passive:true});
   }
-  const s=document.createElement('script');s.src='js/store.js';document.body.appendChild(s);
+  const s=document.createElement('script');s.src='js/store.js';s.onload=()=>{const a=document.createElement('script');a.src='js/v8.29-audit-fixes.js';document.body.appendChild(a)};document.body.appendChild(s);
 })();
