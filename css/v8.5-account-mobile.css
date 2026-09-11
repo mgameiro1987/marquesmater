@@ -1,0 +1,7 @@
+/* MarquesMater V8.5 — conta no telemóvel normal: menu completo visível. */
+@media(max-width:600px){
+  body:has(#accountApp) .v832-layout{display:grid!important;grid-template-columns:1fr!important;gap:14px!important}
+  body:has(#accountApp) .v832-sidebar{display:block!important;order:1!important;width:100%!important}
+  body:has(#accountApp) .v832-main{order:2!important;width:100%!important}
+  body:has(#accountApp) .v832-sidebar a,body:has(#accountApp) .v832-sidebar button{display:flex!important;min-height:52px!important;padding:14px 16px!important;font-size:14px!important}
+}
