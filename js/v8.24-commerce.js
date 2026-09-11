@@ -44,6 +44,8 @@
   const summary=box.querySelector('.v871-summary');if(!summary)return;
   let guest=box.querySelector('.mm-guest');
   if(!guest){guest=document.createElement('div');guest.className='mm-guest';guest.innerHTML='<strong>🛒 Comprar como convidado</strong><span>Não precisas de criar uma conta para concluir a compra. Podes preencher os dados necessários e seguir diretamente para o pagamento.</span><label class="mm-guest-check"><input type="checkbox" name="guest" checked> Comprar sem criar conta</label>';form.insertBefore(guest,form.firstChild)}
+  /* O checkout.js antigo usa form.onsubmit. Removemo-lo antes de registar o handler V8.25 para não limpar o carrinho antes de calcular os artigos. */
+  form.onsubmit=null;
   updateCheckoutTotals(box,form,summary);
   if(form.dataset.v825Bound)return;
   form.dataset.v825Bound='1';
@@ -52,6 +54,7 @@
    e.preventDefault();
    if(!form.reportValidity())return;
    const f=Object.fromEntries(new FormData(form).entries()),fresh=cartData(),cc=getCoupon(),dd=discountFor(fresh.subtotal,cc),fee=f.delivery==='Entrega em Portugal Continental'?4.9:0,total=fresh.subtotal-dd+fee,number='MM-DEMO-'+String(Date.now()).slice(-7);
+   if(!fresh.items.length){alert('O carrinho ficou vazio. Volta ao carrinho e adiciona pelo menos um artigo antes de confirmar.');return}
    let all=[];try{all=JSON.parse(localStorage.getItem('mm_orders_v87'))||[]}catch(_){}
    all.push({number,date:new Date().toLocaleString('pt-PT'),total,subtotal:fresh.subtotal,discount:dd,coupon:cc?.code||null,status:'Recebida · DEMO',items:fresh.items,customer:f});localStorage.setItem('mm_orders_v87',JSON.stringify(all));
    if(window.MMStore)MMStore.clearCart();setCoupon(null);
