@@ -1,4 +1,5 @@
 import os
+import json
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 from urllib.parse import urlsplit
 
@@ -6,13 +7,34 @@ PORT = int(os.environ.get("PORT", "10000"))
 ROOT = os.path.dirname(os.path.abspath(__file__))
 os.chdir(ROOT)
 
+try:
+    from db import init_db, get_conn
+except Exception:
+    init_db = lambda: False
+    get_conn = lambda: None
+
+DB_READY = init_db()
+
 class Handler(SimpleHTTPRequestHandler):
     extensions_map = {**SimpleHTTPRequestHandler.extensions_map,
         ".svg": "image/svg+xml", ".js": "application/javascript", ".css": "text/css"}
 
+    def _json(self, status, payload):
+        raw = json.dumps(payload, ensure_ascii=False).encode('utf-8')
+        self.send_response(status)
+        self.send_header('Content-Type', 'application/json; charset=utf-8')
+        self.send_header('Content-Length', str(len(raw)))
+        self.end_headers()
+        self.wfile.write(raw)
+
     def do_GET(self):
-        # V8.5: aplica os ajustes globais de layout a todas as páginas HTML.
         path = urlsplit(self.path).path
+        if path == '/api/health':
+            self._json(200, {'ok': True, 'database': bool(DB_READY), 'version': 'V10'})
+            return
+        if path == '/api/db-status':
+            self._json(200, {'database': bool(DB_READY)})
+            return
         if path.endswith('.html') or path in ('', '/'):
             if path in ('', '/'):
                 path = '/index.html'
@@ -40,5 +62,5 @@ class Handler(SimpleHTTPRequestHandler):
         super().do_GET()
 
 server = ThreadingHTTPServer(("0.0.0.0", PORT), Handler)
-print(f"MarquesMater server running on port {PORT}")
+print(f"MarquesMater V10 server running on port {PORT}; database={DB_READY}")
 server.serve_forever()
