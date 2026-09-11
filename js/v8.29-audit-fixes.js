@@ -7,6 +7,8 @@
 
   function patchCart(){
     if(!window.MMStore) return setTimeout(patchCart,80);
+    if(window.__MM_V829_CART_PATCHED)return;
+    window.__MM_V829_CART_PATCHED=true;
     const refresh=()=>{
       const el=document.getElementById('cartCount');
       if(el) el.textContent=String((MMStore.state().cart||[]).reduce((n,x)=>n+Number(x.qty||0),0));
@@ -43,7 +45,11 @@
       }
       return false;
     };
-    [loginBtn,createBtn].filter(Boolean).forEach(b=>b.addEventListener('click',validate,true));
+    [loginBtn,createBtn].filter(Boolean).forEach(b=>{
+      if(b.dataset.mm829Bound)return;
+      b.dataset.mm829Bound='1';
+      b.addEventListener('click',validate,true);
+    });
   }
 
   function patchCategoryCards(){
