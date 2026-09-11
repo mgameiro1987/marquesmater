@@ -19,12 +19,23 @@
     const matrix=(window.MM_VARIANT_MATRIX||{})[p.sku]||{};
     const direct=matrix[key(sel)];
     if(direct)return direct;
+
+    // Se não existir uma combinação na matriz, usa os preços definidos
+    // por opção em MM_VARIANT_PRICES (ex.: 2,5 L / 5 L / 15 L).
+    const variantPrices=(window.MM_VARIANT_PRICES||{})[p.sku]||p.variantPrices||{};
+    let price=Number(p.price||0);
+    for(const [option,value] of Object.entries(sel||{})){
+      if(variantPrices[option]&&variantPrices[option][value]!=null){
+        price=Number(variantPrices[option][value]);
+      }
+    }
+
     // Fallback universal: se existir uma imagem associada a qualquer valor selecionado,
     // usa-a sem obrigar a criar uma matriz manual para cada produto.
     const images=(window.MM_VARIANT_IMAGES||{})[p.sku]||{};
     let image=null;
     for(const v of Object.values(sel)){if(images[v]){image=images[v];break}}
-    const entry={image:image,price:p.price,sku:p.sku,stock:p.stock};
+    const entry={image:image,price:price,sku:p.sku,stock:p.stock};
     if(Object.keys(sel).length)entry.sku=p.sku+'-'+Object.values(sel).map(v=>String(v).replace(/[^a-zA-Z0-9]+/g,'').toUpperCase()).join('-');
     return entry;
   }
