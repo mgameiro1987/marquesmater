@@ -1,6 +1,16 @@
-/* MarquesMater V8.9 — separadores da ficha de produto */
+/* MarquesMater V8.10 — separadores e seleção visual de variantes */
 (function(){
  function boot(){
+  const style='v8.10.css';
+  if(!document.querySelector('link[href="'+style+'"]')){const l=document.createElement('link');l.rel='stylesheet';l.href=style;document.head.appendChild(l)}
+  const footer=document.querySelector('.copyright');if(footer)footer.textContent='© MarquesMater · Produto V8.10';
+  const optionBlocks=document.querySelectorAll('.v6-option');
+  optionBlocks.forEach(block=>{
+   const buttons=block.querySelectorAll('.option-buttons>button');
+   if(buttons.length&&!block.querySelector('.v6-swatch'))buttons[0].classList.add('selected');
+   const swatches=block.querySelectorAll('.v6-swatch');
+   if(swatches.length)swatches[0].classList.add('selected');
+  });
   const tabs=document.querySelectorAll('.v6-tabs button,.tabs button'),body=document.getElementById('tabbody');
   if(!tabs.length||!body)return;
   const params=new URLSearchParams(location.search),sku=params.get('sku')||'SIL001';
