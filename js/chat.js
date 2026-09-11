@@ -1,6 +1,6 @@
 /* MarquesMater V8.32 — bootstrap do catálogo expandido e preços de variantes antes do render */
-if(!window.__MM_V831_BOOTSTRAP){window.__MM_V831_BOOTSTRAP=true;document.write('<script src="js/v8.31-catalog-expansion.js"><\\/script>');}
-if(!window.__MM_V831_PRICE_BOOTSTRAP){window.__MM_V831_PRICE_BOOTSTRAP=true;document.write('<script src="js/v8.31-audit-catalog.js"><\\/script>');}
+if(!window.__MM_V831_BOOTSTRAP){window.__MM_V831_BOOTSTRAP=true;document.write('<script src="js/v8.31-catalog-expansion.js"><\/script>');}
+if(!window.__MM_V831_PRICE_BOOTSTRAP){window.__MM_V831_PRICE_BOOTSTRAP=true;document.write('<script src="js/v8.31-audit-catalog.js"><\/script>');}
 /* MarquesMater V8.23 — banner mobile: apenas setas */
 (function(){
   const css=document.createElement('link');css.rel='stylesheet';css.href='v8.6.css';document.head.appendChild(css);
