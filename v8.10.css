@@ -1,0 +1,9 @@
+/* MarquesMater V8.10 — seleção clara de variantes na ficha de produto */
+.v6-option .option-buttons>button{border:1px solid #d7dce0;background:#fff;color:#26323a;padding:11px 15px;min-height:46px;cursor:pointer;transition:.15s ease}
+.v6-option .option-buttons>button:hover{border-color:#ef7d00}
+.v6-option .option-buttons>button.selected{background:#ef7d00;color:#fff;border-color:#ef7d00;box-shadow:0 0 0 2px #ef7d0033;font-weight:800}
+.v6-swatches .v6-swatch:first-child span{border-color:#fff;box-shadow:0 0 0 3px #ef7d00}
+.v6-swatches .v6-swatch.selected span{border-color:#fff;box-shadow:0 0 0 3px #ef7d00}
+.v6-swatch.selected em{font-weight:800;color:#ef7d00}
+.v6-option label{font-size:18px}
+@media(max-width:600px){.v6-option .option-buttons>button{padding:10px 14px;min-height:44px}.v6-option label{font-size:17px}}
