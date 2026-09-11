@@ -1,0 +1,29 @@
+/* MarquesMater V8.6 — cabeçalho mobile + barra inferior + assistente */
+@media(max-width:700px){
+  header .head{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;grid-template-rows:auto auto!important;gap:10px!important;height:auto!important;padding:12px!important;align-items:center!important}
+  header .logo{grid-column:1!important;grid-row:1!important;width:auto!important;min-width:0!important;flex:none!important;font-size:22px!important;white-space:nowrap!important;overflow:visible!important}
+  header .actions,header .head-actions{grid-column:2!important;grid-row:1!important;position:static!important;margin:0!important;display:flex!important;gap:10px!important;align-items:center!important;white-space:nowrap!important}
+  header .actions a,header .head-actions a{font-size:18px!important;line-height:1!important;min-width:42px!important}
+  header .actions small,header .head-actions small{font-size:8px!important;line-height:1.2!important;margin-top:3px!important}
+  header .search{grid-column:1/-1!important;grid-row:2!important;width:100%!important;max-width:none!important;order:initial!important;height:46px!important}
+  header .search input{height:44px!important;font-size:14px!important;padding:0 12px!important}
+  header .search button{width:48px!important;height:44px!important}
+  nav .nav,nav .nav-inner{padding:0 12px!important}
+  .v85-grid{gap:14px!important}
+  .v85-list-card img{height:205px!important}
+  .v85-list-card h3{font-size:17px!important}
+  .v85-empty{padding:45px 16px!important}
+  .mmChatBtn{right:12px!important;bottom:76px!important;padding:11px 15px!important;font-size:12px!important;z-index:100001!important}
+  .mmChatPanel{left:8px!important;right:8px!important;bottom:136px!important;height:min(560px,calc(100dvh - 150px))!important;max-height:calc(100dvh - 150px)!important;z-index:100002!important}
+  .v8-mobile-bottom{position:fixed!important;left:0!important;right:0!important;bottom:0!important;height:66px!important;background:#101820!important;color:#fff!important;z-index:100000!important;display:grid!important;grid-template-columns:repeat(4,1fr)!important;border-top:1px solid #26333c!important;padding-bottom:env(safe-area-inset-bottom)!important}
+  .v8-mobile-bottom a{display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:3px!important;color:#fff!important;font-size:11px!important;text-decoration:none!important}
+  .v8-mobile-bottom b{font-size:22px!important;line-height:1!important;font-weight:400!important}
+  footer{padding-bottom:82px!important}
+}
+@media(max-width:380px){
+  header .logo{font-size:19px!important}
+  header .actions a,header .head-actions a{min-width:36px!important;font-size:16px!important}
+  header .actions small,header .head-actions small{font-size:7px!important}
+  .mmChatBtn{right:10px!important;bottom:74px!important;padding:10px 13px!important;font-size:11px!important}
+  .mmChatPanel{bottom:132px!important;height:calc(100dvh - 145px)!important;max-height:calc(100dvh - 145px)!important}
+}
