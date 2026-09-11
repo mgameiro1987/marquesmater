@@ -1,4 +1,4 @@
-/* MarquesMater V8.16 — Assistente + navegação mobile + swipe robusto */
+/* MarquesMater V8.17 — Assistente + navegação mobile + swipe touch nativo */
 (function(){
   const css=document.createElement('link');css.rel='stylesheet';css.href='v8.6.css';document.head.appendChild(css);
   const wrap=document.createElement('div');
@@ -13,35 +13,25 @@
   body.querySelectorAll('.mmChatQuick button').forEach(b=>b.onclick=()=>send(b.dataset.q));
   const bottom=document.createElement('nav');bottom.className='v8-mobile-bottom';bottom.innerHTML='<a href="index.html"><b>⌂</b><span>Início</span></a><a href="category.html?cat=Construção"><b>▦</b><span>Categorias</span></a><a href="#" onclick="document.getElementById(\'mmChatBtn\').click();return false"><b>💬</b><span>Ajuda</span></a><a href="cart.html"><b>🛒</b><span>Carrinho</span></a>';document.body.appendChild(bottom);
 
-  /* V8.16: Pointer Events para o swipe real no telemóvel. */
+  /* V8.17: swipe nativo Touch Events, sem Pointer Events nem handlers concorrentes. */
   const carousel=document.getElementById('carousel');
   if(carousel){
-    let startX=0,startY=0,pointerId=null,tracking=false,moved=false;
+    let startX=0,startY=0,tracking=false;
     carousel.style.touchAction='pan-y pinch-zoom';
-    const finish=(x,y)=>{
-      if(!tracking)return;
-      tracking=false;
-      const dx=x-startX,dy=y-startY;
-      if(Math.abs(dx)>45&&Math.abs(dx)>Math.abs(dy)*1.1){
+    carousel.addEventListener('touchstart',e=>{
+      if(!e.changedTouches.length)return;
+      const t=e.changedTouches[0];startX=t.clientX;startY=t.clientY;tracking=true;
+    },{capture:true,passive:true});
+    carousel.addEventListener('touchend',e=>{
+      if(!tracking||!e.changedTouches.length)return;
+      const t=e.changedTouches[0],dx=t.clientX-startX,dy=t.clientY-startY;tracking=false;
+      if(Math.abs(dx)>45&&Math.abs(dx)>Math.abs(dy)*1.15){
+        e.stopImmediatePropagation();
         const btn=document.getElementById(dx<0?'next':'prev');
         if(btn)btn.click();
-        moved=true;
       }
-    };
-    carousel.addEventListener('pointerdown',e=>{
-      if(e.pointerType==='mouse'&&e.button!==0)return;
-      startX=e.clientX;startY=e.clientY;pointerId=e.pointerId;tracking=true;moved=false;
-      try{carousel.setPointerCapture(pointerId)}catch(_){ }
-    },{passive:true});
-    carousel.addEventListener('pointerup',e=>{
-      if(pointerId!==null&&e.pointerId!==pointerId)return;
-      finish(e.clientX,e.clientY);
-      pointerId=null;
-    },{passive:true});
-    carousel.addEventListener('pointercancel',()=>{tracking=false;pointerId=null},{passive:true});
-    carousel.addEventListener('touchend',e=>{
-      if(moved||tracking===false){e.stopImmediatePropagation();}
     },{capture:true,passive:true});
+    carousel.addEventListener('touchcancel',()=>{tracking=false},{capture:true,passive:true});
   }
 
   const s=document.createElement('script');s.src='js/store.js';document.body.appendChild(s);
