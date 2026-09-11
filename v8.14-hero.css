@@ -1,34 +1,36 @@
-/* MarquesMater V8.17 — hero mobile realmente compacto */
+/* MarquesMater V8.19 — hero mobile compacto */
 @media(max-width:700px){
-  .hero.heroV7{padding:0!important;min-height:0!important;height:430px!important;overflow:hidden!important}
-  .heroV7 .mmCarousel,.heroV7 .mmSlides{min-height:430px!important;height:430px!important;max-height:430px!important;overflow:hidden!important}
+  .hero.heroV7{padding:0!important;min-height:0!important;height:360px!important;overflow:hidden!important}
+  .heroV7 .mmCarousel,.heroV7 .mmSlides{min-height:360px!important;height:360px!important;max-height:360px!important;overflow:hidden!important}
   .heroV7 .mmCarousel{touch-action:pan-y pinch-zoom!important}
-  .heroV7 .mmSlide{height:430px!important;min-height:430px!important;align-items:stretch!important}
-  .heroV7 .mmSlideInner{box-sizing:border-box!important;min-height:0!important;height:430px!important;padding:12px 12px 54px!important;grid-template-columns:1fr!important;grid-template-rows:105px 1fr!important;gap:2px!important;text-align:center!important;align-content:start!important}
-  .heroV7 .mmVisual{box-sizing:border-box!important;min-height:0!important;height:105px!important;order:-1!important}
-  .heroV7 .mmVisual img{width:135px!important;max-width:135px!important;height:95px!important;max-height:95px!important;object-fit:contain!important}
+  .heroV7 .mmSlide{height:360px!important;min-height:360px!important;align-items:stretch!important}
+  .heroV7 .mmSlideInner{box-sizing:border-box!important;min-height:0!important;height:360px!important;padding:8px 10px 43px!important;grid-template-columns:1fr!important;grid-template-rows:82px 1fr!important;gap:0!important;text-align:center!important;align-content:start!important}
+  .heroV7 .mmVisual{box-sizing:border-box!important;min-height:0!important;height:82px!important;order:-1!important}
+  .heroV7 .mmVisual img{width:115px!important;max-width:115px!important;height:74px!important;max-height:74px!important;object-fit:contain!important}
   .heroV7 .mmSlideCopy{max-width:100%!important;margin:auto!important;align-self:start!important}
-  .heroV7 .mmSlideCopy .pill{font-size:11px!important;padding:7px 13px!important}
-  .heroV7 .mmSlideCopy .eyebrow{font-size:13px!important;margin-top:7px!important}
-  .heroV7 .mmSlideCopy h1{font-size:28px!important;line-height:1.04!important;margin:6px 0 8px!important}
-  .heroV7 .mmSlideCopy p{font-size:13px!important;line-height:1.3!important;margin:0 auto 12px!important;max-width:330px!important}
-  .heroV7 .mmSlideCopy .btn{padding:10px 17px!important;font-size:13px!important}
-  .heroV7 .mmControls{position:absolute!important;left:0!important;right:0!important;top:0!important;bottom:0!important;width:100%!important;height:430px!important;display:block!important;z-index:20!important;pointer-events:none!important;margin:0!important}
+  .heroV7 .mmSlideCopy .pill{display:none!important}
+  .heroV7 .mmSlideCopy .eyebrow{font-size:12px!important;margin-top:5px!important}
+  .heroV7 .mmSlideCopy h1{font-size:25px!important;line-height:1.04!important;margin:5px 0 7px!important}
+  .heroV7 .mmSlideCopy p{font-size:12px!important;line-height:1.25!important;margin:0 auto 9px!important;max-width:315px!important}
+  .heroV7 .mmSlideCopy .btn{padding:9px 15px!important;font-size:12px!important}
+  .heroV7 .mmControls{position:absolute!important;left:0!important;right:0!important;top:0!important;bottom:0!important;width:100%!important;height:360px!important;display:block!important;z-index:20!important;pointer-events:none!important;margin:0!important}
   .heroV7 .mmArrows{display:block!important}
-  .heroV7 .mmArrow{position:absolute!important;top:50%!important;width:40px!important;height:40px!important;margin:0!important;transform:translateY(-50%)!important;pointer-events:auto!important;z-index:21!important}
-  .heroV7 .mmArrow:first-child{left:8px!important}
-  .heroV7 .mmArrow:last-child{right:8px!important}
-  .heroV7 .mmDots{position:absolute!important;left:50%!important;bottom:9px!important;transform:translateX(-50%)!important;margin:0!important;z-index:21!important}
+  .heroV7 .mmArrow{position:absolute!important;top:50%!important;width:38px!important;height:38px!important;margin:0!important;transform:translateY(-50%)!important;pointer-events:auto!important;z-index:21!important}
+  .heroV7 .mmArrow:first-child{left:7px!important}
+  .heroV7 .mmArrow:last-child{right:7px!important}
+  .heroV7 .mmDots{position:absolute!important;left:50%!important;bottom:7px!important;transform:translateX(-50%)!important;margin:0!important;z-index:21!important}
   .heroV7 .mmProgress{height:2px!important}
   .heroV7 .mmSlides{user-select:none;-webkit-user-select:none}
   .heroV7 .mmSlide:not(.active){transform:none!important}
 }
 @media(max-width:380px){
-  .hero.heroV7,.heroV7 .mmCarousel,.heroV7 .mmSlides,.heroV7 .mmSlide,.heroV7 .mmSlideInner{height:410px!important;min-height:410px!important;max-height:410px!important}
-  .heroV7 .mmSlideInner{grid-template-rows:92px 1fr!important;padding:10px 10px 50px!important}
-  .heroV7 .mmVisual{height:92px!important}
-  .heroV7 .mmVisual img{width:120px!important;max-width:120px!important;height:82px!important;max-height:82px!important}
-  .heroV7 .mmSlideCopy h1{font-size:26px!important}
-  .heroV7 .mmSlideCopy p{font-size:12px!important;max-width:305px!important}
-  .heroV7 .mmControls{height:410px!important}
+  .hero.heroV7,.heroV7 .mmCarousel,.heroV7 .mmSlides,.heroV7 .mmSlide,.heroV7 .mmSlideInner{height:340px!important;min-height:340px!important;max-height:340px!important}
+  .heroV7 .mmSlideInner{grid-template-rows:72px 1fr!important;padding:7px 8px 40px!important}
+  .heroV7 .mmVisual{height:72px!important}
+  .heroV7 .mmVisual img{width:100px!important;max-width:100px!important;height:64px!important;max-height:64px!important}
+  .heroV7 .mmSlideCopy h1{font-size:23px!important;margin:4px 0 6px!important}
+  .heroV7 .mmSlideCopy p{font-size:11.5px!important;max-width:290px!important;margin-bottom:8px!important}
+  .heroV7 .mmSlideCopy .btn{padding:8px 13px!important;font-size:11.5px!important}
+  .heroV7 .mmControls{height:340px!important}
+  .heroV7 .mmArrow{width:35px!important;height:35px!important}
 }
