@@ -1,3 +1,5 @@
+/* MarquesMater V8.31 — bootstrap do catálogo expandido antes do render */
+if(!window.__MM_V831_BOOTSTRAP){window.__MM_V831_BOOTSTRAP=true;document.write('<script src="js/v8.31-catalog-expansion.js"><\/script>');}
 /* MarquesMater V8.23 — banner mobile: apenas setas */
 (function(){
   const css=document.createElement('link');css.rel='stylesheet';css.href='v8.6.css';document.head.appendChild(css);
