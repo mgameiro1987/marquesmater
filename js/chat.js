@@ -26,7 +26,7 @@
   function send(text){if(!text.trim())return;body.insertAdjacentHTML('beforeend',`<div class="mmChatMsg user">${text.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))}</div>`);setTimeout(()=>{body.insertAdjacentHTML('beforeend',`<div class="mmChatMsg">${reply(text)}</div>`);body.scrollTop=body.scrollHeight},250);body.scrollTop=body.scrollHeight}
   document.getElementById('mmChatForm').onsubmit=e=>{e.preventDefault();send(input.value);input.value=''};
   body.querySelectorAll('.mmChatQuick button').forEach(b=>b.onclick=()=>send(b.dataset.q));
-  const bottom=document.createElement('nav');bottom.className='v8-mobile-bottom';bottom.innerHTML='<a href="index.html"><b>⌂</b><span>Início</span></a><a href="category.html?cat=Construção"><b>▦</b><span>Categorias</span></a><a href="#" onclick="document.getElementById(\'mmChatBtn\').click();return false"><b>💬</b><span>Ajuda</span></a><a href="cart.html"><b>🛒</b><span>Carrinho</span></a>';document.body.appendChild(bottom);
+  const bottom=document.createElement('nav');bottom.className='v8-mobile-bottom';bottom.innerHTML='<a href="index.html"><b>⌂</b><span>Início</span></a><a href="categories.html"><b>▦</b><span>Categorias</span></a><a href="#" onclick="document.getElementById(\'mmChatBtn\').click();return false"><b>💬</b><span>Ajuda</span></a><a href="cart.html"><b>🛒</b><span>Carrinho</span></a>';document.body.appendChild(bottom);
   const carousel=document.getElementById('carousel');
   if(carousel){
     const blockSwipe=()=>window.matchMedia('(max-width:700px)').matches;
