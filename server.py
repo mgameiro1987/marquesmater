@@ -11,7 +11,7 @@ class Handler(SimpleHTTPRequestHandler):
         ".svg": "image/svg+xml", ".js": "application/javascript", ".css": "text/css"}
 
     def do_GET(self):
-        # V8.5: aplica o ajuste de layout a todas as páginas HTML.
+        # V8.5: aplica os ajustes globais de layout a todas as páginas HTML.
         path = urlsplit(self.path).path
         if path.endswith('.html') or path in ('', '/'):
             if path in ('', '/'):
@@ -22,9 +22,13 @@ class Handler(SimpleHTTPRequestHandler):
                     with open(filename, 'rb') as f:
                         data = f.read()
                     marker = b'</head>'
-                    injection = b'<link rel="stylesheet" href="/css/v8.5-mobilepc.css?v=85">'
-                    if marker in data and injection not in data:
-                        data = data.replace(marker, injection + marker, 1)
+                    injections = [
+                        b'<link rel="stylesheet" href="/css/v8.5-mobilepc.css?v=85">',
+                        b'<link rel="stylesheet" href="/css/v8.5-account-mobile.css?v=851">'
+                    ]
+                    for injection in injections:
+                        if marker in data and injection not in data:
+                            data = data.replace(marker, injection + marker, 1)
                     self.send_response(200)
                     self.send_header('Content-Type', 'text/html; charset=utf-8')
                     self.send_header('Content-Length', str(len(data)))
