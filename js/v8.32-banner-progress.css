@@ -1,0 +1,4 @@
+/* MarquesMater V8.32 — barra discreta de progresso do banner */
+.heroV7 .mmProgress{position:absolute!important;left:0!important;bottom:0!important;width:0%;height:3px!important;max-width:100%!important;min-height:3px!important;background:#f28a00!important;border-radius:0 3px 3px 0!important;z-index:60!important;display:block!important;pointer-events:none!important;box-shadow:0 0 0 1px rgba(255,255,255,.12)!important}
+.heroV7 .mmCarousel::after{content:"";position:absolute!important;left:0!important;right:0!important;bottom:0!important;height:3px!important;background:rgba(255,255,255,.20)!important;z-index:59!important;pointer-events:none!important}
+@media(max-width:700px){.heroV7 .mmProgress{height:2px!important;min-height:2px!important;box-shadow:none!important}.heroV7 .mmCarousel::after{height:2px!important;background:rgba(255,255,255,.18)!important}}
