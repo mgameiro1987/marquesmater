@@ -1,6 +1,7 @@
-/* MarquesMater V8.17 — Assistente + navegação mobile + swipe touch nativo */
+/* MarquesMater V8.18 — Assistente + navegação mobile + swipe touch nativo + acabamento hero */
 (function(){
   const css=document.createElement('link');css.rel='stylesheet';css.href='v8.6.css';document.head.appendChild(css);
+  const heroStyle=document.createElement('style');heroStyle.textContent='@media(max-width:700px){.heroV7 .mmSlideCopy .pill{display:none!important}.heroV7 .mmSlideCopy .eyebrow{margin-top:8px!important}.heroV7 .mmSlideCopy h1{font-size:27px!important;line-height:1.05!important;margin:7px 0 9px!important}.heroV7 .mmSlideCopy p{font-size:13px!important;line-height:1.3!important;max-width:320px!important;margin-bottom:11px!important}}@media(max-width:380px){.heroV7 .mmSlideCopy h1{font-size:25px!important}.heroV7 .mmSlideCopy p{font-size:12px!important;max-width:300px!important}}';document.head.appendChild(heroStyle);
   const wrap=document.createElement('div');
   wrap.innerHTML=`<button class="mmChatBtn" id="mmChatBtn" aria-label="Abrir assistente">💬 Precisa de ajuda?</button><section class="mmChatPanel" id="mmChatPanel" aria-label="Assistente MarquesMater"><header class="mmChatHead"><div><strong>🤖 Assistente MarquesMater</strong><small>Ajuda a encontrar o produto certo</small></div><button class="mmChatClose" id="mmChatClose" aria-label="Fechar">×</button></header><div class="mmChatBody" id="mmChatBody"><div class="mmChatMsg">Olá! 👋 Posso ajudar-te a encontrar materiais, ferramentas, tintas, selantes e outros produtos.</div><div class="mmChatQuick"><button data-q="Preciso de ajuda a escolher um produto">Escolher produto</button><button data-q="Quero saber sobre entregas">Entregas</button><button data-q="Preciso de ajuda com tintas">Tintas</button><button data-q="Preciso de ajuda com ferramentas RIDA">Ferramentas RIDA</button></div></div><form class="mmChatForm" id="mmChatForm"><input id="mmChatInput" autocomplete="off" placeholder="Escreve a tua dúvida..."><button>Enviar</button></form></section>`;
   document.body.appendChild(wrap);
@@ -12,27 +13,7 @@
   document.getElementById('mmChatForm').onsubmit=e=>{e.preventDefault();send(input.value);input.value=''};
   body.querySelectorAll('.mmChatQuick button').forEach(b=>b.onclick=()=>send(b.dataset.q));
   const bottom=document.createElement('nav');bottom.className='v8-mobile-bottom';bottom.innerHTML='<a href="index.html"><b>⌂</b><span>Início</span></a><a href="category.html?cat=Construção"><b>▦</b><span>Categorias</span></a><a href="#" onclick="document.getElementById(\'mmChatBtn\').click();return false"><b>💬</b><span>Ajuda</span></a><a href="cart.html"><b>🛒</b><span>Carrinho</span></a>';document.body.appendChild(bottom);
-
-  /* V8.17: swipe nativo Touch Events, sem Pointer Events nem handlers concorrentes. */
   const carousel=document.getElementById('carousel');
-  if(carousel){
-    let startX=0,startY=0,tracking=false;
-    carousel.style.touchAction='pan-y pinch-zoom';
-    carousel.addEventListener('touchstart',e=>{
-      if(!e.changedTouches.length)return;
-      const t=e.changedTouches[0];startX=t.clientX;startY=t.clientY;tracking=true;
-    },{capture:true,passive:true});
-    carousel.addEventListener('touchend',e=>{
-      if(!tracking||!e.changedTouches.length)return;
-      const t=e.changedTouches[0],dx=t.clientX-startX,dy=t.clientY-startY;tracking=false;
-      if(Math.abs(dx)>45&&Math.abs(dx)>Math.abs(dy)*1.15){
-        e.stopImmediatePropagation();
-        const btn=document.getElementById(dx<0?'next':'prev');
-        if(btn)btn.click();
-      }
-    },{capture:true,passive:true});
-    carousel.addEventListener('touchcancel',()=>{tracking=false},{capture:true,passive:true});
-  }
-
+  if(carousel){let startX=0,startY=0,tracking=false;carousel.style.touchAction='pan-y pinch-zoom';carousel.addEventListener('touchstart',e=>{if(!e.changedTouches.length)return;const t=e.changedTouches[0];startX=t.clientX;startY=t.clientY;tracking=true;},{capture:true,passive:true});carousel.addEventListener('touchend',e=>{if(!tracking||!e.changedTouches.length)return;const t=e.changedTouches[0],dx=t.clientX-startX,dy=t.clientY-startY;tracking=false;if(Math.abs(dx)>45&&Math.abs(dx)>Math.abs(dy)*1.15){e.stopImmediatePropagation();const btn=document.getElementById(dx<0?'next':'prev');if(btn)btn.click();}},{capture:true,passive:true});carousel.addEventListener('touchcancel',()=>{tracking=false},{capture:true,passive:true});}
   const s=document.createElement('script');s.src='js/store.js';document.body.appendChild(s);
 })();
