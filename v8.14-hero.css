@@ -1,18 +1,18 @@
-/* MarquesMater V8.14 — hero mobile compacto + gesto de deslize */
+/* MarquesMater V8.15 — hero mobile compacto + swipe por gesto */
 @media(max-width:700px){
   .hero.heroV7{min-height:0!important;height:auto!important}
-  .heroV7 .mmSlideInner{min-height:0!important;height:auto!important;padding-top:34px!important;padding-bottom:54px!important}
-  .heroV7 .mmVisual img{max-height:210px!important}
-  .heroV7 .mmSlideCopy h1{font-size:34px!important;line-height:1.08!important;margin:10px 0 12px!important}
+  .heroV7 .mmSlideInner{min-height:0!important;height:auto!important;padding-top:30px!important;padding-bottom:48px!important}
+  .heroV7 .mmVisual img{max-height:165px!important;width:auto!important}
+  .heroV7 .mmSlideCopy h1{font-size:34px!important;line-height:1.08!important;margin:8px 0 12px!important}
   .heroV7 .mmSlideCopy p{font-size:15px!important;line-height:1.42!important;margin:0 auto 18px!important;max-width:620px}
-  .heroV7 .mmControls{margin-top:-44px!important;position:relative;z-index:5}
+  .heroV7 .mmControls{margin-top:-38px!important;position:relative;z-index:5}
   .heroV7 .mmSlides{touch-action:pan-y;user-select:none;-webkit-user-select:none}
   .heroV7 .mmSlide{will-change:opacity,transform;transition:opacity .28s ease,transform .28s ease}
   .heroV7 .mmSlide:not(.active){transform:translateX(14px)}
 }
 @media(max-width:380px){
-  .heroV7 .mmSlideInner{padding-top:28px!important;padding-bottom:48px!important}
-  .heroV7 .mmVisual img{max-height:180px!important}
+  .heroV7 .mmSlideInner{padding-top:24px!important;padding-bottom:42px!important}
+  .heroV7 .mmVisual img{max-height:145px!important}
   .heroV7 .mmSlideCopy h1{font-size:30px!important}
   .heroV7 .mmSlideCopy p{font-size:14px!important}
 }
