@@ -1,0 +1,2 @@
+/* MarquesMater V8.7 — ligar carrinho ao checkout */
+(function(){function wire(){const b=document.querySelector('.v85-summary .btn.orange');if(!b)return;if(b.dataset.v87)return;b.dataset.v87='1';b.removeAttribute('onclick');b.addEventListener('click',()=>location.href='checkout.html')}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{wire();new MutationObserver(wire).observe(document.body,{childList:true,subtree:true})});else{wire();new MutationObserver(wire).observe(document.body,{childList:true,subtree:true})}})();
