@@ -291,6 +291,13 @@ try:
 except Exception as _mm_orders_error:
     print('MarquesMater orders direct install error:', _mm_orders_error)
 
+# MarquesMater V10.41 — extensões persistentes do Backoffice
+try:
+    from server_extensions import install as _mm_install_extensions
+    _mm_install_extensions(Handler, get_conn, DB_READY)
+except Exception as _mm_ext_error:
+    print('MarquesMater V10.41 extensions error:', _mm_ext_error)
+
 server=ThreadingHTTPServer(("0.0.0.0",PORT),Handler)
 print(f"MarquesMater V10.6 server running on port {PORT}; database={DB_READY}")
 server.serve_forever()
