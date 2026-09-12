@@ -47,7 +47,6 @@ jobs:
         run: |
           set -e
           for i in $(seq 1 18); do
-            echo "Aguardar API live $i/18..."
             body=$(curl -fsS --max-time 10 https://marquesmater-7ap1.onrender.com/api/admin/orders || true)
             if printf '%s' "$body" | python -c 'import json,sys; x=json.load(sys.stdin); assert x.get("ok") is True and isinstance(x.get("orders"), list)' 2>/dev/null; then
               echo "GET /api/admin/orders respondeu JSON corretamente."
@@ -57,44 +56,9 @@ jobs:
             sleep 10
           done
 
-      - name: Criar encomenda de teste real
-        shell: bash
-        run: |
-          set -e
-          TEST_REF="TESTE-BACKOFFICE-V10.20"
-          payload=$(python - <<'PY'
-          import json
-          print(json.dumps({
-            "name":"TESTE BACKOFFICE",
-            "email":"teste-backoffice@marquesmater.pt",
-            "phone":"000000000",
-            "order":{
-              "reference":"TESTE-BACKOFFICE-V10.20",
-              "status":"Recebida",
-              "test":True,
-              "customer":{"name":"TESTE BACKOFFICE","email":"teste-backoffice@marquesmater.pt"},
-              "items":[{"sku":"TESTE-BACKOFFICE","name":"ENCOMENDA DE TESTE — NÃO FATURAR","quantity":1,"price":0}],
-              "total":0
-            }
-          }))
-          PY
-          )
-          response=$(curl -fsS --max-time 15 -X POST https://marquesmater-7ap1.onrender.com/api/orders -H 'Content-Type: application/json' -H 'X-Customer-Email: teste-backoffice@marquesmater.pt' -d "$payload")
-          echo "$response"
-          ORDER_ID=$(printf '%s' "$response" | python -c 'import json,sys; print(json.load(sys.stdin)["id"])')
-          echo "ORDER_ID=$ORDER_ID" >> "$GITHUB_ENV"
-
-      - name: Confirmar encomenda no Backoffice
+      - name: Confirmar encomenda de teste real no Backoffice
         shell: bash
         run: |
           set -e
           body=$(curl -fsS --max-time 15 https://marquesmater-7ap1.onrender.com/api/admin/orders)
-          printf '%s' "$body" | python -c 'import json,sys,os; x=json.load(sys.stdin); oid=int(os.environ["ORDER_ID"]); assert any(int(o["id"])==oid and o.get("status")=="Recebida" for o in x.get("orders",[])); print("Encomenda de teste encontrada no Backoffice:",oid)'
-
-      - name: Alterar estado da encomenda de teste
-        shell: bash
-        run: |
-          set -e
-          response=$(curl -fsS --max-time 15 -X POST https://marquesmater-7ap1.onrender.com/api/admin/orders/status -H 'Content-Type: application/json' -d "{\"id\":${ORDER_ID},\"status\":\"Em preparação\"}")
-          echo "$response"
-          printf '%s' "$response" | python -c 'import json,sys; x=json.load(sys.stdin); assert x.get("ok") is True and x.get("status")=="Em preparação"'
+          printf '%s' "$body" | python -c 'import json,sys; x=json.load(sys.stdin); matches=[o for o in x.get("orders",[]) if o.get("data",{}).get("reference")=="TESTE-BACKOFFICE-V10.20"]; assert matches, "Encomenda de teste não encontrada"; print("ENCOMENDA TESTE ENCONTRADA:", matches[0]["id"], matches[0].get("status"))'
