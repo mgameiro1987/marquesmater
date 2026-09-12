@@ -73,8 +73,10 @@ def install(H):
         except Exception as e:c.rollback();print('Chat GET error:',e);return out(self,500,{'ok':False,'error':'Erro no chat'})
         finally:c.close()
     def post(self):
-        path=urlsplit(self.path).path;data=jload(self)
+        path=urlsplit(self.path).path
+        # Nunca ler o body de POSTs que pertencem a outros módulos.
         if not path.startswith('/api/chat/'):return old_post(self)
+        data=jload(self)
         c=conn()
         if not c:return out(self,503,{'ok':False,'error':'Base de dados indisponível'})
         try:
@@ -118,7 +120,7 @@ def install(H):
 def install_later():
     def loop():
         for _ in range(200):
-            m=__import__('__main__');H=getattr(m,'Handler',None)
+            H=getattr(__import__('__main__'),'Handler',None)
             if H:install(H);return
             time.sleep(.05)
     threading.Thread(target=loop,daemon=True).start()
