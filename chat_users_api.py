@@ -5,8 +5,7 @@ try:
 except Exception:
     psycopg=None
 
-def conn():
-    return psycopg.connect(os.environ['DATABASE_URL']) if psycopg and os.environ.get('DATABASE_URL') else None
+def conn(): return psycopg.connect(os.environ['DATABASE_URL']) if psycopg and os.environ.get('DATABASE_URL') else None
 
 def out(h,status,payload):
     raw=json.dumps(payload,ensure_ascii=False,default=str).encode();h.send_response(status);h.send_header('Content-Type','application/json; charset=utf-8');h.send_header('Cache-Control','no-store');h.send_header('Content-Length',str(len(raw)));h.end_headers();h.wfile.write(raw)
@@ -35,8 +34,10 @@ def install(H):
             return out(self,500,{'ok':False,'error':'Erro ao ler utilizadores'})
         finally:c.close()
     def post(self):
-        path=urlsplit(self.path).path;data=body(self)
+        path=urlsplit(self.path).path
+        # Nunca ler o body de POSTs que pertencem a outros módulos.
         if path not in ('/api/admin/users','/api/admin/users/status','/api/admin/users/presence'): return old_post(self)
+        data=body(self)
         c=conn()
         if not c:return out(self,503,{'ok':False,'error':'Base de dados indisponível'})
         try:
