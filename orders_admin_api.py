@@ -3,7 +3,7 @@ from urllib.parse import urlsplit
 try:
     import psycopg
 except Exception:
-    psycopg = None
+    psycopg=None
 
 def conn():
     return psycopg.connect(os.environ['DATABASE_URL']) if psycopg and os.environ.get('DATABASE_URL') else None
@@ -45,8 +45,11 @@ def install(H):
             return out(self,500,{'ok':False,'error':'Erro ao ler encomendas'})
         finally:c.close()
     def post(self):
-        path=urlsplit(self.path).path; data=body(self)
+        path=urlsplit(self.path).path
+        # Important: do not consume the request body for unrelated POST endpoints.
+        # The delegated catalog/customer/order APIs need to read the body themselves.
         if path!='/api/admin/orders/status': return old_post(self)
+        data=body(self)
         c=conn()
         if not c:return out(self,503,{'ok':False,'error':'Base de dados indisponível'})
         allowed=('Recebida','Em preparação','Enviada','Concluída','Cancelada')
