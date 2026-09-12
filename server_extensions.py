@@ -71,6 +71,22 @@ def install(Handler,get_conn,DB_READY):
         return original_get(self)
     def post_handler(*args,**kwargs):
         self=args[0];path=urlsplit(self.path).path
+        if path=='/api/admin/catalog-product/delete':
+            data=_read_json(self)
+            try:
+                if not DB_READY:raise RuntimeError('Base de dados indisponível')
+                sku=str(data.get('sku') or '').strip()
+                if not sku:raise ValueError('SKU em falta')
+                c=get_conn()
+                try:
+                    with c:
+                        with c.cursor() as q:
+                            q.execute('DELETE FROM catalog_products WHERE sku=%s RETURNING sku',(sku,));row=q.fetchone()
+                            if not row:raise ValueError('Artigo não encontrado')
+                    self._json(200,{'ok':True,'sku':sku})
+                finally:c.close()
+            except Exception as e:self._json(400,{'ok':False,'error':str(e)})
+            return
         if path=='/api/admin/catalog-structure/delete':
             data=_read_json(self)
             try:
@@ -117,18 +133,16 @@ def install(Handler,get_conn,DB_READY):
                 root=os.path.dirname(os.path.abspath(__file__))
                 with open(os.path.join(root,'admin.html'),'rb') as f:data=f.read()
                 for old in (b'<script src="js/v10.40-backoffice-recovery.js?v=140"></script>',b'<script src="js/backoffice-current.js?v=143"></script>',b'<script src="js/v10.44-mobile-menu.js?v=144"></script>',b'<script src="js/backoffice-current.js?v=144"></script>',b'<script src="js/backoffice-current.js?v=145"></script>',b'<script src="js/backoffice-current-editor.js?v=145"></script>',b'<script src="js/v10.46-mobile-menu.js?v=146"></script>'):data=data.replace(old,b'')
-                data=data.replace(b'Backoffice V10.29',b'Backoffice V10.52').replace(b'MarquesMater V10.29',b'MarquesMater V10.52')
+                data=data.replace(b'Backoffice V10.29',b'Backoffice V10.53').replace(b'MarquesMater V10.29',b'MarquesMater V10.53')
                 css_path=os.path.join(root,'css','v9-admin.css')
                 try:
                     with open(css_path,'rb') as f:core_css=f.read()
                     style=b'<style id="mm47-core-css">'+core_css+b'</style>'
                     if b'</head>' in data:data=data.replace(b'</head>',style+b'</head>',1)
                 except Exception as e:print('MarquesMater core CSS inline error:',e)
-                modalfix=b'<style id="mm52-modalfix">.mm106.modal{position:fixed!important;inset:0!important;background:rgba(15,23,42,.58)!important;z-index:10001!important;display:flex!important;align-items:center!important;justify-content:center!important;padding:16px!important;box-sizing:border-box!important}.mm106.modal form,.mm106.modal>div{width:min(620px,100%)!important;max-height:92vh!important;overflow:auto!important;background:#fff!important;border-radius:18px!important;padding:22px!important;box-sizing:border-box!important}@media(max-width:700px){.mm106.modal{padding:0!important;align-items:stretch!important}.mm106.modal form,.mm106.modal>div{width:100%!important;max-height:100vh!important;height:100%!important;border-radius:0!important;padding:18px!important;overflow:auto!important}.mm106.modal label{font-size:13px!important}.mm106.modal input,.mm106.modal select{min-height:46px!important;box-sizing:border-box!important}}</style>'
-                if b'</head>' in data:data=data.replace(b'</head>',modalfix+b'</head>',1)
                 navfix=b'<script id="mm50-navfix">(()=>{\'use strict\';let routing=false;const route=k=>{if(routing)return;routing=true;try{const go=window.MM104?.go;if(go)go(k);else document.querySelector(`.navitem[data-section="${CSS.escape(k)}"]`)?.click()}catch(e){console.error("MarquesMater navigation error:",e)}setTimeout(()=>{document.getElementById("sidebar")?.classList.remove("open");document.getElementById("mm46shade")?.classList.remove("open");document.body.classList.remove("mm46-lock");routing=false},80)};const handler=e=>{const b=e.target?.closest?.(".navitem");if(!b||routing)return;e.preventDefault();e.stopImmediatePropagation();route(b.dataset.section)};document.addEventListener("click",handler,true);document.addEventListener("pointerup",handler,true);document.addEventListener("touchend",handler,true)})();</script>'
                 if b'</head>' in data:data=data.replace(b'</head>',navfix+b'</head>',1)
-                tag=b'<script src="js/backoffice-current.js?v=150"></script><script src="js/backoffice-current-editor.js?v=150"></script><script src="js/v10.46-mobile-menu.js?v=150"></script><script src="js/v10.50-mobile-navigation.js?v=150"></script><script src="js/v10.51-catalog-actions.js?v=151"></script><script>window.MMCurrent&&window.MM104&&(function(){var g=window.MM104.go;window.MM104.go=function(k){if(k==="products"){return window.MMCurrent.products()}return g.apply(this,arguments)}})();</script>'
+                tag=b'<script src="js/backoffice-current.js?v=150"></script><script src="js/backoffice-current-editor.js?v=150"></script><script src="js/v10.46-mobile-menu.js?v=150"></script><script src="js/v10.50-mobile-navigation.js?v=150"></script><script src="js/v10.51-catalog-actions.js?v=151"></script><script src="js/v10.53-stability.js?v=153"></script><script>window.MMCurrent&&window.MM104&&(function(){var g=window.MM104.go;window.MM104.go=function(k){if(k==="products"){return window.MMCurrent.products()}return g.apply(this,arguments)}})();</script>'
                 if b'</body>' in data:data=data.replace(b'</body>',tag+b'</body>',1)
                 self.send_response(200);self.send_header('Content-Type','text/html; charset=utf-8');self.send_header('Cache-Control','no-store');self.send_header('Content-Length',str(len(data)));self.end_headers();self.wfile.write(data);return
             except Exception as e:print('MarquesMater admin injection error:',e)
