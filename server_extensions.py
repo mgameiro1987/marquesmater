@@ -94,8 +94,11 @@ def install(Handler,get_conn,DB_READY):
         if urlsplit(self.path).path=='/admin.html':
             try:
                 with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),'admin.html'),'rb') as f:data=f.read()
-                tag=b'<script src="js/v10.40-backoffice-recovery.js?v=140"></script>'
-                if tag not in data and b'</body>' in data:data=data.replace(b'</body>',tag+b'</body>',1)
+                # ÚNICO Backoffice atual: o editor abre como modal no PC e ocupa o ecrã no mobile.
+                tag=b'<script src="js/backoffice-current.js?v=143"></script>'
+                for old in (b'<script src="js/v10.40-backoffice-recovery.js?v=140"></script>',b'<script src="js/backoffice-current.js?v=143"></script>'):
+                    data=data.replace(old,b'')
+                if b'</body>' in data:data=data.replace(b'</body>',tag+b'</body>',1)
                 self.send_response(200);self.send_header('Content-Type','text/html; charset=utf-8');self.send_header('Cache-Control','no-store');self.send_header('Content-Length',str(len(data)));self.end_headers();self.wfile.write(data);return
             except Exception as e:print('MarquesMater admin injection error:',e)
         return old_get(self,*args,**kwargs)
