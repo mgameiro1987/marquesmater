@@ -178,6 +178,58 @@ def seed_catalog(conn):
     return len(products)
 
 
+def ensure_variant_examples(conn):
+    examples=[
+      {
+        'sku':'DEMO-VAR-SILICONE','brand':'Soudal','name':'EXEMPLO — Silicone: Cor igual, embalagem com preço diferente','category':'Selantes & Colas','subcategory':'Silicones','type':'sealant','price':3.50,'stock':'Em stock','image':'images/silicone.svg','description':'Exemplo de variantes: a cor não altera o preço; a embalagem altera o preço.','options':{
+          'Cor':['Branco','Preto','Transparente'],'Embalagem':['300 ml','600 ml'],
+          '__variant_config':{'version':2,'mode':'combination','pricing':'per-option-rule-plus-combination','basePrice':3.50,'attributes':[
+            {'name':'Cor','values':['Branco','Preto','Transparente'],'priceMode':'none','valuePricing':{}},
+            {'name':'Embalagem','values':['300 ml','600 ml'],'priceMode':'absolute','valuePricing':{'300 ml':3.50,'600 ml':5.20}}
+          ],'variants':[]}
+        },'specs':['Exemplo de configuração de variantes','Cor: não altera preço','Embalagem: preço próprio']
+      },
+      {
+        'sku':'DEMO-VAR-RIDA-KIT','brand':'RIDA','name':'EXEMPLO — RIDA 20V: Máquina, Kit e Mala BMC','category':'RIDA','subcategory':'Berbequins e Aparafusadoras','type':'rida','price':89.90,'stock':'Em stock','image':'images/drill.svg','description':'Exemplo de combinação em que Kit e Bateria podem alterar o preço.','options':{
+          'Kit':['Máquina','Máquina + 2 baterias + carregador','Kit + mala BMC'],'Bateria':['2 Ah','4 Ah','6 Ah'],
+          '__variant_config':{'version':2,'mode':'combination','pricing':'per-option-rule-plus-combination','basePrice':89.90,'attributes':[
+            {'name':'Kit','values':['Máquina','Máquina + 2 baterias + carregador','Kit + mala BMC'],'priceMode':'absolute','valuePricing':{'Máquina':89.90,'Máquina + 2 baterias + carregador':139.90,'Kit + mala BMC':159.90}},
+            {'name':'Bateria','values':['2 Ah','4 Ah','6 Ah'],'priceMode':'delta','valuePricing':{'2 Ah':0,'4 Ah':20,'6 Ah':40}}
+          ],'variants':[]}
+        },'specs':['Exemplo de configuração de variantes','Kit: altera preço','Bateria: acréscimo']
+      },
+      {
+        'sku':'DEMO-VAR-CAIXA','brand':'MarquesMater','name':'EXEMPLO — Caixa Organizadora: cores com o mesmo preço','category':'Casa','subcategory':'Organização','type':'home','price':8.90,'stock':'Em stock','image':'images/home.svg','description':'Exemplo de artigo em que a cor não altera o preço e o tamanho define o preço.','options':{
+          'Cor':['Transparente','Preto'],'Tamanho':['5 L','12 L','25 L'],
+          '__variant_config':{'version':2,'mode':'combination','pricing':'per-option-rule-plus-combination','basePrice':8.90,'attributes':[
+            {'name':'Cor','values':['Transparente','Preto'],'priceMode':'none','valuePricing':{}},
+            {'name':'Tamanho','values':['5 L','12 L','25 L'],'priceMode':'absolute','valuePricing':{'5 L':8.90,'12 L':12.90,'25 L':18.90}}
+          ],'variants':[]}
+        },'specs':['Exemplo de configuração de variantes','Cor: preço igual','Tamanho: preço próprio']
+      }
+    ]
+    with conn.cursor() as cur:
+        for p in examples:
+            cur.execute('SELECT 1 FROM catalog_products WHERE sku=%s',(p['sku'],))
+            if cur.fetchone():
+                continue
+            attrs=p['options']['__variant_config']['attributes']
+            base=p['price']; generated=[{}]
+            for a in attrs:
+                generated=[{**r,a['name']:v} for r in generated for v in a['values']]
+            for i,opts in enumerate(generated,1):
+                price=base
+                for a in attrs:
+                    value=opts[a['name']]; mode=a.get('priceMode','none'); n=float(a.get('valuePricing',{}).get(value,0) or 0)
+                    if mode=='absolute': price=n
+                    elif mode=='delta': price+=n
+                p['options']['__variant_config']['variants'].append({'id':f"{p['sku']}-V{i:02d}",'options':opts,'sku':f"{p['sku']}-V{i:02d}",'price':round(price,2),'oldPrice':None,'stockQty':10,'stock':'Em stock','weight':0,'image':p['image'],'active':True})
+            cur.execute("""INSERT INTO catalog_products(sku,brand,name,category,subcategory,type,price,old_price,stock,image,badge,description,options,specs)
+              VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT(sku) DO NOTHING""",
+              (p['sku'],p['brand'],p['name'],p['category'],p['subcategory'],p['type'],p['price'],None,p['stock'],p['image'],'Exemplo',p['description'],Jsonb(p['options']) if Jsonb else json.dumps(p['options']),Jsonb(p['specs']) if Jsonb else json.dumps(p['specs'])))
+    return len(examples)
+
+
 def init_db():
     conn = get_conn()
     if not conn:
@@ -187,6 +239,8 @@ def init_db():
             with conn.cursor() as cur:
                 cur.execute(SCHEMA)
             seed_catalog(conn)
+            sync_catalog_structure(conn)
+            ensure_variant_examples(conn)
             sync_catalog_structure(conn)
         return True
     finally:
