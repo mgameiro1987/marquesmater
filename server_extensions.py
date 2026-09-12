@@ -71,6 +71,26 @@ def install(Handler,get_conn,DB_READY):
         return original_get(self)
     def post_handler(*args,**kwargs):
         self=args[0];path=urlsplit(self.path).path
+        if path=='/api/admin/catalog-structure/delete':
+            data=_read_json(self)
+            try:
+                if not DB_READY:raise RuntimeError('Base de dados indisponível')
+                item_id=int(data.get('id') or 0)
+                if item_id<=0:raise ValueError('ID inválido')
+                c=get_conn()
+                try:
+                    with c:
+                        with c.cursor() as q:
+                            q.execute("SELECT kind,name FROM catalog_categories WHERE id=%s",(item_id,));item=q.fetchone()
+                            if not item:raise ValueError('Elemento não encontrado')
+                            q.execute("SELECT COUNT(*) FROM catalog_categories WHERE parent_id=%s",(item_id,));children=q.fetchone()[0]
+                            q.execute("SELECT COUNT(*) FROM catalog_products WHERE category_id=%s OR subcategory_id=%s OR family_id=%s",(item_id,item_id,item_id));products=q.fetchone()[0]
+                            if children or products:raise ValueError('Não é possível eliminar: este elemento ainda tem elementos dependentes ou produtos associados. Desative-o em vez de o apagar.')
+                            q.execute("DELETE FROM catalog_categories WHERE id=%s RETURNING id",(item_id,));row=q.fetchone()
+                    self._json(200,{'ok':bool(row),'id':item_id})
+                finally:c.close()
+            except Exception as e:self._json(400,{'ok':False,'error':str(e)})
+            return
         if path in ('/api/admin/settings','/api/admin/promotions'):
             data=_read_json(self)
             try:
@@ -97,7 +117,7 @@ def install(Handler,get_conn,DB_READY):
                 root=os.path.dirname(os.path.abspath(__file__))
                 with open(os.path.join(root,'admin.html'),'rb') as f:data=f.read()
                 for old in (b'<script src="js/v10.40-backoffice-recovery.js?v=140"></script>',b'<script src="js/backoffice-current.js?v=143"></script>',b'<script src="js/v10.44-mobile-menu.js?v=144"></script>',b'<script src="js/backoffice-current.js?v=144"></script>',b'<script src="js/backoffice-current.js?v=145"></script>',b'<script src="js/backoffice-current-editor.js?v=145"></script>',b'<script src="js/v10.46-mobile-menu.js?v=146"></script>'):data=data.replace(old,b'')
-                data=data.replace(b'Backoffice V10.29',b'Backoffice V10.50').replace(b'MarquesMater V10.29',b'MarquesMater V10.50')
+                data=data.replace(b'Backoffice V10.29',b'Backoffice V10.51').replace(b'MarquesMater V10.29',b'MarquesMater V10.51')
                 css_path=os.path.join(root,'css','v9-admin.css')
                 try:
                     with open(css_path,'rb') as f:core_css=f.read()
@@ -106,7 +126,7 @@ def install(Handler,get_conn,DB_READY):
                 except Exception as e:print('MarquesMater core CSS inline error:',e)
                 navfix=b'<script id="mm50-navfix">(()=>{\'use strict\';let routing=false;const route=k=>{if(routing)return;routing=true;try{const go=window.MM104?.go;if(go)go(k);else document.querySelector(`.navitem[data-section="${CSS.escape(k)}"]`)?.click()}catch(e){console.error("MarquesMater navigation error:",e)}setTimeout(()=>{document.getElementById("sidebar")?.classList.remove("open");document.getElementById("mm46shade")?.classList.remove("open");document.body.classList.remove("mm46-lock");routing=false},80)};const handler=e=>{const b=e.target?.closest?.(".navitem");if(!b||routing)return;e.preventDefault();e.stopImmediatePropagation();route(b.dataset.section)};document.addEventListener("click",handler,true);document.addEventListener("pointerup",handler,true);document.addEventListener("touchend",handler,true)})();</script>'
                 if b'</head>' in data:data=data.replace(b'</head>',navfix+b'</head>',1)
-                tag=b'<script src="js/backoffice-current.js?v=150"></script><script src="js/backoffice-current-editor.js?v=150"></script><script src="js/v10.46-mobile-menu.js?v=150"></script><script src="js/v10.50-mobile-navigation.js?v=150"></script><script>window.MMCurrent&&window.MM104&&(function(){var g=window.MM104.go;window.MM104.go=function(k){if(k==="products"){return window.MMCurrent.products()}return g.apply(this,arguments)}})();</script>'
+                tag=b'<script src="js/backoffice-current.js?v=150"></script><script src="js/backoffice-current-editor.js?v=150"></script><script src="js/v10.46-mobile-menu.js?v=150"></script><script src="js/v10.50-mobile-navigation.js?v=150"></script><script src="js/v10.51-catalog-actions.js?v=151"></script><script>window.MMCurrent&&window.MM104&&(function(){var g=window.MM104.go;window.MM104.go=function(k){if(k==="products"){return window.MMCurrent.products()}return g.apply(this,arguments)}})();</script>'
                 if b'</body>' in data:data=data.replace(b'</body>',tag+b'</body>',1)
                 self.send_response(200);self.send_header('Content-Type','text/html; charset=utf-8');self.send_header('Cache-Control','no-store');self.send_header('Content-Length',str(len(data)));self.end_headers();self.wfile.write(data);return
             except Exception as e:print('MarquesMater admin injection error:',e)
