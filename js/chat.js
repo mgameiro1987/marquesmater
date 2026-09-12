@@ -1,43 +1,15 @@
-/* MarquesMater V8.32 — bootstrap do catálogo expandido e preços de variantes antes do render */
-if(!window.__MM_V831_BOOTSTRAP){window.__MM_V831_BOOTSTRAP=true;document.write('<script src="js/v8.31-catalog-expansion.js"><\/script>');}
-if(!window.__MM_V831_PRICE_BOOTSTRAP){window.__MM_V831_PRICE_BOOTSTRAP=true;document.write('<script src="js/v8.31-audit-catalog.js"><\/script>');}
-/* MarquesMater V8.23 — banner mobile: apenas setas */
-(function(){
-  const css=document.createElement('link');css.rel='stylesheet';css.href='v8.6.css';document.head.appendChild(css);
-  const style=document.createElement('style');style.textContent=`@media(max-width:700px){
-    .heroV7 .mmCarousel{overflow:hidden!important;touch-action:none!important;-webkit-overflow-scrolling:auto!important}
-    .heroV7 .mmSlides{display:block!important;width:100%!important;height:100%!important;min-height:0!important;max-height:none!important;overflow:hidden!important}
-    .heroV7 .mmSlide{position:absolute!important;inset:0!important;display:block!important;width:100%!important;min-width:100%!important;max-width:none!important;height:100%!important;min-height:0!important;max-height:none!important;opacity:0!important;pointer-events:none!important;transform:none!important}
-    .heroV7 .mmSlide.active{opacity:1!important;pointer-events:auto!important}
-    .heroV7 .mmControls{position:absolute!important;left:0!important;right:0!important;top:0!important;bottom:0!important;width:100%!important;height:100%!important;min-width:0!important;z-index:50!important;pointer-events:none!important;margin:0!important}
-    .heroV7 .mmArrows{position:absolute!important;left:0!important;right:0!important;top:50%!important;transform:translateY(-50%)!important;width:100%!important;display:block!important;pointer-events:none!important}
-    .heroV7 .mmArrow{position:absolute!important;width:40px!important;height:40px!important;pointer-events:auto!important;z-index:51!important}
-    .heroV7 .mmArrow:first-child{left:8px!important}
-    .heroV7 .mmArrow:last-child{right:8px!important}
-    .heroV7 .mmDots{display:none!important}
-    .heroV7 .mmProgress{display:block!important}
-  }
-  @media(max-width:380px){.heroV7 .mmArrow{width:36px!important;height:36px!important}.heroV7 .mmArrow:first-child{left:6px!important}.heroV7 .mmArrow:last-child{right:6px!important}}
-  `;document.head.appendChild(style);
-  const progressCss=document.createElement('link');progressCss.rel='stylesheet';progressCss.href='js/v8.32-banner-progress.css';document.head.appendChild(progressCss);
-  const wrap=document.createElement('div');
-  wrap.innerHTML=`<button class="mmChatBtn" id="mmChatBtn" aria-label="Abrir assistente">💬 Precisa de ajuda?</button><section class="mmChatPanel" id="mmChatPanel" aria-label="Assistente MarquesMater"><header class="mmChatHead"><div><strong>🤖 Assistente MarquesMater</strong><small>Ajuda a encontrar o produto certo</small></div><button class="mmChatClose" id="mmChatClose" aria-label="Fechar">×</button></header><div class="mmChatBody" id="mmChatBody"><div class="mmChatMsg">Olá! 👋 Posso ajudar-te a encontrar materiais, ferramentas, tintas, selantes e outros produtos.</div><div class="mmChatQuick"><button data-q="Preciso de ajuda a escolher um produto">Escolher produto</button><button data-q="Quero saber sobre entregas">Entregas</button><button data-q="Preciso de ajuda com tintas">Tintas</button><button data-q="Preciso de ajuda com ferramentas RIDA">Ferramentas RIDA</button></div></div><form class="mmChatForm" id="mmChatForm"><input id="mmChatInput" autocomplete="off" placeholder="Escreve a tua dúvida..."><button>Enviar</button></form></section>`;
-  document.body.appendChild(wrap);
-  const panel=document.getElementById('mmChatPanel'),body=document.getElementById('mmChatBody'),input=document.getElementById('mmChatInput');
-  document.getElementById('mmChatBtn').onclick=()=>{panel.classList.toggle('open');if(panel.classList.contains('open'))input.focus()};
-  document.getElementById('mmChatClose').onclick=()=>panel.classList.remove('open');
-  function reply(text){const t=text.toLowerCase();if(t.includes('tinta'))return 'Claro. Posso ajudar a escolher por aplicação, embalagem, cor e acabamento. Na página do produto apresentamos as variantes.';if(t.includes('rida')||t.includes('ferrament'))return 'Posso ajudar a escolher uma ferramenta RIDA por voltagem, bateria, potência e kit.';if(t.includes('entrega'))return 'A loja está preparada para informação de entrega em Portugal Continental e levantamento em loja.';if(t.includes('silicone')||t.includes('cola')||t.includes('selante'))return 'Posso ajudar a escolher o tipo, cor e volume. As variantes ficam disponíveis na página do produto.';return 'Percebi. Posso ajudar-te a encontrar o produto certo.'}
-  function send(text){if(!text.trim())return;body.insertAdjacentHTML('beforeend',`<div class="mmChatMsg user">${text.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))}</div>`);setTimeout(()=>{body.insertAdjacentHTML('beforeend',`<div class="mmChatMsg">${reply(text)}</div>`);body.scrollTop=body.scrollHeight},250);body.scrollTop=body.scrollHeight}
-  document.getElementById('mmChatForm').onsubmit=e=>{e.preventDefault();send(input.value);input.value=''};
-  body.querySelectorAll('.mmChatQuick button').forEach(b=>b.onclick=()=>send(b.dataset.q));
-  const bottom=document.createElement('nav');bottom.className='v8-mobile-bottom';bottom.innerHTML='<a href="index.html"><b>⌂</b><span>Início</span></a><a href="categories.html"><b>▦</b><span>Categorias</span></a><a href="#" onclick="document.getElementById(\'mmChatBtn\').click();return false"><b>💬</b><span>Ajuda</span></a><a href="cart.html"><b>🛒</b><span>Carrinho</span></a>';document.body.appendChild(bottom);
-  const carousel=document.getElementById('carousel');
-  if(carousel){
-    const blockSwipe=()=>window.matchMedia('(max-width:700px)').matches;
-    carousel.addEventListener('touchstart',e=>{if(blockSwipe())e.stopImmediatePropagation()},{capture:true,passive:true});
-    carousel.addEventListener('touchmove',e=>{if(blockSwipe())e.stopImmediatePropagation()},{capture:true,passive:true});
-    carousel.addEventListener('touchend',e=>{if(blockSwipe())e.stopImmediatePropagation()},{capture:true,passive:true});
-    carousel.addEventListener('touchcancel',e=>{if(blockSwipe())e.stopImmediatePropagation()},{capture:true,passive:true});
-  }
-  const s=document.createElement('script');s.src='js/store.js';s.onload=()=>{const a=document.createElement('script');a.src='js/v8.29-audit-fixes.js';document.body.appendChild(a);const b=document.createElement('script');b.src='js/v8.32-stability.js';document.body.appendChild(b)};document.body.appendChild(s);
+/* MarquesMater V10.9 — Chat do cliente persistente na PostgreSQL */
+(()=>{
+const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+const vid=()=>{let v=localStorage.getItem('mm_chat_visitor_id');if(!v){v='v_'+crypto.randomUUID();localStorage.setItem('mm_chat_visitor_id',v)}return v};
+let cid=null,timer=null;
+const api=(u,o)=>fetch(u,{cache:'no-store',headers:{'Content-Type':'application/json',...(o?.headers||{})},...o}).then(r=>r.json());
+const wrap=document.createElement('div');wrap.innerHTML=`<button class="mmChatBtn" id="mmChatBtn" aria-label="Abrir assistente">💬 Precisa de ajuda?</button><section class="mmChatPanel" id="mmChatPanel" aria-label="Atendimento MarquesMater"><header class="mmChatHead"><div><strong>💬 Atendimento MarquesMater</strong><small>Fala connosco — estamos aqui para ajudar</small></div><button class="mmChatClose" id="mmChatClose">×</button></header><div class="mmChatBody" id="mmChatBody"><div class="mmChatMsg">Olá! 👋 Como podemos ajudar?</div><div class="mmChatQuick"><button data-q="Preciso de ajuda a escolher um produto">Escolher produto</button><button data-q="Quero saber sobre entregas">Entregas</button><button data-q="Preciso de ajuda com tintas">Tintas</button><button data-q="Preciso de ajuda com ferramentas RIDA">RIDA</button></div></div><form class="mmChatForm" id="mmChatForm"><input id="mmChatInput" autocomplete="off" placeholder="Escreve a tua dúvida..."><button>Enviar</button></form></section>`;document.body.appendChild(wrap);
+const panel=document.getElementById('mmChatPanel'),body=document.getElementById('mmChatBody'),input=document.getElementById('mmChatInput');
+function add(type,text,time=''){body.insertAdjacentHTML('beforeend',`<div class="mmChatMsg ${type}">${esc(text).replace(/\n/g,'<br>')}<small>${esc(time)}</small></div>`);body.scrollTop=body.scrollHeight}
+async function load(){try{const j=await api('/api/chat/customer?visitor_id='+encodeURIComponent(vid()));if(j.ok){cid=j.conversation?.id||null;(j.messages||[]).forEach((m,i)=>{if(i>0)add(m.sender_type==='customer'?'user':'',m.body,new Date(m.created_at).toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'}))})}}catch(_){} }
+async function send(text){text=String(text||'').trim();if(!text)return;add('user',text,'agora');try{const j=await api('/api/chat/conversations',{method:'POST',body:JSON.stringify({visitor_id:vid(),name:localStorage.getItem('mm_customer_name')||'Visitante',email:localStorage.getItem('mm_customer_email')||'',phone:localStorage.getItem('mm_customer_phone')||'',page_url:location.href,product_sku:new URLSearchParams(location.search).get('sku')||'',message:text})});if(j.ok){cid=j.conversation_id;input.value='';poll()}}catch(_){add('', 'Não foi possível enviar agora. Tenta novamente dentro de instantes.')}}
+async function poll(){if(!cid)return;try{const j=await api('/api/chat/conversations/'+cid);if(j.ok){const msgs=j.conversation.messages||[];body.innerHTML='<div class="mmChatMsg">Olá! 👋 Como podemos ajudar?</div>'+msgs.map(m=>`<div class="mmChatMsg ${m.sender_type==='customer'?'user':''}">${esc(m.body).replace(/\n/g,'<br>')}<small>${new Date(m.created_at).toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'})}</small></div>`).join('');body.scrollTop=body.scrollHeight}}catch(_){} }
+document.getElementById('mmChatBtn').onclick=async()=>{panel.classList.toggle('open');if(panel.classList.contains('open')){input.focus();await load();if(timer)clearInterval(timer);timer=setInterval(poll,5000)}};document.getElementById('mmChatClose').onclick=()=>{panel.classList.remove('open');clearInterval(timer)};document.getElementById('mmChatForm').onsubmit=e=>{e.preventDefault();send(input.value)};body.addEventListener('click',e=>{const b=e.target.closest('[data-q]');if(b)send(b.dataset.q)});
+const bottom=document.createElement('nav');bottom.className='v8-mobile-bottom';bottom.innerHTML='<a href="index.html"><b>⌂</b><span>Início</span></a><a href="categories.html"><b>▦</b><span>Categorias</span></a><a href="#" onclick="document.getElementById(\'mmChatBtn\').click();return false"><b>💬</b><span>Ajuda</span></a><a href="cart.html"><b>🛒</b><span>Carrinho</span></a>';document.body.appendChild(bottom);
 })();
