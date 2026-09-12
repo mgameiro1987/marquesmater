@@ -70,8 +70,9 @@ def install(Handler,get_conn,DB_READY):
             return
         return original_get(self)
     def post_handler(*args,**kwargs):
-        self=args[0];path=urlsplit(self.path).path;data=_read_json(self)
+        self=args[0];path=urlsplit(self.path).path
         if path=='/api/admin/catalog-product/delete':
+            data=_read_json(self)
             try:
                 if not DB_READY:raise RuntimeError('Base de dados indisponível')
                 sku=str(data.get('sku') or '').strip()
@@ -86,6 +87,7 @@ def install(Handler,get_conn,DB_READY):
             except Exception as e:self._json(400,{'ok':False,'error':str(e)})
             return
         if path=='/api/admin/catalog-taxonomy/delete':
+            data=_read_json(self)
             try:
                 if not DB_READY:raise RuntimeError('Base de dados indisponível')
                 kind=str(data.get('kind') or '').strip();item_id=int(data.get('id') or 0)
@@ -119,6 +121,7 @@ def install(Handler,get_conn,DB_READY):
             except Exception as e:self._json(400,{'ok':False,'error':str(e)})
             return
         if path=='/api/admin/catalog-structure/delete':
+            data=_read_json(self)
             try:
                 if not DB_READY:raise RuntimeError('Base de dados indisponível')
                 item_id=int(data.get('id') or 0)
@@ -138,6 +141,7 @@ def install(Handler,get_conn,DB_READY):
             except Exception as e:self._json(400,{'ok':False,'error':str(e)})
             return
         if path in ('/api/admin/settings','/api/admin/promotions'):
+            data=_read_json(self)
             try:
                 c=get_conn()
                 with c:
