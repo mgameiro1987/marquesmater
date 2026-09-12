@@ -36,8 +36,24 @@ jobs:
           git config user.email "actions@marquesmater.local"
           git add server.py
           if git diff --cached --quiet; then
-            echo "Sem alterações"
-            exit 0
+            echo "Sem alterações no server.py"
+          else
+            git commit -m "V10.18 — ligar API de encomendas diretamente no server.py"
+            git push
           fi
-          git commit -m "V10.18 — ligar API de encomendas diretamente no server.py"
-          git push
+
+      - name: Test live orders API
+        shell: bash
+        run: |
+          set -e
+          for i in $(seq 1 18); do
+            echo "Teste live $i/18..."
+            body=$(curl -fsS --max-time 10 https://marquesmater-7ap1.onrender.com/api/admin/orders || true)
+            if printf '%s' "$body" | python -c 'import json,sys; x=json.load(sys.stdin); assert x.get("ok") is True and isinstance(x.get("orders"), list)' 2>/dev/null; then
+              echo "API /api/admin/orders respondeu JSON corretamente."
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "A API de encomendas não respondeu com JSON dentro do tempo esperado."
+          exit 1
