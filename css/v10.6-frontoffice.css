@@ -1,0 +1,136 @@
+/* MarquesMater V10.6 — Front Office desktop polish
+   Corrige o cabeçalho/menu no PC e no modo "Site para computador" sem alterar o mobile normal. */
+
+@media (min-width:701px){
+  body{overflow-x:hidden}
+  header .header-main,header .head,.header-main.head{
+    width:min(1240px,100%);
+    min-height:82px;
+    height:auto;
+    margin:0 auto;
+    padding:12px 24px;
+    display:grid!important;
+    grid-template-columns:auto minmax(280px,1fr) auto;
+    align-items:center;
+    gap:24px;
+  }
+  header .logo,.head .logo{
+    width:auto!important;
+    min-width:190px;
+    white-space:nowrap!important;
+    font-size:25px!important;
+    line-height:1;
+  }
+  header .search,.head .search{
+    width:100%;
+    max-width:none!important;
+    min-width:0;
+    height:46px;
+  }
+  header .search input,.head .search input{font-size:14px!important;min-width:0}
+  header .search button,.head .search button{width:56px}
+  header .head-actions,header .actions,.head-actions,.actions{
+    position:static!important;
+    grid-column:auto!important;
+    grid-row:auto!important;
+    display:flex!important;
+    align-items:center;
+    justify-content:flex-end;
+    gap:14px!important;
+    margin:0!important;
+    min-width:max-content;
+  }
+  header .head-actions a,header .actions a,.head-actions a,.actions a{
+    min-width:58px;
+    padding:3px 4px;
+    text-align:center;
+    white-space:nowrap;
+  }
+  header .head-actions small,header .actions small,.head-actions small,.actions small{font-size:9px!important}
+
+  nav{border-top:1px solid #ececec;border-bottom:1px solid #ececec;background:#fff}
+  nav .nav-inner,nav .nav{
+    width:min(1240px,100%);
+    min-height:48px;
+    height:auto!important;
+    margin:0 auto;
+    padding:0 24px!important;
+    display:flex!important;
+    align-items:stretch!important;
+    gap:0!important;
+    overflow-x:auto!important;
+    overflow-y:hidden;
+    white-space:nowrap!important;
+    scrollbar-width:none;
+  }
+  nav .nav-inner::-webkit-scrollbar,nav .nav::-webkit-scrollbar{display:none}
+  nav .nav-inner a,nav .nav a{
+    flex:0 0 auto;
+    display:flex;
+    align-items:center;
+    min-height:48px;
+    padding:0 13px!important;
+    font-size:12px!important;
+    font-weight:800;
+    border-right:1px solid #f0f0f0;
+    transition:background .15s,color .15s;
+  }
+  nav .nav-inner a:first-child,nav .nav a:first-child{border-left:1px solid #f0f0f0}
+  nav .nav-inner a:hover,nav .nav a:hover{background:#faf7f2;color:#ef7d00}
+
+  main.section>.container,main.section>.wrap{
+    max-width:1240px;
+    margin-left:auto;
+    margin-right:auto;
+  }
+  .breadcrumbs,.crumb{padding-top:2px;line-height:1.5}
+
+  .product-detail.v6-product,.product-detail{
+    grid-template-columns:minmax(0,1.06fr) minmax(380px,.94fr)!important;
+    gap:42px!important;
+    align-items:start;
+  }
+  .v6-gallery{min-width:0}
+  .v6-main-image,.gallery{
+    min-height:500px!important;
+    border:1px solid #e8e8e5;
+    background:#f7f7f5!important;
+  }
+  .v6-main-image img,.gallery img{max-width:90%;height:455px!important}
+  .v6-details{min-width:0;padding-top:3px}
+  .v6-details h1{font-size:38px!important;line-height:1.05!important;margin:8px 0 14px}
+  .v6-subtitle{font-size:14px!important;line-height:1.6!important;max-width:620px}
+  .v6-feature-list{display:grid;grid-template-columns:1fr 1fr;gap:7px 18px;margin:16px 0}
+  .v6-option{margin:18px 0!important}
+  .v6-option label{font-size:13px!important}
+  .option-buttons{display:flex;flex-wrap:wrap;gap:7px}
+  .option-buttons button{margin:0!important}
+  .v6-buy{margin-top:20px}
+  .v6-cart{min-height:54px!important}
+  .delivery{font-size:11px!important;line-height:1.5}
+  .tabs.v6-tabs{margin-top:48px!important}
+}
+
+/* Largura intermédia: PC pequeno/tablet e Chrome Android em "Site para computador". */
+@media (min-width:701px) and (max-width:1200px){
+  header .header-main,header .head,.header-main.head{
+    padding-left:18px!important;padding-right:18px!important;
+    grid-template-columns:minmax(170px,.8fr) minmax(240px,1.4fr) auto;
+    gap:14px!important;
+  }
+  header .logo,.head .logo{min-width:160px;font-size:22px!important}
+  header .head-actions,header .actions,.head-actions,.actions{gap:7px!important}
+  header .head-actions a,header .actions a,.head-actions a,.actions a{min-width:48px;font-size:17px!important}
+  nav .nav-inner,nav .nav{padding:0 18px!important}
+  nav .nav-inner a,nav .nav a{padding:0 11px!important;font-size:12px!important}
+  .product-detail.v6-product,.product-detail{grid-template-columns:minmax(0,1.02fr) minmax(350px,.98fr)!important;gap:24px!important}
+  .v6-main-image,.gallery{min-height:430px!important}
+  .v6-main-image img,.gallery img{height:390px!important}
+  .v6-details h1{font-size:31px!important}
+}
+
+@media (max-width:700px){
+  /* O mobile normal continua a ser controlado pelas folhas V8.x existentes. */
+  nav .nav-inner,nav .nav{scrollbar-width:none}
+  nav .nav-inner::-webkit-scrollbar,nav .nav::-webkit-scrollbar{display:none}
+}
