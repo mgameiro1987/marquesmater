@@ -70,9 +70,8 @@ def install(Handler,get_conn,DB_READY):
             return
         return original_get(self)
     def post_handler(*args,**kwargs):
-        self=args[0];path=urlsplit(self.path).path
+        self=args[0];path=urlsplit(self.path).path;data=_read_json(self)
         if path=='/api/admin/catalog-product/delete':
-            data=_read_json(self)
             try:
                 if not DB_READY:raise RuntimeError('Base de dados indisponível')
                 sku=str(data.get('sku') or '').strip()
@@ -80,15 +79,46 @@ def install(Handler,get_conn,DB_READY):
                 c=get_conn()
                 try:
                     with c:
-                        with c.cursor() as q:
-                            q.execute('DELETE FROM catalog_products WHERE sku=%s RETURNING sku',(sku,));row=q.fetchone()
-                            if not row:raise ValueError('Artigo não encontrado')
+                        with c.cursor() as q:q.execute('DELETE FROM catalog_products WHERE sku=%s RETURNING sku',(sku,));row=q.fetchone()
+                        if not row:raise ValueError('Artigo não encontrado')
                     self._json(200,{'ok':True,'sku':sku})
                 finally:c.close()
             except Exception as e:self._json(400,{'ok':False,'error':str(e)})
             return
+        if path=='/api/admin/catalog-taxonomy/delete':
+            try:
+                if not DB_READY:raise RuntimeError('Base de dados indisponível')
+                kind=str(data.get('kind') or '').strip();item_id=int(data.get('id') or 0)
+                if kind not in ('category','brand','attribute'):raise ValueError('Tipo inválido')
+                if item_id<=0:raise ValueError('ID inválido')
+                c=get_conn()
+                try:
+                    with c:
+                        with c.cursor() as q:
+                            if kind=='category':
+                                q.execute('SELECT id FROM catalog_categories WHERE id=%s',(item_id,));row=q.fetchone()
+                                if not row:raise ValueError('Elemento não encontrado')
+                                q.execute('SELECT COUNT(*) FROM catalog_categories WHERE parent_id=%s',(item_id,));children=q.fetchone()[0]
+                                q.execute('SELECT COUNT(*) FROM catalog_products WHERE category_id=%s OR subcategory_id=%s OR family_id=%s',(item_id,item_id,item_id));used=q.fetchone()[0]
+                                if children or used:raise ValueError('Não é possível eliminar: existem elementos dependentes ou produtos associados.')
+                                q.execute('DELETE FROM catalog_categories WHERE id=%s RETURNING id',(item_id,))
+                            elif kind=='brand':
+                                q.execute('SELECT id FROM catalog_brands WHERE id=%s',(item_id,));row=q.fetchone()
+                                if not row:raise ValueError('Marca não encontrada')
+                                q.execute('SELECT COUNT(*) FROM catalog_products WHERE brand_id=%s',(item_id,));used=q.fetchone()[0]
+                                if used:raise ValueError('Não é possível eliminar: existem produtos associados a esta marca.')
+                                q.execute('DELETE FROM catalog_brands WHERE id=%s RETURNING id',(item_id,))
+                            else:
+                                q.execute('SELECT id FROM catalog_attributes WHERE id=%s',(item_id,));row=q.fetchone()
+                                if not row:raise ValueError('Atributo não encontrado')
+                                q.execute('SELECT COUNT(*) FROM catalog_attribute_values WHERE attribute_id=%s',(item_id,));used=q.fetchone()[0]
+                                if used:raise ValueError('Não é possível eliminar: este atributo ainda tem valores associados.')
+                                q.execute('DELETE FROM catalog_attributes WHERE id=%s RETURNING id',(item_id,))
+                    self._json(200,{'ok':True,'id':item_id,'kind':kind})
+                finally:c.close()
+            except Exception as e:self._json(400,{'ok':False,'error':str(e)})
+            return
         if path=='/api/admin/catalog-structure/delete':
-            data=_read_json(self)
             try:
                 if not DB_READY:raise RuntimeError('Base de dados indisponível')
                 item_id=int(data.get('id') or 0)
@@ -108,14 +138,12 @@ def install(Handler,get_conn,DB_READY):
             except Exception as e:self._json(400,{'ok':False,'error':str(e)})
             return
         if path in ('/api/admin/settings','/api/admin/promotions'):
-            data=_read_json(self)
             try:
                 c=get_conn()
                 with c:
                     if path=='/api/admin/settings':result={'ok':True,'settings':save_settings(c,data.get('settings',data))}
                     else:
-                        items=data.get('promotions');items=items if isinstance(items,list) else [data]
-                        ensure_tables(c)
+                        items=data.get('promotions');items=items if isinstance(items,list) else [data];ensure_tables(c)
                         with c.cursor() as q:
                             q.execute('DELETE FROM admin_promotions')
                             for x in items:q.execute('INSERT INTO admin_promotions(data,active) VALUES(%s::jsonb,%s)',(json.dumps(x,ensure_ascii=False),bool(x.get('active',True)) if isinstance(x,dict) else True))
