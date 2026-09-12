@@ -1,4 +1,4 @@
-/* MarquesMater V10.22 — Gestão real de encomendas: guardar estado + filtros. */
+/* MarquesMater V10.24 — Gestão de encomendas: guardar estado com timeout e feedback. */
 (()=>{
   const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
   const money=n=>{const v=Number(n||0);return Number.isFinite(v)?v.toLocaleString('pt-PT',{style:'currency',currency:'EUR'}):'—'};
@@ -10,18 +10,34 @@
   function email(o){return o.customer?.email||o.data?.email||'';}
   function total(o){return o.total ?? o.data?.total ?? o.data?.totalPrice ?? o.data?.amount ?? 0;}
   function items(o){return Array.isArray(o.items)?o.items:(Array.isArray(o.data?.items)?o.data.items:[])}
+  async function jsonResponse(r){
+    const text=await r.text();
+    let j={};
+    try{j=JSON.parse(text)}catch(_){throw new Error(`Resposta inválida do servidor (HTTP ${r.status})`)}
+    if(!r.ok||j.ok===false)throw new Error(j.error||`Erro HTTP ${r.status}`);
+    return j;
+  }
+  async function fetchWithTimeout(url,opts={},ms=15000){
+    const controller=new AbortController(); const timer=setTimeout(()=>controller.abort(),ms);
+    try{return await fetch(url,{...opts,signal:controller.signal,cache:'no-store'})}
+    catch(e){if(e.name==='AbortError')throw new Error('O servidor demorou demasiado tempo a responder. Tenta novamente.');throw e}
+    finally{clearTimeout(timer)}
+  }
   async function load(){
-    const r=await fetch('/api/admin/orders',{cache:'no-store'}); const j=await r.json();
-    if(!j.ok)throw new Error(j.error||'Erro ao ler encomendas'); orders=j.orders||[]; render();
+    const r=await fetchWithTimeout('/api/admin/orders'); const j=await jsonResponse(r);
+    orders=j.orders||[]; render();
   }
   async function setStatus(id,status,button){
-    if(button){button.disabled=true;button.textContent='A guardar…'}
+    if(button){button.disabled=true;button.textContent='A guardar…';button.dataset.busy='1'}
     try{
-      const r=await fetch('/api/admin/orders/status',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,status})});
-      const j=await r.json(); if(!j.ok)throw new Error(j.error||'Erro ao atualizar');
-      const o=orders.find(x=>x.id===id); if(o)o.status=status;
+      const r=await fetchWithTimeout('/api/admin/orders/status',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,status})});
+      const j=await jsonResponse(r);
+      const o=orders.find(x=>x.id===id); if(o)o.status=j.status||status;
       render();
-    }catch(e){if(button){button.disabled=false;button.textContent='Guardar'}throw e}
+    }catch(e){
+      if(button){button.disabled=false;button.textContent='Guardar';delete button.dataset.busy}
+      alert(e.message||'Não foi possível guardar o estado.');
+    }
   }
   function render(){
     const app=document.getElementById('app'); if(!app)return;
@@ -34,7 +50,7 @@
       const list=filter==='Todas'?orders:orders.filter(o=>o.status===filter);
       body.innerHTML=list.map(o=>`<tr><td><b>#${o.id}</b></td><td><b>${esc(name(o))}</b><br><small>${esc(email(o))}</small></td><td>${esc(date(o.created_at))}</td><td>${items(o).length||'—'}</td><td><b>${money(total(o))}</b></td><td><select class="mm-order-status status ${cls(o.status)}" data-id="${o.id}">${statuses.slice(1).map(s=>`<option value="${esc(s)}" ${s===o.status?'selected':''}>${esc(s)}</option>`).join('')}</select></td><td><button class="btn mm-order-save" data-id="${o.id}">Guardar</button></td></tr>`).join('');
       document.getElementById('mmOrdersEmpty').style.display=list.length?'none':'block';
-      body.querySelectorAll('.mm-order-save').forEach(btn=>btn.onclick=async()=>{const select=body.querySelector(`.mm-order-status[data-id="${btn.dataset.id}"]`);try{await setStatus(Number(btn.dataset.id),select.value,btn)}catch(e){alert(e.message)}});
+      body.querySelectorAll('.mm-order-save').forEach(btn=>btn.onclick=async()=>{const select=body.querySelector(`.mm-order-status[data-id="${btn.dataset.id}"]`);if(!select)return;await setStatus(Number(btn.dataset.id),select.value,btn)});
       body.querySelectorAll('.mm-order-status').forEach(el=>el.onchange=()=>{el.className=`mm-order-status status ${cls(el.value)}`});
     }
     document.querySelectorAll('.mm-order-filter').forEach(b=>b.onclick=()=>{document.querySelectorAll('.mm-order-filter').forEach(x=>x.classList.remove('active'));b.classList.add('active');draw(b.dataset.filter)});
