@@ -97,14 +97,16 @@ def install(Handler,get_conn,DB_READY):
                 root=os.path.dirname(os.path.abspath(__file__))
                 with open(os.path.join(root,'admin.html'),'rb') as f:data=f.read()
                 for old in (b'<script src="js/v10.40-backoffice-recovery.js?v=140"></script>',b'<script src="js/backoffice-current.js?v=143"></script>',b'<script src="js/v10.44-mobile-menu.js?v=144"></script>',b'<script src="js/backoffice-current.js?v=144"></script>',b'<script src="js/backoffice-current.js?v=145"></script>',b'<script src="js/backoffice-current-editor.js?v=145"></script>',b'<script src="js/v10.46-mobile-menu.js?v=146"></script>'):data=data.replace(old,b'')
-                data=data.replace(b'Backoffice V10.29',b'Backoffice V10.48').replace(b'MarquesMater V10.29',b'MarquesMater V10.48')
+                data=data.replace(b'Backoffice V10.29',b'Backoffice V10.49').replace(b'MarquesMater V10.29',b'MarquesMater V10.49')
                 css_path=os.path.join(root,'css','v9-admin.css')
                 try:
                     with open(css_path,'rb') as f:core_css=f.read()
                     style=b'<style id="mm47-core-css">'+core_css+b'</style>'
                     if b'</head>' in data:data=data.replace(b'</head>',style+b'</head>',1)
                 except Exception as e:print('MarquesMater core CSS inline error:',e)
-                tag=b'<script src="js/backoffice-current.js?v=148"></script><script src="js/backoffice-current-editor.js?v=148"></script><script src="js/v10.46-mobile-menu.js?v=148"></script><script>window.MMCurrent&&window.MM104&&(function(){var g=window.MM104.go;window.MM104.go=function(k){if(k==="products"){return window.MMCurrent.products()}return g.apply(this,arguments)}})();</script>'
+                navfix=b'<script id="mm48-navfix">(()=>{window.addEventListener("click",e=>{const b=e.target&&e.target.closest?e.target.closest(".navitem"):null;if(!b||window.__mm48Relay)return;const k=b.dataset.section;if(!k)return;e.preventDefault();e.stopImmediatePropagation();if(k==="products"&&window.MMCurrent&&typeof window.MMCurrent.products==="function"){window.MMCurrent.products();return}window.__mm48Relay=true;setTimeout(()=>{try{b.dispatchEvent(new MouseEvent("click",{bubbles:true,cancelable:true,view:window}))}finally{window.__mm48Relay=false}},0)},true)})();</script>'
+                tag=b'<script src="js/backoffice-current.js?v=149"></script><script src="js/backoffice-current-editor.js?v=149"></script><script src="js/v10.46-mobile-menu.js?v=149"></script><script>window.MMCurrent&&window.MM104&&(function(){var g=window.MM104.go;window.MM104.go=function(k){if(k==="products"){return window.MMCurrent.products()}return g.apply(this,arguments)}})();</script>'
+                if b'</head>' in data:data=data.replace(b'</head>',navfix+b'</head>',1)
                 if b'</body>' in data:data=data.replace(b'</body>',tag+b'</body>',1)
                 self.send_response(200);self.send_header('Content-Type','text/html; charset=utf-8');self.send_header('Cache-Control','no-store');self.send_header('Content-Length',str(len(data)));self.end_headers();self.wfile.write(data);return
             except Exception as e:print('MarquesMater admin injection error:',e)
