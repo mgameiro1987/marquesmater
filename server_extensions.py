@@ -94,10 +94,17 @@ def install(Handler,get_conn,DB_READY):
         self=args[0]
         if urlsplit(self.path).path=='/admin.html':
             try:
-                with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),'admin.html'),'rb') as f:data=f.read()
+                root=os.path.dirname(os.path.abspath(__file__))
+                with open(os.path.join(root,'admin.html'),'rb') as f:data=f.read()
                 for old in (b'<script src="js/v10.40-backoffice-recovery.js?v=140"></script>',b'<script src="js/backoffice-current.js?v=143"></script>',b'<script src="js/v10.44-mobile-menu.js?v=144"></script>',b'<script src="js/backoffice-current.js?v=144"></script>',b'<script src="js/backoffice-current.js?v=145"></script>',b'<script src="js/backoffice-current-editor.js?v=145"></script>',b'<script src="js/v10.46-mobile-menu.js?v=146"></script>'):data=data.replace(old,b'')
-                data=data.replace(b'Backoffice V10.29',b'Backoffice V10.46').replace(b'MarquesMater V10.29',b'MarquesMater V10.46')
-                tag=b'<script src="js/backoffice-current.js?v=146"></script><script src="js/backoffice-current-editor.js?v=146"></script><script src="js/v10.46-mobile-menu.js?v=146"></script><script>window.MMCurrent&&window.MM104&&(function(){var g=window.MM104.go;window.MM104.go=function(k){if(k==="products"){return window.MMCurrent.products()}return g.apply(this,arguments)}})();</script>'
+                data=data.replace(b'Backoffice V10.29',b'Backoffice V10.47').replace(b'MarquesMater V10.29',b'MarquesMater V10.47')
+                css_path=os.path.join(root,'css','v9-admin.css')
+                try:
+                    with open(css_path,'rb') as f:core_css=f.read()
+                    style=b'<style id="mm47-core-css">'+core_css+b'</style>'
+                    if b'</head>' in data:data=data.replace(b'</head>',style+b'</head>',1)
+                except Exception as e:print('MarquesMater V10.47 core CSS inline error:',e)
+                tag=b'<script src="js/backoffice-current.js?v=147"></script><script src="js/backoffice-current-editor.js?v=147"></script><script src="js/v10.46-mobile-menu.js?v=147"></script><script>window.MMCurrent&&window.MM104&&(function(){var g=window.MM104.go;window.MM104.go=function(k){if(k==="products"){return window.MMCurrent.products()}return g.apply(this,arguments)}})();</script>'
                 if b'</body>' in data:data=data.replace(b'</body>',tag+b'</body>',1)
                 self.send_response(200);self.send_header('Content-Type','text/html; charset=utf-8');self.send_header('Cache-Control','no-store');self.send_header('Content-Length',str(len(data)));self.end_headers();self.wfile.write(data);return
             except Exception as e:print('MarquesMater admin injection error:',e)
