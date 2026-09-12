@@ -1,5 +1,5 @@
 import os, json
-from urllib.parse import urlsplit, parse_qs
+from urllib.parse import urlsplit
 
 
 def _read_json(handler):
@@ -20,9 +20,7 @@ def _merge(a, b):
 
 
 def install(Handler, get_conn, DB_READY):
-    """Adds the missing persistent Backoffice API and injects the recovered UI.
-    Called after Handler is defined and before the HTTP server starts.
-    """
+    """Adds persistent Backoffice APIs and injects the recovered UI."""
     original_get = Handler.do_GET
     original_post = Handler.do_POST
 
@@ -111,7 +109,7 @@ def install(Handler, get_conn, DB_READY):
             return
         return original_get(*args, **kwargs)
 
-    def post_handler(*args, **kwargs):
+    def post_handler(self, *args, **kwargs):
         path=urlsplit(self.path).path
         if path in ('/api/admin/settings','/api/admin/promotions'):
             data=_read_json(self)
@@ -140,9 +138,8 @@ def install(Handler, get_conn, DB_READY):
     Handler.do_GET=get_handler
     Handler.do_POST=post_handler
 
-    # The recovered Backoffice module must be loaded last, after V10.4-V10.11.
     old_get=get_handler
-    def get_with_ui(*args, **kwargs):
+    def get_with_ui(self, *args, **kwargs):
         path=urlsplit(self.path).path
         if path=='/admin.html':
             filename=os.path.join(os.path.dirname(os.path.abspath(__file__)),'admin.html')
@@ -152,5 +149,5 @@ def install(Handler, get_conn, DB_READY):
                 if tag not in data and b'</body>' in data:data=data.replace(b'</body>',tag+b'</body>',1)
                 self.send_response(200);self.send_header('Content-Type','text/html; charset=utf-8');self.send_header('Cache-Control','no-store');self.send_header('Content-Length',str(len(data)));self.end_headers();self.wfile.write(data);return
             except Exception: pass
-        return old_get(*args, **kwargs)
+        return old_get(self, *args, **kwargs)
     Handler.do_GET=get_with_ui
