@@ -39,8 +39,8 @@ def install(Handler,get_conn,DB_READY):
                 with c.cursor() as q:q.execute('SELECT COUNT(*) FROM orders');oc=q.fetchone()[0];q.execute('SELECT COUNT(*) FROM customers');cc=q.fetchone()[0]
                 return {'ok':True,'products':prods,'inventory':prods,'categories':st.get('categories',[]),'brands':[x['name'] for x in st.get('brands',[])],'brandObjects':st.get('brands',[]),'promotions':promotions(c),'settings':get_settings(c),'orders':oc,'customers':cc,'families':[]}
         finally:c.close()
-    def get_handler(self,*args,**kwargs):
-        path=urlsplit(self.path).path
+    def get_handler(*args,**kwargs):
+        self=args[0];path=urlsplit(self.path).path
         try:
             if path=='/api/admin/state':self._json(200,state());return
             if path=='/api/admin/settings':
@@ -68,9 +68,9 @@ def install(Handler,get_conn,DB_READY):
             try:self._json(500,{'ok':False,'error':str(e)})
             except Exception:pass
             return
-        return original_get(self,*args,**kwargs)
-    def post_handler(self,*args,**kwargs):
-        path=urlsplit(self.path).path
+        return original_get(*args,**kwargs)
+    def post_handler(*args,**kwargs):
+        self=args[0];path=urlsplit(self.path).path
         if path in ('/api/admin/settings','/api/admin/promotions'):
             data=_read_json(self)
             try:
@@ -90,16 +90,16 @@ def install(Handler,get_conn,DB_READY):
         return original_post(self,*args,**kwargs)
     Handler.do_GET=get_handler;Handler.do_POST=post_handler
     old_get=get_handler
-    def get_with_ui(self,*args,**kwargs):
+    def get_with_ui(*args,**kwargs):
+        self=args[0]
         if urlsplit(self.path).path=='/admin.html':
             try:
                 with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),'admin.html'),'rb') as f:data=f.read()
-                # ÚNICO Backoffice atual: o editor abre como modal no PC e ocupa o ecrã no mobile.
-                tag=b'<script src="js/backoffice-current.js?v=143"></script>'
-                for old in (b'<script src="js/v10.40-backoffice-recovery.js?v=140"></script>',b'<script src="js/backoffice-current.js?v=143"></script>'):
-                    data=data.replace(old,b'')
+                for old in (b'<script src="js/v10.40-backoffice-recovery.js?v=140"></script>',b'<script src="js/backoffice-current.js?v=143"></script>'):data=data.replace(old,b'')
+                data=data.replace(b'Backoffice V10.29',b'Backoffice V10.43').replace(b'MarquesMater V10.29',b'MarquesMater V10.43')
+                tag=b'<script src="js/backoffice-current.js?v=143"></script><script>window.MMCurrent&&window.MM104&&(function(){var g=window.MM104.go;window.MM104.go=function(k){if(k==="products"){return window.MMCurrent.products()}return g.apply(this,arguments)}})();</script>'
                 if b'</body>' in data:data=data.replace(b'</body>',tag+b'</body>',1)
                 self.send_response(200);self.send_header('Content-Type','text/html; charset=utf-8');self.send_header('Cache-Control','no-store');self.send_header('Content-Length',str(len(data)));self.end_headers();self.wfile.write(data);return
             except Exception as e:print('MarquesMater admin injection error:',e)
-        return old_get(self,*args,**kwargs)
+        return old_get(*args,**kwargs)
     Handler.do_GET=get_with_ui
