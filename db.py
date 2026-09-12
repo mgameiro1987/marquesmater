@@ -66,6 +66,53 @@ CREATE TABLE IF NOT EXISTS catalog_products (
 CREATE INDEX IF NOT EXISTS idx_catalog_category ON catalog_products(category);
 CREATE INDEX IF NOT EXISTS idx_catalog_brand ON catalog_products(brand);
 CREATE INDEX IF NOT EXISTS idx_orders_customer_created ON orders(customer_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS catalog_categories (
+  id BIGSERIAL PRIMARY KEY,
+  name TEXT NOT NULL,
+  slug TEXT UNIQUE NOT NULL,
+  parent_id BIGINT REFERENCES catalog_categories(id) ON DELETE SET NULL,
+  kind TEXT NOT NULL DEFAULT 'category' CHECK (kind IN ('category','subcategory','family')),
+  active BOOLEAN NOT NULL DEFAULT TRUE,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE TABLE IF NOT EXISTS catalog_brands (
+  id BIGSERIAL PRIMARY KEY,
+  name TEXT NOT NULL,
+  slug TEXT UNIQUE NOT NULL,
+  active BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE TABLE IF NOT EXISTS catalog_attributes (
+  id BIGSERIAL PRIMARY KEY,
+  name TEXT NOT NULL,
+  slug TEXT UNIQUE NOT NULL,
+  type TEXT NOT NULL DEFAULT 'select',
+  active BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE TABLE IF NOT EXISTS catalog_attribute_values (
+  id BIGSERIAL PRIMARY KEY,
+  attribute_id BIGINT NOT NULL REFERENCES catalog_attributes(id) ON DELETE CASCADE,
+  value TEXT NOT NULL,
+  slug TEXT NOT NULL,
+  active BOOLEAN NOT NULL DEFAULT TRUE,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  UNIQUE(attribute_id, slug)
+);
+ALTER TABLE catalog_products ADD COLUMN IF NOT EXISTS category_id BIGINT REFERENCES catalog_categories(id) ON DELETE SET NULL;
+ALTER TABLE catalog_products ADD COLUMN IF NOT EXISTS subcategory_id BIGINT REFERENCES catalog_categories(id) ON DELETE SET NULL;
+ALTER TABLE catalog_products ADD COLUMN IF NOT EXISTS family_id BIGINT REFERENCES catalog_categories(id) ON DELETE SET NULL;
+ALTER TABLE catalog_products ADD COLUMN IF NOT EXISTS brand_id BIGINT REFERENCES catalog_brands(id) ON DELETE SET NULL;
+ALTER TABLE catalog_products ADD COLUMN IF NOT EXISTS attributes JSONB NOT NULL DEFAULT '{}'::jsonb;
+CREATE INDEX IF NOT EXISTS idx_catalog_category_id ON catalog_products(category_id);
+CREATE INDEX IF NOT EXISTS idx_catalog_subcategory_id ON catalog_products(subcategory_id);
+CREATE INDEX IF NOT EXISTS idx_catalog_family_id ON catalog_products(family_id);
+CREATE INDEX IF NOT EXISTS idx_catalog_brand_id ON catalog_products(brand_id);
 """
 
 
@@ -73,6 +120,35 @@ def get_conn():
     if not psycopg or not os.environ.get('DATABASE_URL'):
         return None
     return psycopg.connect(os.environ['DATABASE_URL'])
+
+
+def slugify(value):
+    import re
+    import unicodedata
+    s=unicodedata.normalize('NFKD',str(value or '')).encode('ascii','ignore').decode('ascii').lower()
+    return re.sub(r'[^a-z0-9]+','-',s).strip('-') or 'item'
+
+
+def sync_catalog_structure(conn):
+    with conn.cursor() as cur:
+        cur.execute("SELECT DISTINCT category FROM catalog_products WHERE category<>''")
+        for (name,) in cur.fetchall():
+            cur.execute("INSERT INTO catalog_categories(name,slug,kind) VALUES(%s,%s,'category') ON CONFLICT(slug) DO NOTHING",(name,slugify(name)))
+        cur.execute("SELECT DISTINCT brand FROM catalog_products WHERE brand<>''")
+        for (name,) in cur.fetchall():
+            cur.execute("INSERT INTO catalog_brands(name,slug) VALUES(%s,%s) ON CONFLICT(slug) DO NOTHING",(name,slugify(name)))
+        cur.execute("SELECT DISTINCT category,subcategory FROM catalog_products WHERE subcategory<>''")
+        for category,sub in cur.fetchall():
+            cur.execute("SELECT id FROM catalog_categories WHERE slug=%s AND kind='category'",(slugify(category),)); parent=cur.fetchone()
+            cur.execute("INSERT INTO catalog_categories(name,slug,parent_id,kind) VALUES(%s,%s,%s,'subcategory') ON CONFLICT(slug) DO NOTHING",(sub,slugify(f'{category}-{sub}'),parent[0] if parent else None))
+        cur.execute("SELECT DISTINCT category,subcategory,type FROM catalog_products WHERE type<>''")
+        for category,sub,family in cur.fetchall():
+            cur.execute("SELECT id FROM catalog_categories WHERE slug=%s AND kind='subcategory'",(slugify(f'{category}-{sub}'),)); parent=cur.fetchone()
+            cur.execute("INSERT INTO catalog_categories(name,slug,parent_id,kind) VALUES(%s,%s,%s,'family') ON CONFLICT(slug) DO NOTHING",(family,slugify(f'{category}-{sub}-{family}'),parent[0] if parent else None))
+        cur.execute("""UPDATE catalog_products p SET category_id=c.id FROM catalog_categories c WHERE c.kind='category' AND c.slug=lower(regexp_replace(regexp_replace(p.category,'[^a-zA-Z0-9]+','-','g'),'^-+|-+$','','g')) AND p.category_id IS NULL""")
+        cur.execute("""UPDATE catalog_products p SET brand_id=b.id FROM catalog_brands b WHERE b.slug=lower(regexp_replace(regexp_replace(p.brand,'[^a-zA-Z0-9]+','-','g'),'^-+|-+$','','g')) AND p.brand_id IS NULL""")
+        cur.execute("""UPDATE catalog_products p SET subcategory_id=c.id FROM catalog_categories c WHERE c.kind='subcategory' AND c.slug=lower(regexp_replace(regexp_replace(p.category||'-'||p.subcategory,'[^a-zA-Z0-9]+','-','g'),'^-+|-+$','','g')) AND p.subcategory_id IS NULL""")
+        cur.execute("""UPDATE catalog_products p SET family_id=c.id FROM catalog_categories c WHERE c.kind='family' AND c.slug=lower(regexp_replace(regexp_replace(p.category||'-'||p.subcategory||'-'||p.type,'[^a-zA-Z0-9]+','-','g'),'^-+|-+$','','g')) AND p.family_id IS NULL""")
 
 
 def seed_catalog(conn):
@@ -111,6 +187,7 @@ def init_db():
             with conn.cursor() as cur:
                 cur.execute(SCHEMA)
             seed_catalog(conn)
+            sync_catalog_structure(conn)
         return True
     finally:
         conn.close()
