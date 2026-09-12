@@ -1,0 +1,43 @@
+name: MarquesMater fix orders API
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  patch-server:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Patch server.py
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('server.py')
+          s = p.read_text(encoding='utf-8')
+          marker = 'server=ThreadingHTTPServer(("0.0.0.0",PORT),Handler)'
+          injection = '''# MarquesMater — API admin de encomendas instalada diretamente no Handler.\ntry:\n    from orders_admin_api import install as _mm_install_orders_direct\n    _mm_install_orders_direct(Handler)\nexcept Exception as _mm_orders_error:\n    print('MarquesMater orders direct install error:', _mm_orders_error)\n\n'''
+          if marker in s and 'API admin de encomendas instalada diretamente no Handler' not in s:
+              p.write_text(s.replace(marker, injection + marker, 1), encoding='utf-8')
+          else:
+              print('server.py já corrigido ou marcador não encontrado')
+
+      - name: Commit patch if changed
+        shell: bash
+        run: |
+          git config user.name "MarquesMater Bot"
+          git config user.email "actions@marquesmater.local"
+          git add server.py
+          if git diff --cached --quiet; then
+            echo "Sem alterações"
+            exit 0
+          fi
+          git commit -m "V10.18 — ligar API de encomendas diretamente no server.py"
+          git push
