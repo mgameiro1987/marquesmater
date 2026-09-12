@@ -2,6 +2,8 @@ name: Activate V10.40 Backoffice
 on:
   push:
     branches: [main]
+permissions:
+  contents: write
 jobs:
   activate:
     runs-on: ubuntu-latest
