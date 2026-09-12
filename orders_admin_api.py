@@ -2,11 +2,13 @@ import json, os, time, threading
 from urllib.parse import urlsplit
 try:
     import psycopg
+    from psycopg.types.json import Jsonb
 except Exception:
     psycopg=None
+    Jsonb=None
 
 def conn():
-    return psycopg.connect(os.environ['DATABASE_URL']) if psycopg and os.environ.get('DATABASE_URL') else None
+    return psycopg.connect(os.environ['DATABASE_URL'], connect_timeout=8) if psycopg and os.environ.get('DATABASE_URL') else None
 
 def out(h, status, payload):
     raw=json.dumps(payload, ensure_ascii=False, default=str).encode('utf-8')
@@ -46,8 +48,7 @@ def install(H):
         finally:c.close()
     def post(self):
         path=urlsplit(self.path).path
-        # Important: do not consume the request body for unrelated POST endpoints.
-        # The delegated catalog/customer/order APIs need to read the body themselves.
+        # Nunca consumir o body de POSTs que pertencem a outros módulos.
         if path!='/api/admin/orders/status': return old_post(self)
         data=body(self)
         c=conn()
@@ -56,16 +57,24 @@ def install(H):
         try:
             oid=int(data.get('id')); status=str(data.get('status') or '')
             if status not in allowed:return out(self,400,{'ok':False,'error':'Estado inválido'})
-            with c:
-                with c.cursor() as q:
-                    q.execute('SELECT data FROM orders WHERE id=%s FOR UPDATE',(oid,)); r=q.fetchone()
-                    if not r:return out(self,404,{'ok':False,'error':'Encomenda não encontrada'})
-                    obj=r[0] if isinstance(r[0],dict) else {}
-                    obj['status']=status
-                    q.execute('UPDATE orders SET data=%s WHERE id=%s',(json.dumps(obj,ensure_ascii=False),oid))
-            return out(self,200,{'ok':True,'id':oid,'status':status})
-        except Exception:
-            c.rollback(); return out(self,500,{'ok':False,'error':'Erro ao atualizar encomenda'})
+            # Atualização atómica do JSONB. Evita SELECT ... FOR UPDATE e evita ficar preso
+            # numa transação aberta enquanto o estado da encomenda é alterado.
+            with c.cursor() as q:
+                q.execute("SET LOCAL statement_timeout = '5000ms'")
+                q.execute("""UPDATE orders
+                            SET data=jsonb_set(data, '{status}', %s::jsonb, true)
+                            WHERE id=%s
+                            RETURNING id, data->>'status'""",(Jsonb(status) if Jsonb else json.dumps(status),oid))
+                r=q.fetchone()
+                if not r:
+                    c.rollback(); return out(self,404,{'ok':False,'error':'Encomenda não encontrada'})
+            c.commit()
+            return out(self,200,{'ok':True,'id':int(r[0]),'status':str(r[1] or status)})
+        except Exception as e:
+            try:c.rollback()
+            except Exception:pass
+            print('MarquesMater orders status error:',repr(e),flush=True)
+            return out(self,500,{'ok':False,'error':'Não foi possível guardar o estado da encomenda'})
         finally:c.close()
     H.do_GET=get; H.do_POST=post
 
