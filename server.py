@@ -284,6 +284,13 @@ class Handler(SimpleHTTPRequestHandler):
             return
         self._json(404,{'ok':False,'error':'Endpoint inexistente'})
 
+# MarquesMater — API admin de encomendas instalada diretamente no Handler.
+try:
+    from orders_admin_api import install as _mm_install_orders_direct
+    _mm_install_orders_direct(Handler)
+except Exception as _mm_orders_error:
+    print('MarquesMater orders direct install error:', _mm_orders_error)
+
 server=ThreadingHTTPServer(("0.0.0.0",PORT),Handler)
 print(f"MarquesMater V10.6 server running on port {PORT}; database={DB_READY}")
 server.serve_forever()
