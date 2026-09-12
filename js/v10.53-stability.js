@@ -1,0 +1,24 @@
+(()=>{'use strict';
+const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+const app=()=>document.getElementById('app');
+function page(title,text){const a=app();if(!a)return;a.innerHTML=`<section class="page mm53"><div class="pagehead"><div><h1>${esc(title)}</h1><p>${esc(text)}</p></div></div><div class="card mm53-card"><h3>Área do Backoffice</h3><p>Esta área está preparada para a gestão central da loja. Nenhuma informação do catálogo é alterada por esta página.</p></div></section>`}
+function nav(k){document.querySelectorAll('.navitem').forEach(x=>x.classList.toggle('active',x.dataset.section===k))}
+function go(k){
+ nav(k);
+ if(k==='products')return window.MMCurrent?.products();
+ if(k==='orders')return window.MMOrdersAdmin?.open();
+ if(k==='users')return window.MMUsers?.load?.()||page('Utilizadores','Gestão da equipa do Backoffice.');
+ if(k==='categories')return window.MM106Catalog?.categories?.()||document.querySelector('.navitem[data-section="categories"]')?.click();
+ if(k==='brands')return window.MM106Catalog?.brands?.()||document.querySelector('.navitem[data-section="brands"]')?.click();
+ if(k==='attributes')return window.MM106Catalog?.attributes?.()||document.querySelector('.navitem[data-section="attributes"]')?.click();
+ if(k==='chat')return document.querySelector('.navitem[data-section="chat"]')?.click();
+ if(k==='marketing')return document.querySelector('.navitem[data-section="marketing"]')?.click();
+ if(k==='dashboard')return window.MM104?.go?.('dashboard');
+ page(k==='import'?'Importar / Exportar':k==='customers'?'Clientes':k==='reports'?'Relatórios de vendas':k==='content'?'Páginas, banners e menus':k==='settings'?'Definições da loja':k==='shipping'?'Transportes':k==='payments'?'Pagamentos':k==='tax'?'Impostos (IVA)':k,'Gestão central MarquesMater.');
+}
+function installNav(){if(window.MM53Nav)return true;window.MM53Nav=true;const handler=e=>{const b=e.target?.closest?.('.navitem');if(!b)return;e.preventDefault();e.stopImmediatePropagation();go(b.dataset.section)};document.addEventListener('click',handler,true);document.addEventListener('pointerup',handler,true);document.addEventListener('touchend',handler,true);return true}
+function installEditorFix(){if(document.getElementById('mm53-css'))return;const s=document.createElement('style');s.id='mm53-css';s.textContent=`.mmcur.overlay{position:fixed!important;inset:0!important;z-index:2147483000!important;width:100vw!important;height:100vh!important;display:flex!important;align-items:center!important;justify-content:center!important;background:rgba(15,23,42,.58)!important;padding:18px!important;box-sizing:border-box!important;margin:0!important;transform:none!important}.mmcur.overlay .editor{position:relative!important;margin:0!important;width:min(980px,100%)!important;max-height:94vh!important;overflow:hidden!important;background:#fff!important}.mmcur.overlay .ebody{overflow:auto!important}.mmcur.overlay .footer{position:sticky!important;bottom:0!important;background:#fff!important}@media(max-width:700px){.mmcur.overlay{padding:0!important}.mmcur.overlay .editor{width:100%!important;height:100%!important;max-height:none!important;border-radius:0!important}.mmcur.overlay .ebody{padding-bottom:90px!important}}.mm53-card{max-width:900px}.mm53{padding-bottom:30px}`;document.head.appendChild(s)}
+function productDelete(){document.addEventListener('click',async e=>{const b=e.target?.closest?.('[data-mm53-delete-product]');if(!b)return;e.preventDefault();e.stopImmediatePropagation();const sku=b.dataset.mm53DeleteProduct;if(!confirm('Eliminar permanentemente este artigo? Esta ação não pode ser anulada.'))return;try{const r=await fetch('/api/admin/catalog-product/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sku})});const j=await r.json();if(!r.ok||j.ok===false)throw Error(j.error||'Não foi possível eliminar o artigo.');window.MMCurrent?.products()}catch(err){alert(err.message)}} ,true)}
+function addProductDeleteButtons(){const a=app();if(!a)return;if(a.dataset.mm53Products==='1')return;if(!a.querySelector('#mmnew'))return;a.dataset.mm53Products='1';a.querySelectorAll('#mmtbody tr').forEach(tr=>{const edit=tr.querySelector('[data-edit-product]');const sku=edit?.dataset.editProduct;if(!sku)return;const cell=tr.lastElementChild;if(!cell)return;const b=document.createElement('button');b.className='btn gray';b.style.background='#dc2626';b.style.marginLeft='6px';b.textContent='Eliminar';b.dataset.mm53DeleteProduct=sku;cell.appendChild(b)})}
+const mo=new MutationObserver(()=>{installEditorFix();addProductDeleteButtons()});mo.observe(document.body,{childList:true,subtree:true});installEditorFix();installNav();productDelete();
+})();
