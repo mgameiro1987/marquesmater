@@ -138,3 +138,25 @@
   observer.observe(document.getElementById('app')||document.body,{childList:true,subtree:true});
   setTimeout(()=>{const root=document.querySelector('#app .mm106');if(root)mosaicCategories(root)},300);
 })();
+
+/* V10.60 — filtro de estado para escolher rapidamente o conjunto de encomendas a trabalhar. */
+(()=>{
+  function installStateSelect(root){
+    if(!root||root.querySelector('.mm-order-state-select'))return;
+    const toolbar=root.querySelector('.mm-order-toolbar');
+    const filters=root.querySelector('.mm-order-filters');
+    if(!toolbar||!filters)return;
+    const select=document.createElement('select');
+    select.className='mm-order-state-select';
+    select.setAttribute('aria-label','Escolher estado das encomendas a trabalhar');
+    const options=['Todas','Recebida','Em preparação','Enviada','Concluída','Cancelada'];
+    select.innerHTML=options.map(s=>`<option value="${esc(s)}">Estado: ${esc(s)}</option>`).join('');
+    select.value=[...filters.querySelectorAll('.mm-order-filter')].find(b=>b.classList.contains('active'))?.dataset.filter||'Todas';
+    select.onchange=()=>filters.querySelector(`.mm-order-filter[data-filter="${CSS.escape(select.value)}"]`)?.click();
+    toolbar.insertBefore(select,toolbar.querySelector('#mmOrderRefresh')||null);
+    filters.querySelectorAll('.mm-order-filter').forEach(b=>b.addEventListener('click',()=>{select.value=b.dataset.filter},{capture:false}));
+  }
+  const observer=new MutationObserver(()=>installStateSelect(document.querySelector('.mm-orders-page')));
+  observer.observe(document.getElementById('app')||document.body,{childList:true,subtree:true});
+  installStateSelect(document.querySelector('.mm-orders-page'));
+})();
