@@ -25,4 +25,6 @@ function modal(kind,item=null){const edit=!!item,parentKind=kind==='family'?'sub
 async function removeItem(id){const x=(structure.categories||[]).find(x=>String(x.id)===String(id));if(!x)return;if(!confirm(`Eliminar permanentemente “${x.name}”?`))return;try{await api('/api/admin/catalog-structure/delete',{method:'POST',body:JSON.stringify({id:Number(id)})});structure=null;await render()}catch(e){alert(e.message)}}
 function intercept(){document.addEventListener('click',e=>{const b=e.target.closest?.('.navitem[data-section="categories"]');if(!b)return;e.preventDefault();e.stopImmediatePropagation();document.querySelectorAll('.navitem').forEach(x=>x.classList.toggle('active',x===b));structure=null;render().catch(err=>{app.innerHTML=`<section class="page mm56"><div class="empty">${esc(err.message)}</div></section>`})},true)}
 intercept();
+// V10.57 — load the new compact Products view without touching the stable category implementation.
+const pscript=document.createElement('script');pscript.src='/js/v10.57-products-compact.js?v=157';document.head.appendChild(pscript);
 })();
