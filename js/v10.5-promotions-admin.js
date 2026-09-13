@@ -2,7 +2,7 @@
 (()=>{
 'use strict';
 const app=document.getElementById('app'); if(!app)return;
-const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+const esc=s=>String(s??'').replace(/[&<>\"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#039;'}[m]));
 const api=async(path,opts={})=>{const r=await fetch(path,{cache:'no-store',...opts,headers:{'Content-Type':'application/json',...(opts.headers||{})}});const j=await r.json().catch(()=>({}));if(!r.ok||j.ok===false)throw Error(j.error||`Erro ${r.status}`);return j};
 const money=n=>Number(n||0).toLocaleString('pt-PT',{style:'currency',currency:'EUR'});
 const meta=p=>p?.options?.__promo&&typeof p.options.__promo==='object'?p.options.__promo:(p?.oldPrice!=null&&Number(p.oldPrice)>Number(p.price||0)?{enabled:true,regularPrice:Number(p.oldPrice),promoPrice:Number(p.price),campaign:p.badge||'Promoção',start:'',end:''}:null);
@@ -14,6 +14,10 @@ function form(p){const x=p||{sku:'',name:'',price:0,oldPrice:null,badge:'',optio
 async function productsPage(){const ps=await products();app.innerHTML=shell('Produtos — Promoções','Preço promocional, validade e campanhas.',`<div class="card mm105 promo-panel"><div class="toolbar"><input id="psearch" placeholder="Pesquisar produto..."><button class="btn" id="newpromo">＋ Nova promoção</button></div><div class="tablewrap"><table class="table"><thead><tr><th>Produto</th><th>Preço</th><th>Promoção</th><th>Validade</th><th>Estado</th><th>Ação</th></tr></thead><tbody>${ps.map((p,i)=>{const m=meta(p);return `<tr data-q="${esc((p.name+' '+p.sku+' '+p.brand).toLowerCase())}"><td><b>${esc(p.name)}</b><br><small>${esc(p.sku)}</small></td><td>${money(p.price)}</td><td>${m?.enabled!==false&&m?money(m.promoPrice):'—'}${m?.regularPrice?`<br><del>${money(m.regularPrice)}</del>`:''}</td><td>${m?.start||m?.end?`${esc(m.start||'')}${m.end?' → '+esc(m.end):''}`:'Sem limite'}</td><td><span class="pill ${state(p)==='Terminada'?'red':state(p)==='Agendada'?'blue':''}">${state(p)}</span></td><td><button class="btn" data-edit="${i}">${m?'Editar':'Criar promoção'}</button></td></tr>`}).join('')}</tbody></table></div></div>`);document.getElementById('newpromo').onclick=()=>{const p=ps[0];if(p)form(p)};document.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>form(ps[+b.dataset.edit]));const q=document.getElementById('psearch');q.oninput=()=>document.querySelectorAll('tbody tr').forEach(r=>r.style.display=!q.value||r.dataset.q.includes(q.value.toLowerCase())?'':'none')}
 async function marketing(){nav('marketing');await productsPage()}
 function nav(k){document.querySelectorAll('.navitem').forEach(x=>x.classList.toggle('active',x.dataset.section===k))}
-function install(){css();const old=window.MM104;window.MM104=window.MM104||{};const go=window.MM104.go;window.MM104.go=k=>{if(k==='marketing')marketing();else if(k==='products'){return;}else if(typeof go==='function')go(k);};document.querySelectorAll('.navitem').forEach(b=>b.onclick=e=>{e.preventDefault();if(b.dataset.section==='products')return;window.MM104.go(b.dataset.section);document.getElementById('sidebar')?.classList.remove('open')});}
+function install(){css();const old=window.MM104;window.MM104=window.MM104||{};const go=window.MM104.go;window.MM104.go=k=>{if(k==='marketing')marketing();else if(k==='products'){return;}else if(typeof go==='function')go(k);};
+// Navegação apenas para o módulo que este ficheiro realmente controla.
+// Os restantes módulos têm os seus próprios handlers e não devem ser interceptados aqui.
+document.addEventListener('click',e=>{const b=e.target.closest?.('.navitem[data-section="marketing"]');if(!b)return;e.preventDefault();e.stopImmediatePropagation();marketing();document.getElementById('sidebar')?.classList.remove('open')},true);
+}
 install();
 })();
