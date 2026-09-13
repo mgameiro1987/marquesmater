@@ -1,7 +1,7 @@
 (()=>{'use strict';
 // MarquesMater — versão global única do Backoffice.
 // Todas as áreas apresentam sempre a versão global atual.
-const VERSION='V9.3.5';
+const VERSION='V9.3.6';
 window.MM_CURRENT_VERSION=VERSION;
 function replaceText(root=document.body){
   const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);
