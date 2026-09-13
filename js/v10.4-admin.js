@@ -10,4 +10,7 @@ function prepared(k,title){nav(k);app.innerHTML=shell(title,'Área do Backoffice
 function products(){nav('products');if(typeof window.MM76ProductsRender==='function')return window.MM76ProductsRender();return prepared('products','Produtos')}
 function variants(){nav('variants');if(typeof window.MMVariantsRender==='function')return window.MMVariantsRender();return prepared('variants','Variantes e preços')}
 window.MM104={go:k=>{if(k==='dashboard')return dashboard();if(k==='products'||k==='products-v2')return products();if(k==='variants')return variants();prepared(k,k)}};
+// Página inicial do Backoffice: Dashboard.
+// Os módulos secundários não devem substituir o conteúdo durante o arranque.
+dashboard();
 })();
