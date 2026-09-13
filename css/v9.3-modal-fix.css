@@ -1,0 +1,19 @@
+/* MarquesMater V9.3 — modal de produto realmente responsivo */
+.mm93modal{position:fixed!important;inset:0!important;background:rgba(15,23,42,.62)!important;display:flex!important;align-items:center!important;justify-content:center!important;padding:16px!important;z-index:99999!important;box-sizing:border-box!important}
+.mm93modal .mm93box{width:min(820px,100%)!important;max-width:820px!important;max-height:92vh!important;overflow:auto!important;background:#fff!important;border-radius:16px!important;padding:20px!important;box-sizing:border-box!important;box-shadow:0 20px 60px rgba(15,23,42,.25)!important}
+.mm93modal .mm93form{display:grid!important;grid-template-columns:1fr 1fr!important;gap:12px!important;margin-top:16px!important}
+.mm93modal .mm93form label{display:block!important;font-size:12px!important;font-weight:700!important;color:#475569!important;min-width:0!important}
+.mm93modal .mm93form input,.mm93modal .mm93form select,.mm93modal .mm93form textarea{width:100%!important;max-width:100%!important;box-sizing:border-box!important;margin-top:5px!important;padding:10px!important;border:1px solid #d8e0e8!important;border-radius:8px!important;background:#fff!important;font:inherit!important}
+.mm93modal .mm93form textarea{min-height:100px!important;resize:vertical!important}
+.mm93modal .mm93form .full{grid-column:1/-1!important}
+.mm93modal .mm93foot{display:flex!important;justify-content:flex-end!important;gap:8px!important;margin-top:16px!important}
+.mm93modal .mm93foot button{min-height:44px!important}
+@media(max-width:650px){
+  .mm93modal{align-items:flex-start!important;padding:10px!important;padding-top:10px!important;overflow-y:auto!important}
+  .mm93modal .mm93box{width:100%!important;max-width:none!important;max-height:calc(100vh - 20px)!important;border-radius:14px!important;padding:16px!important;margin:0!important;overflow-y:auto!important}
+  .mm93modal .mm93form{grid-template-columns:1fr!important;gap:11px!important}
+  .mm93modal .mm93form .full{grid-column:auto!important}
+  .mm93modal .mm93foot{display:grid!important;grid-template-columns:1fr 1fr!important;position:sticky!important;bottom:0!important;background:#fff!important;padding-top:10px!important}
+  .mm93modal .mm93foot button{width:100%!important}
+  .mm93modal h2{font-size:22px!important}
+}
