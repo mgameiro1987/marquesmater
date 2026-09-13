@@ -1,0 +1,12 @@
+(()=>{
+'use strict';
+function install(){
+ const style=document.createElement('style');style.id='mm74-products-ui';style.textContent=`
+.mm72{max-width:100%;padding:22px 24px 40px!important}.mm72 .pagehead{margin-bottom:18px}.mm72 .pagehead h1{font-size:28px;margin:0 0 5px}.mm72 .pagehead p{margin:0;color:#64748b}.mm72 .toolbar{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:12px;box-shadow:0 4px 16px rgba(15,23,42,.05);align-items:center}.mm72 .toolbar input{min-width:280px;height:42px;box-sizing:border-box}.mm72 .toolbar select{height:42px;min-width:190px}.mm72 .toolbar .btn{height:42px}.mm72 .grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}.mm72 .product{border:1px solid #e2e8f0;border-radius:14px;box-shadow:0 5px 18px rgba(15,23,42,.06);transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease}.mm72 .product:hover{transform:translateY(-2px);box-shadow:0 10px 25px rgba(15,23,42,.11);border-color:#cbd5e1}.mm72 .photo{height:190px;background:linear-gradient(180deg,#f8fafc,#f1f5f9);border-bottom:1px solid #eef2f7}.mm72 .body{padding:15px}.mm72 .name{font-size:15px;min-height:40px}.mm72 .sku{font-size:10px;letter-spacing:.2px}.mm72 .price{font-size:20px;margin-top:11px}.mm72 .meta{margin-top:13px;padding-top:11px;border-top:1px solid #f1f5f9}.mm72 .meta div{font-size:11px}.mm72 .actions{margin-top:13px}.mm72 .actions .btn{height:36px}.mm72 .pill{font-size:9px;padding:5px 8px}.mm72 .modal form{box-shadow:0 20px 60px rgba(15,23,42,.2)}
+@media(max-width:1200px){.mm72 .grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:800px){.mm72{padding:16px 12px 30px!important}.mm72 .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.mm72 .photo{height:145px}.mm72 .toolbar input{min-width:160px}.mm72 .toolbar select{min-width:150px}}
+@media(max-width:520px){.mm72 .grid{grid-template-columns:1fr 1fr}.mm72 .photo{height:125px}.mm72 .body{padding:10px}.mm72 .name{font-size:13px}.mm72 .price{font-size:17px}.mm72 .meta{grid-template-columns:1fr 1fr;gap:7px}.mm72 .actions{flex-direction:column}.mm72 .actions .btn{width:100%}}
+@media(max-width:360px){.mm72 .grid{grid-template-columns:1fr}}
+`;document.head.appendChild(style)}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install);else install();
+})();
