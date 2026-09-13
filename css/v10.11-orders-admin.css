@@ -43,3 +43,16 @@
   .mm-orders-table tbody td:nth-child(7)::before{content:'Ação';display:block;font-size:10px;font-weight:700;color:#8794a7;text-transform:uppercase;margin-bottom:6px}
   .mm-orders-table tbody td:nth-child(7) .mm-order-save{width:100%}
 }
+
+/* V10.60 — correção robusta do cartão de Produtos + filtro rápido de estado nas Encomendas. */
+@media(max-width:760px){
+  .mm104 .tablewrap{width:100%!important;max-width:100%!important;overflow:visible!important}
+  .mm104 .table{width:100%!important;min-width:0!important;max-width:none!important;margin:0!important;border-collapse:collapse!important}
+  .mm104 .table tbody{width:100%!important;min-width:0!important}
+  .mm104 .table tbody tr{width:100%!important;min-width:0!important;box-sizing:border-box!important}
+  .mm104 .table tbody td{width:auto!important;max-width:100%!important;box-sizing:border-box!important}
+  .mm104 .table tbody td:first-child{width:100%!important;max-width:100%!important}
+  .mm104 .table tbody td:first-child .product-img{margin-right:0!important}
+  .mm104 .table tbody td:nth-child(2),.mm104 .table tbody td:nth-child(3),.mm104 .table tbody td:nth-child(5),.mm104 .table tbody td:nth-child(6),.mm104 .table tbody td:nth-child(7){min-width:0!important}
+}
+.mm-order-state-select{border:1px solid #dbe3ee;background:#fff;color:#334155;border-radius:10px;padding:9px 12px;font:inherit;font-weight:700;min-width:210px;cursor:pointer}.mm-order-state-select:focus{outline:2px solid #bfdbfe;outline-offset:1px}@media(max-width:760px){.mm-order-state-select{width:100%;min-width:0;order:2}.mm-order-toolbar .mm-order-state-select+.btn{order:3}.mm-order-toolbar{display:flex}.mm-order-filters{order:1}.mm-order-toolbar>.btn{order:3}}
