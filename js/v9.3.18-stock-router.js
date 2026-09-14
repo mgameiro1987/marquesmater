@@ -1,0 +1,1 @@
+(()=>{'use strict';function boot(){if(!window.MMAdmin||typeof window.MMAdmin.go!=='function'||!window.MM9318Stock){setTimeout(boot,50);return}const original=window.MM9318OriginalGo||window.MMAdmin.go;window.MMAdmin.go=(k)=>k==='stock'?window.MM9318Stock.render('stock'):original(k)}boot()})();
