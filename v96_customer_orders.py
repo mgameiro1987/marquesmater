@@ -12,7 +12,13 @@ def handle_get(email, send_json):
         send_json(400,{'ok':False,'error':'Email do cliente em falta'}); return True
     try:
         with _db() as conn, conn.cursor() as cur:
-            cur.execute("SELECT o.id,o.created_at,o.data,c.name,c.email,c.phone FROM orders o LEFT JOIN customers c ON c.id=o.customer_id WHERE LOWER(COALESCE(c.email,''))=LOWER(%s) AND COALESCE(NULLIF(o.data->>'total','')::numeric,0)>0 ORDER BY o.created_at DESC,o.id DESC",(email,))
+            cur.execute("""SELECT o.id,o.created_at,o.data,c.name,c.email,c.phone
+                         FROM orders o
+                         LEFT JOIN customers c ON c.id=o.customer_id
+                         WHERE COALESCE(NULLIF(o.data->>'total','')::numeric,0)>0
+                           AND (LOWER(COALESCE(c.email,''))=LOWER(%s)
+                                OR LOWER(COALESCE(o.data->'customer'->>'email',''))=LOWER(%s))
+                         ORDER BY o.created_at DESC,o.id DESC""",(email,email))
             out=[]
             for r in cur.fetchall():
                 d=r[2] or {}; cust=d.get('customer') or {}
