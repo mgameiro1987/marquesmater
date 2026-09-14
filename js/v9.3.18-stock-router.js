@@ -9,22 +9,28 @@ function css(){
  if(document.getElementById('mmfinalnavcss25'))return;
  const s=document.createElement('style');s.id='mmfinalnavcss25';
  s.textContent=`
- .mmf-products-wrap{margin:0}
+ .mmf-products-wrap{margin:0 0 4px}
  .mmf-products-toggle{display:flex!important;align-items:center;width:100%;min-height:42px;padding:10px 12px;border:0;border-radius:8px;background:transparent;color:#cbd5e1;font:inherit;font-size:14px;text-align:left;cursor:pointer}
  .mmf-products-toggle:hover,.mmf-products-toggle.open{background:rgba(59,130,246,.12);color:#fff}
- .mmf-arrow{margin-left:auto;font-size:16px;transition:transform .18s ease}.mmf-products-toggle.open .mmf-arrow{transform:rotate(90deg)}
- .mmf-submenu{display:none!important;margin:2px 0 8px 12px;padding:4px 0 4px 12px;border-left:1px solid rgba(148,163,184,.24)}
+ .mmf-arrow{margin-left:auto;font-size:17px;line-height:1;transition:transform .18s ease}.mmf-products-toggle.open .mmf-arrow{transform:rotate(90deg)}
+ .mmf-submenu{display:none!important;margin:2px 0 8px 12px;padding:5px 0 5px 12px;border-left:2px solid rgba(59,130,246,.25)}
  .mmf-submenu.open{display:block!important}
- .mmf-subitem{display:flex!important;align-items:center;width:100%;min-height:38px;padding:8px 10px;border:0;border-radius:7px;background:transparent;color:#b8c3d4;font:inherit;font-size:13px;text-align:left;cursor:pointer}
- .mmf-subitem:hover,.mmf-subitem.active{background:rgba(37,99,235,.16);color:#fff}.mmf-subicon{width:20px;color:#8291a8;font-size:11px}
+ .mmf-subitem{display:flex!important;align-items:center;width:100%;min-height:38px;margin:2px 0;padding:8px 10px;border:0;border-radius:7px;background:transparent;color:#b8c3d4;font:inherit;font-size:13px;text-align:left;cursor:pointer}
+ .mmf-subitem:hover,.mmf-subitem.active{background:rgba(37,99,235,.16);color:#fff}.mmf-subitem.active{font-weight:600}
+ .mmf-subicon{width:20px;color:#8291a8;font-size:12px;flex:0 0 20px}.mmf-subitem.active .mmf-subicon{color:#60a5fa}
  `;
  document.head.appendChild(s)
 }
 
-function originalGo(){return window.MMFinalOriginalGo||window.MMAdmin?.go}
-function openProducts(){if(!hasProducts())return false;window.MM93ProductsRender();return true}
-function openNew(){if(!openProducts())return false;setTimeout(()=>{const b=document.getElementById('new');if(b)b.click();},80);return true}
-function openStock(){if(!hasStock())return false;window.MM9318Stock.render('stock');return true}
+function openMenu(active){
+ const wrap=document.querySelector('.mmf-products-wrap'),p=wrap?.querySelector('.mmf-products-toggle'),sub=wrap?.querySelector('.mmf-submenu');
+ if(!sub)return;
+ sub.classList.add('open');if(p){p.classList.add('open');p.setAttribute('aria-expanded','true')}
+ sub.querySelectorAll('.mmf-subitem').forEach(x=>x.classList.toggle('active',x.dataset.mm===active));
+}
+function openProducts(){if(!hasProducts())return false;openMenu('products');window.MM93ProductsRender();return true}
+function openNew(){if(!openProducts())return false;openMenu('new');setTimeout(()=>{const b=document.getElementById('new');if(b)b.click();},80);return true}
+function openStock(){if(!hasStock())return false;openMenu('stock');window.MM9318Stock.render('stock');return true}
 
 function buildMenu(){
  const nav=document.querySelector('.sidebar nav');if(!nav)return false;
@@ -37,7 +43,7 @@ function buildMenu(){
    const oldStock=nav.querySelector('.navitem[data-section="stock"]');if(oldStock)oldStock.remove();
    wrap=document.createElement('div');wrap.className='mmf-products-wrap';p.parentNode.insertBefore(wrap,p);wrap.appendChild(p);
  }
- p.classList.remove('navitem');p.classList.add('mmf-products-toggle');p.removeAttribute('data-section');p.setAttribute('type','button');p.setAttribute('aria-controls','mmf-products-submenu');
+ p.classList.remove('navitem');p.classList.add('mmf-products-toggle');p.removeAttribute('data-section');p.setAttribute('type','button');p.setAttribute('aria-controls','mmf-products-submenu');p.setAttribute('aria-expanded',String(p.classList.contains('open')));
  if(!p.querySelector('.mmf-arrow'))p.innerHTML='<span>▣</span><span style="margin-left:10px">Produtos</span><span class="mmf-arrow">›</span>';
  let sub=wrap.querySelector('.mmf-submenu');
  if(!sub){
@@ -45,11 +51,10 @@ function buildMenu(){
    sub.innerHTML='<button type="button" class="mmf-subitem" data-mm="products"><span class="mmf-subicon">▦</span><span>Todos os produtos</span></button><button type="button" class="mmf-subitem" data-mm="new"><span class="mmf-subicon">＋</span><span>Novo produto</span></button><button type="button" class="mmf-subitem" data-mm="stock"><span class="mmf-subicon">▤</span><span>Stock produtos</span></button>';
    wrap.appendChild(sub);
  }
- const setActive=v=>sub.querySelectorAll('.mmf-subitem').forEach(x=>x.classList.toggle('active',x.dataset.mm===v));
  p.onclick=e=>{e.preventDefault();e.stopPropagation();const open=!sub.classList.contains('open');sub.classList.toggle('open',open);p.classList.toggle('open',open);p.setAttribute('aria-expanded',String(open))};
- const one=sub.querySelector('[data-mm="products"]');if(one)one.onclick=e=>{e.preventDefault();e.stopPropagation();setActive('products');openProducts()};
- const two=sub.querySelector('[data-mm="new"]');if(two)two.onclick=e=>{e.preventDefault();e.stopPropagation();setActive('new');openNew()};
- const three=sub.querySelector('[data-mm="stock"]');if(three)three.onclick=e=>{e.preventDefault();e.stopPropagation();setActive('stock');openStock()};
+ const one=sub.querySelector('[data-mm="products"]');if(one)one.onclick=e=>{e.preventDefault();e.stopPropagation();openProducts()};
+ const two=sub.querySelector('[data-mm="new"]');if(two)two.onclick=e=>{e.preventDefault();e.stopPropagation();openNew()};
+ const three=sub.querySelector('[data-mm="stock"]');if(three)three.onclick=e=>{e.preventDefault();e.stopPropagation();openStock()};
  return true
 }
 
@@ -62,7 +67,7 @@ function patchGo(){
    if(k==='new-product'||k==='newProduct')return openNew()||base('products');
    if(k==='stock')return openStock()||base(k);
    return base(k)
- };
+   };
  routed.__mm25=true;routed.__original=base;a.go=routed;window.MMFinalOriginalGo=base;return true
 }
 
