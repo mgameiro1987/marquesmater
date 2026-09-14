@@ -116,6 +116,10 @@ class Handler(SimpleHTTPRequestHandler):
                 self.send_json(200,{'ok':True});return
             except Exception as e:self.send_json(503,{'ok':False,'error':str(e)});return
         self.send_json(404,{'ok':False,'error':'Endpoint não encontrado'})
-try:init_db();print('MarquesMater PostgreSQL stock API ready')
-except Exception as e:print(f'PostgreSQL stock API not ready: {e}')
-server=ThreadingHTTPServer(('0.0.0.0',PORT),server=ThreadingHTTPServer(('0.0.0.0',PORT),Handler);print(f'MarquesMater server running on port {PORT}');server.serve_forever()
+try:
+    init_db();print('MarquesMater PostgreSQL stock API ready')
+except Exception as e:
+    print(f'PostgreSQL stock API not ready: {e}')
+server=ThreadingHTTPServer(('0.0.0.0',PORT),Handler)
+print(f'MarquesMater server running on port {PORT}')
+server.serve_forever()
