@@ -22,6 +22,11 @@ class Handler(SimpleHTTPRequestHandler):
     def do_OPTIONS(self): self.send_json(204,{})
     def do_GET(self):
         path=urlsplit(self.path).path
+        if path=='/api/catalog/barcode':
+            try:
+                from v96_catalog_api import handle_get
+                if handle_get(path,self.path.split('?',1)[1] if '?' in self.path else '',self.send_json): return
+            except Exception as e:self.send_json(503,{'ok':False,'error':str(e)}); return
         if path=='/api/orders' or path.startswith('/api/orders/') or path=='/api/stock':
             try:
                 from v96_api import handle_get
@@ -59,6 +64,11 @@ class Handler(SimpleHTTPRequestHandler):
         super().do_GET()
     def do_POST(self):
         path=urlsplit(self.path).path
+        if path=='/api/catalog/barcode':
+            try:
+                from v96_catalog_api import handle_post
+                if handle_post(path,read_json(self),self.send_json): return
+            except Exception as e:self.send_json(503,{'ok':False,'error':str(e)}); return
         if path=='/api/orders' or (path.startswith('/api/orders/') and path.endswith('/status')):
             try:
                 from v96_api import handle_post
