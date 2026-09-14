@@ -3,6 +3,7 @@ import psycopg
 
 PRE_SHIPMENT={'Recebida','Pendente','Em processamento','Em preparação','Pago'}
 SHIPMENT_STATUS='Enviada'
+STATUS_ORDER=['Recebida','Pendente','Em processamento','Em preparação','Pago','Enviada','Concluída']
 
 def _db():
     url=os.environ.get('DATABASE_URL')
@@ -15,7 +16,6 @@ def _ensure_history():
         cur.execute("CREATE INDEX IF NOT EXISTS mm_order_status_history_order_idx ON mm_order_status_history(order_id,created_at DESC)")
         cur.execute("CREATE TABLE IF NOT EXISTS mm_order_stock_movements (id BIGSERIAL PRIMARY KEY, order_id BIGINT NOT NULL, sku TEXT NOT NULL, quantity INTEGER NOT NULL, movement_type TEXT NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), UNIQUE(order_id,sku,movement_type))")
         cur.execute("CREATE INDEX IF NOT EXISTS mm_order_stock_movements_order_idx ON mm_order_stock_movements(order_id)")
-        conn.commit()
 
 def _order_items(data):
     result={}
@@ -27,7 +27,19 @@ def _order_items(data):
         if sku and qty>0: result[sku]=result.get(sku,0)+qty
     return result
 
-def _deduct_stock_for_shipment(conn,cur,order_id,data):
+def _validate_reservation(cur,order_id,data):
+    items=_order_items(data)
+    for sku,qty in items.items():
+        cur.execute("SELECT stock FROM mm_product_stock WHERE sku=%s FOR UPDATE",(sku,))
+        row=cur.fetchone()
+        if not row: raise ValueError(f'SKU {sku} não tem stock configurado')
+        physical=int(row[0] or 0)
+        cur.execute("SELECT COALESCE(SUM(COALESCE((x->>'qty')::int,0)),0) FROM orders o CROSS JOIN LATERAL jsonb_array_elements(CASE WHEN jsonb_typeof(o.data->'items')='array' THEN o.data->'items' ELSE '[]'::jsonb END) x WHERE o.id<>%s AND x->>'sku'=%s AND LOWER(COALESCE(o.data->>'status','')) IN ('recebida','pendente','pending','em processamento','processing','em preparação','pago')",(order_id,sku))
+        reserved=int(cur.fetchone()[0] or 0)
+        available=physical-reserved
+        if available<qty: raise ValueError(f'Stock insuficiente para reservar {sku}: disponível {max(0,available)}, necessário {qty}')
+
+def _deduct_stock_for_shipment(cur,order_id,data):
     items=_order_items(data)
     for sku,qty in items.items():
         cur.execute("SELECT stock FROM mm_product_stock WHERE sku=%s FOR UPDATE",(sku,))
@@ -86,12 +98,19 @@ def handle_post(path,body,send_json):
             cur.execute('SELECT data FROM orders WHERE id=%s FOR UPDATE',(oid,)); row=cur.fetchone()
             if not row: send_json(404,{'ok':False,'error':'Encomenda não encontrada'}); return True
             data=row[0] or {}; old=data.get('status') or 'Pendente'
-            if old!=new and new==SHIPMENT_STATUS: _deduct_stock_for_shipment(conn,cur,oid,data)
+            if old==new:
+                send_json(200,{'ok':True,'id':oid,'status':new,'stockUpdated':False}); return True
+            if old in {'Enviada','Concluída'} and new in PRE_SHIPMENT:
+                raise ValueError('Não é permitido voltar uma encomenda já enviada/concluída para um estado anterior sem um processo de devolução.')
+            if old=='Concluída' and new!='Cancelada':
+                raise ValueError('Uma encomenda concluída não pode voltar atrás.')
+            if new in PRE_SHIPMENT: _validate_reservation(cur,oid,data)
+            if new==SHIPMENT_STATUS: _deduct_stock_for_shipment(cur,oid,data)
             data['status']=new
             cur.execute('UPDATE orders SET data=%s WHERE id=%s',(json.dumps(data,ensure_ascii=False),oid))
-            if old!=new: cur.execute('INSERT INTO mm_order_status_history(order_id,old_status,new_status,created_by) VALUES(%s,%s,%s,%s)',(oid,old,new,user))
+            cur.execute('INSERT INTO mm_order_status_history(order_id,old_status,new_status,created_by) VALUES(%s,%s,%s,%s)',(oid,old,new,user))
             conn.commit()
-        send_json(200,{'ok':True,'id':oid,'status':new,'stockUpdated':old!=new and new==SHIPMENT_STATUS}); return True
+        send_json(200,{'ok':True,'id':oid,'status':new,'stockUpdated':new==SHIPMENT_STATUS}); return True
     except ValueError as e:
         try: conn.rollback()
         except Exception: pass
