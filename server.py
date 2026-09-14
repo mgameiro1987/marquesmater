@@ -40,6 +40,11 @@ class Handler(SimpleHTTPRequestHandler):
                 from v96_customer_orders import handle_get
                 if handle_get((query.get('email') or [''])[0],self.send_json): return
             except Exception as e: self.send_json(503,{'ok':False,'error':str(e)}); return
+        if path=='/api/account/me':
+            try:
+                from v96_account_api import handle_get
+                if handle_get(path,self.path.split('?',1)[1] if '?' in self.path else '',self.send_json): return
+            except Exception as e: self.send_json(503,{'ok':False,'error':str(e)}); return
         if path=='/api/catalog/barcode':
             try:
                 from v96_catalog_api import handle_get
@@ -70,6 +75,11 @@ class Handler(SimpleHTTPRequestHandler):
         super().do_GET()
     def do_POST(self):
         path=urlsplit(self.path).path
+        if path in ('/api/account/register','/api/account/login','/api/account/logout'):
+            try:
+                from v96_account_api import handle_post
+                if handle_post(path,read_json(self),self.send_json): return
+            except Exception as e: self.send_json(503,{'ok':False,'error':str(e)}); return
         if path=='/api/catalog/barcode':
             try:
                 from v96_catalog_api import handle_post
