@@ -59,7 +59,7 @@ class Handler(SimpleHTTPRequestHandler):
         super().do_GET()
     def do_POST(self):
         path=urlsplit(self.path).path
-        if path.startswith('/api/orders/') and path.endswith('/status'):
+        if path=='/api/orders' or (path.startswith('/api/orders/') and path.endswith('/status')):
             try:
                 from v96_api import handle_post
                 if handle_post(path,read_json(self),self.send_json):return
