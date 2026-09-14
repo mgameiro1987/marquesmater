@@ -1,6 +1,6 @@
 import os, json
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
-from urllib.parse import urlsplit
+from urllib.parse import urlsplit, parse_qs
 
 PORT=int(os.environ.get('PORT','10000'))
 ROOT=os.path.dirname(os.path.abspath(__file__))
@@ -30,93 +30,72 @@ def read_json(h):
 
 class Handler(SimpleHTTPRequestHandler):
     extensions_map={**SimpleHTTPRequestHandler.extensions_map,'.svg':'image/svg+xml','.js':'application/javascript','.css':'text/css'}
-
     def send_json(self,status,payload):
-        data=json.dumps(payload,ensure_ascii=False,default=str).encode()
-        self.send_response(status)
-        self.send_header('Content-Type','application/json; charset=utf-8')
-        self.send_header('Cache-Control','no-store')
-        self.send_header('Access-Control-Allow-Origin','*')
-        self.send_header('Access-Control-Allow-Headers','Content-Type')
-        self.send_header('Access-Control-Allow-Methods','GET,POST,OPTIONS')
-        self.send_header('Content-Length',str(len(data)))
-        self.end_headers(); self.wfile.write(data)
-
+        data=json.dumps(payload,ensure_ascii=False,default=str).encode();self.send_response(status);self.send_header('Content-Type','application/json; charset=utf-8');self.send_header('Cache-Control','no-store');self.send_header('Access-Control-Allow-Origin','*');self.send_header('Access-Control-Allow-Headers','Content-Type');self.send_header('Access-Control-Allow-Methods','GET,POST,OPTIONS');self.send_header('Content-Length',str(len(data)));self.end_headers();self.wfile.write(data)
     def do_OPTIONS(self): self.send_json(204,{})
-
     def do_GET(self):
-        path=urlsplit(self.path).path
+        path=urlsplit(self.path).path; query=parse_qs(urlsplit(self.path).query)
+        if path=='/api/customer/orders':
+            try:
+                from v96_customer_orders import handle_get
+                if handle_get((query.get('email') or [''])[0],self.send_json): return
+            except Exception as e: self.send_json(503,{'ok':False,'error':str(e)}); return
         if path=='/api/catalog/barcode':
             try:
                 from v96_catalog_api import handle_get
                 if handle_get(path,self.path.split('?',1)[1] if '?' in self.path else '',self.send_json): return
-            except Exception as e:
-                self.send_json(503,{'ok':False,'error':str(e)}); return
+            except Exception as e: self.send_json(503,{'ok':False,'error':str(e)}); return
         if path in ('/api/stock','/api/stock/movements'):
             try:
                 from v96_stock_api import handle_get
                 if handle_get(path,self.path.split('?',1)[1] if '?' in self.path else '',self.send_json): return
-            except Exception as e:
-                self.send_json(503,{'ok':False,'error':str(e)}); return
+            except Exception as e: self.send_json(503,{'ok':False,'error':str(e)}); return
         if path=='/api/orders' or path.startswith('/api/orders/'):
             try:
                 from v96_api import handle_get
                 if handle_get(path,self.path.split('?',1)[1] if '?' in self.path else '',self.send_json): return
-            except Exception as e:
-                self.send_json(503,{'ok':False,'error':str(e)}); return
+            except Exception as e: self.send_json(503,{'ok':False,'error':str(e)}); return
         if path.endswith('.html') or path in ('','/'):
             if path in ('','/'): path='/index.html'
             fn=os.path.join(ROOT,path.lstrip('/'))
             if os.path.isfile(fn):
                 try:
-                    with open(fn,'rb') as f: data=f.read()
-                    marker=b'</head>'
-                    ins=[b'<link rel="stylesheet" href="/css/v8.5-mobilepc.css?v=85">',b'<link rel="stylesheet" href="/css/v8.5-account-mobile.css?v=851">']
+                    with open(fn,'rb') as f:data=f.read()
+                    marker=b'</head>';ins=[b'<link rel="stylesheet" href="/css/v8.5-mobilepc.css?v=85">',b'<link rel="stylesheet" href="/css/v8.5-account-mobile.css?v=851">']
                     if path!='/admin.html': ins.append(b'<script src="/js/v9.3.25-stock-public.js?v=93251"></script>')
                     for item in ins:
-                        if marker in data and item not in data: data=data.replace(marker,item+marker,1)
-                    self.send_response(200); self.send_header('Content-Type','text/html; charset=utf-8'); self.send_header('Cache-Control','no-store'); self.send_header('Content-Length',str(len(data))); self.end_headers(); self.wfile.write(data); return
-                except OSError: pass
+                        if marker in data and item not in data:data=data.replace(marker,item+marker,1)
+                    self.send_response(200);self.send_header('Content-Type','text/html; charset=utf-8');self.send_header('Cache-Control','no-store');self.send_header('Content-Length',str(len(data)));self.end_headers();self.wfile.write(data);return
+                except OSError:pass
         super().do_GET()
-
     def do_POST(self):
         path=urlsplit(self.path).path
         if path=='/api/catalog/barcode':
             try:
                 from v96_catalog_api import handle_post
-                if handle_post(path,read_json(self),self.send_json): return
-            except Exception as e:
-                self.send_json(503,{'ok':False,'error':str(e)}); return
-        if path in ('/api/stock/adjust',):
+                if handle_post(path,read_json(self),self.send_json):return
+            except Exception as e:self.send_json(503,{'ok':False,'error':str(e)});return
+        if path=='/api/stock/adjust':
             try:
                 from v96_stock_api import handle_post
-                if handle_post(path,read_json(self),self.send_json): return
-            except Exception as e:
-                self.send_json(503,{'ok':False,'error':str(e)}); return
+                if handle_post(path,read_json(self),self.send_json):return
+            except Exception as e:self.send_json(503,{'ok':False,'error':str(e)});return
         if path=='/api/orders' or (path.startswith('/api/orders/') and path.endswith('/status')):
             try:
                 from v96_api import handle_post
-                if handle_post(path,read_json(self),self.send_json): return
-            except Exception as e:
-                self.send_json(503,{'ok':False,'error':str(e)}); return
+                if handle_post(path,read_json(self),self.send_json):return
+            except Exception as e:self.send_json(503,{'ok':False,'error':str(e)});return
         if path=='/api/stock/ensure':
             try:
-                init_db(); body=read_json(self)
+                init_db();body=read_json(self)
                 with db() as c,x:
                     for p in body.get('items') or []:
                         sku=str(p.get('sku') or '').strip()
-                        if sku: x.execute('INSERT INTO mm_product_stock(sku,stock,stock_min) VALUES(%s,%s,%s) ON CONFLICT(sku) DO NOTHING',(sku,int(p.get('stock') or 0),int(p.get('stockMin') or 0)))
+                        if sku:x.execute('INSERT INTO mm_product_stock(sku,stock,stock_min) VALUES(%s,%s,%s) ON CONFLICT(sku) DO NOTHING',(sku,int(p.get('stock') or 0),int(p.get('stockMin') or 0)))
                     c.commit()
-                self.send_json(200,{'ok':True}); return
-            except Exception as e:
-                self.send_json(503,{'ok':False,'error':str(e)}); return
+                self.send_json(200,{'ok':True});return
+            except Exception as e:self.send_json(503,{'ok':False,'error':str(e)});return
         self.send_json(404,{'ok':False,'error':'Endpoint não encontrado'})
-
-try:
-    init_db(); print('MarquesMater PostgreSQL stock API ready')
-except Exception as e:
-    print(f'PostgreSQL stock API not ready: {e}')
-
-server=ThreadingHTTPServer(('0.0.0.0',PORT),Handler)
-print(f'MarquesMater server running on port {PORT}')
-server.serve_forever()
+try:init_db();print('MarquesMater PostgreSQL stock API ready')
+except Exception as e:print(f'PostgreSQL stock API not ready: {e}')
+server=ThreadingHTTPServer(('0.0.0.0',PORT),Handler);print(f'MarquesMater server running on port {PORT}');server.serve_forever()
