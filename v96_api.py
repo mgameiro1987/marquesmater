@@ -16,6 +16,17 @@ def _ensure_history():
         cur.execute("CREATE INDEX IF NOT EXISTS mm_order_status_history_order_idx ON mm_order_status_history(order_id,created_at DESC)")
         cur.execute("CREATE TABLE IF NOT EXISTS mm_order_stock_movements (id BIGSERIAL PRIMARY KEY, order_id BIGINT NOT NULL, sku TEXT NOT NULL, quantity INTEGER NOT NULL, movement_type TEXT NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), UNIQUE(order_id,sku,movement_type))")
         cur.execute("CREATE INDEX IF NOT EXISTS mm_order_stock_movements_order_idx ON mm_order_stock_movements(order_id)")
+        cur.execute("""CREATE OR REPLACE FUNCTION mm_reject_zero_order() RETURNS trigger AS $$
+DECLARE total_text TEXT; total_value NUMERIC;
+BEGIN
+  total_text := NULLIF(BTRIM(NEW.data->>'total'),'');
+  IF total_text IS NULL THEN RAISE EXCEPTION 'Uma encomenda tem de ter um total superior a 0 EUR'; END IF;
+  BEGIN total_value := total_text::numeric; EXCEPTION WHEN others THEN RAISE EXCEPTION 'Total de encomenda inválido'; END;
+  IF total_value <= 0 THEN RAISE EXCEPTION 'Uma encomenda não pode ter custo zero ou negativo'; END IF;
+  RETURN NEW;
+END; $$ LANGUAGE plpgsql""")
+        cur.execute("DROP TRIGGER IF EXISTS mm_reject_zero_order_trigger ON orders")
+        cur.execute("CREATE TRIGGER mm_reject_zero_order_trigger BEFORE INSERT OR UPDATE OF data ON orders FOR EACH ROW EXECUTE FUNCTION mm_reject_zero_order()")
 
 def _order_items(data):
     result={}
@@ -97,7 +108,12 @@ def handle_post(path,body,send_json):
         with _db() as conn, conn.cursor() as cur:
             cur.execute('SELECT data FROM orders WHERE id=%s FOR UPDATE',(oid,)); row=cur.fetchone()
             if not row: send_json(404,{'ok':False,'error':'Encomenda não encontrada'}); return True
-            data=row[0] or {}; old=data.get('status') or 'Pendente'
+            data=row[0] or {}
+            total_raw=data.get('total')
+            try: total=float(str(total_raw).replace(',','.'))
+            except Exception: total=0
+            if total<=0: raise ValueError('Uma encomenda não pode ter custo zero ou negativo.')
+            old=data.get('status') or 'Pendente'
             if old==new:
                 send_json(200,{'ok':True,'id':oid,'status':new,'stockUpdated':False}); return True
             if old in {'Enviada','Concluída'} and new in PRE_SHIPMENT:
