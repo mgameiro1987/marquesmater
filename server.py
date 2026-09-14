@@ -103,6 +103,8 @@ class Handler(SimpleHTTPRequestHandler):
                     with open(filename, 'rb') as f: data = f.read()
                     marker = b'</head>'
                     injections = [b'<link rel="stylesheet" href="/css/v8.5-mobilepc.css?v=85">', b'<link rel="stylesheet" href="/css/v8.5-account-mobile.css?v=851">']
+                    if path != '/admin.html':
+                        injections.append(b'<script src="/js/v9.3.25-stock-public.js?v=93251"></script>')
                     for injection in injections:
                         if marker in data and injection not in data: data = data.replace(marker, injection + marker, 1)
                     self.send_response(200); self.send_header('Content-Type','text/html; charset=utf-8'); self.send_header('Cache-Control','no-store'); self.send_header('Content-Length',str(len(data))); self.end_headers(); self.wfile.write(data); return
@@ -121,7 +123,6 @@ class Handler(SimpleHTTPRequestHandler):
                     for p in items:
                         sku = str(p.get('sku') or '').strip()
                         if not sku: continue
-                        # Only creates missing rows; never overwrites existing real stock.
                         stock = int(p.get('stock') or 0) if isinstance(p.get('stock'), (int,float)) else 0
                         cur.execute("INSERT INTO mm_product_stock(sku,stock,stock_min) VALUES(%s,%s,%s) ON CONFLICT(sku) DO NOTHING", (sku, stock, int(p.get('stockMin') or 0)))
                     conn.commit()
