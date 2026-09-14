@@ -1,0 +1,31 @@
+/* V9.6 — Encomendas mobile: informação organizada como cartão profissional */
+.mm96-card{grid-template-columns:minmax(0,1fr) 230px;align-items:start}
+.mm96-card>.mm96-id{grid-column:1/-1;grid-row:1;font-size:17px;padding-bottom:2px}
+.mm96-card>.mm96-main{grid-column:1;grid-row:2}
+.mm96-card>.mm96-total{grid-column:2;grid-row:2;text-align:right}
+@media(max-width:800px){
+  .mm96-orders{padding:4px 0 28px}
+  .mm96-orders .pagehead{padding:0 2px 10px}
+  .mm96-orders .pagehead h1{font-size:27px;line-height:1.1;margin-bottom:4px}
+  .mm96-orders .pagehead p{font-size:12px}
+  .mm96-card{display:grid;grid-template-columns:minmax(0,1fr) minmax(110px,42%);gap:9px 12px;padding:14px 14px 13px}
+  .mm96-card>.mm96-id{grid-column:1/-1;grid-row:1;font-size:17px}
+  .mm96-card>.mm96-main{grid-column:1/-1;grid-row:3}
+  .mm96-card>.mm96-total{grid-column:1/-1;grid-row:2;text-align:left;display:grid;grid-template-columns:1fr auto;align-items:start;gap:4px 10px}
+  .mm96-card>.mm96-total>div:first-child{grid-column:2;grid-row:1;text-align:right;font-size:16px}
+  .mm96-card>.mm96-total>.mm96-status{grid-column:1;grid-row:1;justify-self:start;margin-top:0}
+  .mm96-state{grid-column:1/-1!important;grid-row:2;text-align:left!important;margin-top:5px}
+  .mm96-state label{text-align:left!important;font-size:10px;margin-bottom:5px}
+  .mm96-state select{height:42px}
+  .mm96-state button{height:42px;margin-top:7px}
+  .mm96-customer{font-size:15px;margin-top:2px}
+  .mm96-meta{line-height:1.4;margin-top:4px}
+  .mm96-actions{margin-top:10px}
+  .mm96-actions .mm96-btn{width:100%;min-height:44px;font-size:14px}
+}
+@media(max-width:450px){
+  .mm96-summary{grid-template-columns:1fr 1fr}
+  .mm96-card{border-radius:14px;padding:13px}
+  .mm96-card>.mm96-total>div:first-child{font-size:15px}
+  .mm96-state select,.mm96-state button{height:44px}
+}
