@@ -135,10 +135,11 @@ class Handler(SimpleHTTPRequestHandler):
         if path=='/api/stock/ensure':
             try:
                 init_db();body=read_json(self)
-                with db() as c,x:
-                    for p in body.get('items') or []:
-                        sku=str(p.get('sku') or '').strip()
-                        if sku:x.execute('INSERT INTO mm_product_stock(sku,stock,stock_min) VALUES(%s,%s,%s) ON CONFLICT(sku) DO NOTHING',(sku,int(p.get('stock') or 0),int(p.get('stockMin') or 0)))
+                with db() as c:
+                    with c.cursor() as x:
+                        for p in body.get('items') or []:
+                            sku=str(p.get('sku') or '').strip()
+                            if sku:x.execute('INSERT INTO mm_product_stock(sku,stock,stock_min) VALUES(%s,%s,%s) ON CONFLICT(sku) DO NOTHING',(sku,int(p.get('stock') or 0),int(p.get('stockMin') or 0)))
                     c.commit()
                 self.send_json(200,{'ok':True});return
             except Exception as e:self.send_json(503,{'ok':False,'error':str(e)});return
