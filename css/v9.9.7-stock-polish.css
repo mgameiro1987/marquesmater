@@ -1,0 +1,11 @@
+/* MarquesMater V9.9.7 — Stock Artigos polish
+   Visual-only enhancement: does not alter stock calculations, APIs, routes or data.
+*/
+.mm96sp-panel{border-radius:16px!important}
+.mm96sp-stat{transition:box-shadow .15s ease,transform .15s ease}
+.mm96sp-stat:hover{box-shadow:0 6px 20px rgba(15,23,42,.08);transform:translateY(-1px)}
+.mm96sp-input:focus,.mm96sp-select:focus{outline:0;border-color:#1677f9;box-shadow:0 0 0 3px rgba(22,119,249,.10)}
+.mm96sp-action:hover{background:#f8fafc}
+.mm96sp-card{transition:box-shadow .15s ease,transform .15s ease}
+.mm96sp-card:hover{box-shadow:0 5px 18px rgba(15,23,42,.08);transform:translateY(-1px)}
+@media(max-width:700px){.mm96sp-stat{min-height:68px}.mm96sp-cardactions button{min-height:44px}.mm96sp-dialogbody .mm96sp-btn{min-height:46px}}
