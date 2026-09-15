@@ -21,6 +21,10 @@ def _json(v, default=None):
     try: return json.loads(v)
     except Exception: return default
 
+def _reserved(cur,sku):
+    cur.execute("SELECT COALESCE(SUM(COALESCE((x->>'qty')::int,COALESCE((x->>'quantity')::int,0))),0) FROM orders o CROSS JOIN LATERAL jsonb_array_elements(CASE WHEN jsonb_typeof(o.data->'items')='array' THEN o.data->'items' ELSE '[]'::jsonb END) x WHERE x->>'sku'=%s AND LOWER(COALESCE(o.data->>'status','')) IN ('recebida','pendente','pending','em processamento','processing','em preparação','pago')",(sku,))
+    return int(cur.fetchone()[0] or 0)
+
 def _row(row):
     attrs=row[22] or {}
     return {'id':row[0],'sku':row[1],'brand':row[2] or '','name':row[3] or '','category':row[4] or '','subcategory':row[5] or '','type':row[6] or '','price':float(row[7] or 0),'oldPrice':float(row[8] or 0),'stockText':row[9] or '','image':row[10] or '','badge':row[11] or '','description':row[12] or '','options':row[13] or [],'specs':row[14] or {},'active':bool(row[15]),'createdAt':row[16],'updatedAt':row[17],'categoryId':row[18],'subcategoryId':row[19],'familyId':row[20],'brandId':row[21],'attributes':attrs,'barcode':row[23] or '','family':attrs.get('family',''),'cost':float(attrs.get('cost') or 0),'vatRate':float(attrs.get('vatRate') or 23)}
@@ -35,10 +39,10 @@ def handle_get(path,query,send_json):
             if sku:
                 cur.execute(SELECT+' WHERE p.sku=%s LIMIT 1',(sku,));row=cur.fetchone()
                 if not row: send_json(404,{'ok':False,'error':'Produto não encontrado'});return True
-                item=_row(row);item.update({'stock':int(row[24] or 0),'stockMin':int(row[25] or 0),'stockUpdatedAt':row[26]});send_json(200,{'ok':True,'item':item});return True
+                item=_row(row);physical=int(row[24] or 0);item.update({'stock':physical,'stockMin':int(row[25] or 0),'reserved':_reserved(cur,sku),'stockUpdatedAt':row[26]});item['available']=max(0,physical-item['reserved']);send_json(200,{'ok':True,'item':item});return True
             cur.execute(SELECT+' ORDER BY p.name ASC,p.id ASC');items=[]
             for row in cur.fetchall():
-                item=_row(row);item.update({'stock':int(row[24] or 0),'stockMin':int(row[25] or 0),'stockUpdatedAt':row[26]});items.append(item)
+                item=_row(row);physical=int(row[24] or 0);item.update({'stock':physical,'stockMin':int(row[25] or 0),'reserved':_reserved(cur,row[1]),'stockUpdatedAt':row[26]});item['available']=max(0,physical-item['reserved']);items.append(item)
         send_json(200,{'ok':True,'items':items,'count':len(items)});return True
     except Exception as e: send_json(503,{'ok':False,'error':f'API produtos: {e}'});return True
 
