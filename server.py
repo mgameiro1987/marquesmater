@@ -32,6 +32,16 @@ class Handler(SimpleHTTPRequestHandler):
                 from v99_customers_api import handle_get
                 if handle_get(path,self.path.split('?',1)[1] if '?' in self.path else '',self.send_json): return
             except Exception as e:self.send_json(503,{'ok':False,'error':str(e)});return
+        if path=='/api/suppliers':
+            try:
+                from v99_suppliers_api import handle_get
+                if handle_get(path,self.path.split('?',1)[1] if '?' in self.path else '',self.send_json): return
+            except Exception as e:self.send_json(503,{'ok':False,'error':str(e)});return
+        if path=='/api/purchases':
+            try:
+                from v99_purchases_api import handle_get
+                if handle_get(path,self.path.split('?',1)[1] if '?' in self.path else '',self.send_json): return
+            except Exception as e:self.send_json(503,{'ok':False,'error':str(e)});return
         if path=='/api/account/me':
             try:
                 from v96_account_api import handle_get
@@ -87,6 +97,16 @@ class Handler(SimpleHTTPRequestHandler):
                 from v99_customers_api import handle_post
                 if handle_post(path,read_json(self),self.send_json):return
             except Exception as e:self.send_json(503,{'ok':False,'error':str(e)});return
+        if path=='/api/suppliers':
+            try:
+                from v99_suppliers_api import handle_post
+                if handle_post(path,read_json(self),self.send_json):return
+            except Exception as e:self.send_json(503,{'ok':False,'error':str(e)});return
+        if path=='/api/purchases':
+            try:
+                from v99_purchases_api import handle_post
+                if handle_post(path,read_json(self),self.send_json):return
+            except Exception as e:self.send_json(503,{'ok':False,'error':str(e)});return
         if path=='/api/catalog/products':
             try:
                 from v98_catalog_products_api import handle_post
@@ -128,6 +148,16 @@ class Handler(SimpleHTTPRequestHandler):
         if path=='/api/taxonomy':
             try:
                 from v99_taxonomy_api import handle_patch
+                if handle_patch(path,read_json(self),self.send_json):return
+            except Exception as e:self.send_json(503,{'ok':False,'error':str(e)});return
+        if path=='/api/suppliers':
+            try:
+                from v99_suppliers_api import handle_patch
+                if handle_patch(path,read_json(self),self.send_json):return
+            except Exception as e:self.send_json(503,{'ok':False,'error':str(e)});return
+        if path=='/api/purchases':
+            try:
+                from v99_purchases_api import handle_patch
                 if handle_patch(path,read_json(self),self.send_json):return
             except Exception as e:self.send_json(503,{'ok':False,'error':str(e)});return
         self.send_json(404,{'ok':False,'error':'Endpoint não encontrado'})
