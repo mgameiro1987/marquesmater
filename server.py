@@ -87,6 +87,11 @@ class Handler(SimpleHTTPRequestHandler):
         super().do_GET()
     def do_POST(self):
         path=urlsplit(self.path).path
+        if path=='/api/catalog/import':
+            try:
+                from v99_catalog_import_api import handle_upload
+                if handle_upload(self,self.send_json): return
+            except Exception as e:self.send_json(503,{'ok':False,'error':str(e)});return
         if path in ('/api/account/register','/api/account/login','/api/account/logout'):
             try:
                 from v96_account_api import handle_post
