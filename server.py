@@ -149,7 +149,17 @@ class Handler(SimpleHTTPRequestHandler):
                 from v96_stock_api import handle_post
                 if handle_post(path,read_json(self),self.send_json):return
             except Exception as e:self.send_json(503,{'ok':False,'error':str(e)});return
-        if path=='/api/orders' or (path.startswith('/api/orders/') and path.endswith('/status')):
+        if path=='/api/orders':
+            try:
+                body=read_json(self)
+                if body.get('couponCode') or body.get('subtotal') is not None:
+                    from v9_10_11_order_marketing import create_order
+                    if create_order(body,self.send_json): return
+                from v96_api import handle_post
+                if handle_post(path,body,self.send_json):return
+            except ValueError as e:self.send_json(400,{'ok':False,'error':str(e)});return
+            except Exception as e:self.send_json(503,{'ok':False,'error':str(e)});return
+        if path.startswith('/api/orders/') and path.endswith('/status'):
             try:
                 from v96_api import handle_post
                 if handle_post(path,read_json(self),self.send_json):return
