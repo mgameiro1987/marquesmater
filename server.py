@@ -24,7 +24,7 @@ class Handler(SimpleHTTPRequestHandler):
         path=urlsplit(self.path).path;query=parse_qs(urlsplit(self.path).query)
         if path=='/api/marketing':
             try:
-                from v9.10.11_marketing_api import get
+                from v9_10_11_marketing_api import get
                 if get(self.path.split('?',1)[1] if '?' in self.path else '',self.send_json): return
             except Exception as e:self.send_json(503,{'ok':False,'error':str(e)});return
         if path=='/api/customer/orders':
@@ -92,9 +92,9 @@ class Handler(SimpleHTTPRequestHandler):
         super().do_GET()
     def do_POST(self):
         path=urlsplit(self.path).path
-        if path=='/api/marketing/coupon' or path=='/api/marketing/promotion':
+        if path in ('/api/marketing/coupon','/api/marketing/promotion'):
             try:
-                from v9.10.11_marketing_api import post
+                from v9_10_11_marketing_api import post
                 if post(read_json(self),self.send_json): return
             except ValueError as e:self.send_json(400,{'ok':False,'error':str(e)});return
             except Exception as e:self.send_json(503,{'ok':False,'error':str(e)});return
@@ -162,9 +162,9 @@ class Handler(SimpleHTTPRequestHandler):
         self.send_json(404,{'ok':False,'error':'Endpoint não encontrado'})
     def do_PATCH(self):
         path=urlsplit(self.path).path
-        if path=='/api/marketing/coupon' or path=='/api/marketing/promotion':
+        if path in ('/api/marketing/coupon','/api/marketing/promotion'):
             try:
-                from v9.10.11_marketing_api import patch
+                from v9_10_11_marketing_api import patch
                 if patch(read_json(self),self.send_json): return
             except Exception as e:self.send_json(503,{'ok':False,'error':str(e)});return
         if path=='/api/taxonomy':
