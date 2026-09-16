@@ -1,12 +1,13 @@
 import os
 import psycopg
 from datetime import datetime, timezone
+from urllib.parse import parse_qs
 
 def _db():
     url=os.environ.get('DATABASE_URL')
     if not url: raise RuntimeError('DATABASE_URL não configurado no Render')
     return psycopg.connect(url)
-SCHEMA='''CREATE TABLE IF NOT EXISTS mm_marketing_coupons (id BIGSERIAL PRIMARY KEY, code TEXT UNIQUE NOT NULL, name TEXT NOT NULL, discount_type TEXT NOT NULL, discount_value NUMERIC(12,2) NOT NULL, min_order NUMERIC(12,2) NOT NULL DEFAULT 0, max_uses INTEGER, used_count INTEGER NOT NULL DEFAULT 0, starts_at TIMESTAMPTZ, ends_at TIMESTAMPTZ, active BOOLEAN NOT NULL DEFAULT TRUE, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()); CREATE TABLE IF NOT EXISTS mm_marketing_promotions (id BIGSERIAL PRIMARY KEY, name TEXT NOT NULL, discount_type TEXT NOT NULL, discount_value NUMERIC(12,2) NOT NULL, scope TEXT NOT NULL DEFAULT 'all', scope_value TEXT, starts_at TIMESTAMPTZ, ends_at TIMESTAMPTZ, active BOOLEAN NOT NULL DEFAULT TRUE, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW());'''
+SCHEMA='''CREATE TABLE IF NOT EXISTS mm_marketing_coupons (id BIGSERIAL PRIMARY KEY, code TEXT UNIQUE NOT NULL, name TEXT NOT NULL, discount_type TEXT NOT NULL, discount_value NUMERIC(12,2) NOT NULL, min_order NUMERIC(12,2) NOT NULL DEFAULT 0, max_uses INTEGER, used_count INTEGER NOT NULL DEFAULT 0, starts_at TIMESTAMPTZ, ends_at TIMESTAMPTZ, active BOOLEAN NOT NULL DEFAULT TRUE, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()); CREATE TABLE IF NOT EXISTS mm_marketing_promotions (id BIGSERIAL PRIMARY KEY, name TEXT NOT NULL, discount_type TEXT NOT NULL, discount_value NUMERIC(12,2) NOT NULL, scope TEXT NOT NULL DEFAULT 'all', scope_value TEXT, starts_at TIMESTAMPTZ, ends_at TIMESTAMPTZ, active BOOLEAN NOT NULL DEFAULT TRUE, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()); CREATE TABLE IF NOT EXISTS mm_heroes (id BIGSERIAL PRIMARY KEY, title TEXT NOT NULL, subtitle TEXT, description TEXT, button_text TEXT, button_url TEXT, image_desktop TEXT NOT NULL, image_mobile TEXT, position INTEGER NOT NULL DEFAULT 1, active BOOLEAN NOT NULL DEFAULT TRUE, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW());'''
 def ensure():
     with _db() as c:
         with c.cursor() as x:
@@ -46,8 +47,32 @@ def calculate(cur,code,subtotal,items):
     return {'coupon':code or None,'couponDiscount':round(coupon_discount,2),'promotionDiscount':round(promotion_discount,2),'discount':round(total_discount,2),'subtotal':subtotal,'totalAfterDiscount':round(max(0.0,subtotal-total_discount),2),'promotions':applied_promotions}
 def consume_coupon(cur,code):
     if code: cur.execute("UPDATE mm_marketing_coupons SET used_count=used_count+1 WHERE UPPER(code)=UPPER(%s)",(str(code).strip().upper(),))
+def _hero(row):
+    return {'id':row[0],'title':row[1],'subtitle':row[2] or '','description':row[3] or '','buttonText':row[4] or '','buttonUrl':row[5] or '','imageDesktop':row[6],'imageMobile':row[7] or row[6],'position':int(row[8] or 1),'active':bool(row[9])}
+def _heroes_get(send_json):
+    with _db() as c,c.cursor() as x:
+        x.execute('SELECT id,title,subtitle,description,button_text,button_url,image_desktop,image_mobile,position,active FROM mm_heroes ORDER BY position ASC,id ASC')
+        allh=[_hero(r) for r in x.fetchall()]
+    send_json(200,{'ok':True,'heroes':allh}); return True
+def _hero_write(body,send_json):
+    action=str(body.get('action') or 'create'); title=str(body.get('title') or '').strip(); image=str(body.get('imageDesktop') or '').strip()
+    if not title or not image: raise ValueError('Título e imagem Desktop são obrigatórios.')
+    subtitle=str(body.get('subtitle') or '').strip(); description=str(body.get('description') or '').strip(); bt=str(body.get('buttonText') or '').strip(); bu=str(body.get('buttonUrl') or '').strip(); mobile=str(body.get('imageMobile') or image).strip(); pos=max(1,int(body.get('position') or 1)); active=bool(body.get('active',True)); ident=int(body.get('id') or 0)
+    with _db() as c,c.cursor() as x:
+        if action=='update' and ident:
+            x.execute('UPDATE mm_heroes SET title=%s,subtitle=%s,description=%s,button_text=%s,button_url=%s,image_desktop=%s,image_mobile=%s,position=%s,active=%s,updated_at=NOW() WHERE id=%s',(title,subtitle,description,bt,bu,image,mobile,pos,active,ident))
+            if x.rowcount==0: raise ValueError('Hero não encontrado.')
+        else:
+            x.execute('INSERT INTO mm_heroes(title,subtitle,description,button_text,button_url,image_desktop,image_mobile,position,active) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s)',(title,subtitle,description,bt,bu,image,mobile,pos,active))
+        c.commit()
+    send_json(200,{'ok':True}); return True
+def _hero_delete(body,send_json):
+    ident=int(body.get('id') or 0)
+    with _db() as c,c.cursor() as x: x.execute('DELETE FROM mm_heroes WHERE id=%s',(ident,)); c.commit()
+    send_json(200,{'ok':True}); return True
 def get(query,send_json):
     ensure()
+    if 'resource=heroes' in query or parse_qs(query).get('resource')==['heroes']: return _heroes_get(send_json)
     with _db() as c,c.cursor() as x:
         x.execute("SELECT id,code,name,discount_type,discount_value,min_order,max_uses,used_count,starts_at,ends_at,active FROM mm_marketing_coupons ORDER BY id DESC")
         coupons=[{'id':r[0],'code':r[1],'name':r[2],'discountType':r[3],'discountValue':float(r[4]),'minOrder':float(r[5]),'maxUses':r[6],'usedCount':r[7],'startsAt':r[8],'endsAt':r[9],'active':r[10]} for r in x.fetchall()]
@@ -63,6 +88,7 @@ def validate(body,send_json):
     send_json(200,{'ok':True,'result':result}); return True
 def post(body,send_json):
     ensure(); kind=str(body.get('kind') or 'coupon')
+    if kind=='hero': return _hero_write(body,send_json)
     with _db() as c,c.cursor() as x:
         if kind=='coupon':
             code=str(body.get('code') or '').strip().upper(); name=str(body.get('name') or code).strip(); typ=str(body.get('discountType') or 'percent'); value=float(body.get('discountValue') or 0); minimum=max(0,float(body.get('minOrder') or 0)); maxuses=body.get('maxUses'); maxuses=int(maxuses) if maxuses not in (None,'') else None
@@ -81,5 +107,9 @@ def post(body,send_json):
     send_json(201,{'ok':True}); return True
 def patch(body,send_json):
     ensure(); kind=str(body.get('kind') or 'coupon'); ident=int(body.get('id') or 0); active=bool(body.get('active')); table='mm_marketing_coupons' if kind=='coupon' else 'mm_marketing_promotions'
+    if kind=='hero':
+        with _db() as c,c.cursor() as x:
+            x.execute('UPDATE mm_heroes SET active=%s,updated_at=NOW() WHERE id=%s',(active,ident)); c.commit()
+        send_json(200,{'ok':True}); return True
     with _db() as c,c.cursor() as x: x.execute(f'UPDATE {table} SET active=%s WHERE id=%s',(active,ident)); c.commit()
     send_json(200,{'ok':True}); return True
