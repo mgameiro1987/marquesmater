@@ -92,6 +92,12 @@ class Handler(SimpleHTTPRequestHandler):
         super().do_GET()
     def do_POST(self):
         path=urlsplit(self.path).path
+        if path=='/api/marketing/validate':
+            try:
+                from v9_10_11_marketing_api import validate
+                if validate(read_json(self),self.send_json): return
+            except ValueError as e:self.send_json(400,{'ok':False,'error':str(e)});return
+            except Exception as e:self.send_json(503,{'ok':False,'error':str(e)});return
         if path in ('/api/marketing/coupon','/api/marketing/promotion'):
             try:
                 from v9_10_11_marketing_api import post
