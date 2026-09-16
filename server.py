@@ -22,6 +22,11 @@ class Handler(SimpleHTTPRequestHandler):
     def do_OPTIONS(self): self.send_json(204,{})
     def do_GET(self):
         path=urlsplit(self.path).path;query=parse_qs(urlsplit(self.path).query)
+        if path=='/api/marketing':
+            try:
+                from v9.10.11_marketing_api import get
+                if get(self.path.split('?',1)[1] if '?' in self.path else '',self.send_json): return
+            except Exception as e:self.send_json(503,{'ok':False,'error':str(e)});return
         if path=='/api/customer/orders':
             try:
                 from v96_customer_orders import handle_get
@@ -79,7 +84,7 @@ class Handler(SimpleHTTPRequestHandler):
                 try:
                     with open(fn,'rb') as f:data=f.read()
                     marker=b'</head>';ins=[b'<link rel="stylesheet" href="/css/v8.5-mobilepc.css?v=85">',b'<link rel="stylesheet" href="/css/v8.5-account-mobile.css?v=851">']
-                    if path!='/admin.html':ins.append(b'<script src="/js/v9.3.25-stock-public.js?v=93251"></script>')
+                    if path!='/admin.html':ins.append(b'<script src="/js/v9.3.25-stock-public.js?v=93251"></script>');ins.append(b'<script src="/js/v9.10.11-order-guard.js?v=1011"></script>') if path!='/admin.html' else None
                     for item in ins:
                         if marker in data and item not in data:data=data.replace(marker,item+marker,1)
                     self.send_response(200);self.send_header('Content-Type','text/html; charset=utf-8');self.send_header('Cache-Control','no-store');self.send_header('Content-Length',str(len(data)));self.end_headers();self.wfile.write(data);return
@@ -87,6 +92,12 @@ class Handler(SimpleHTTPRequestHandler):
         super().do_GET()
     def do_POST(self):
         path=urlsplit(self.path).path
+        if path=='/api/marketing/coupon' or path=='/api/marketing/promotion':
+            try:
+                from v9.10.11_marketing_api import post
+                if post(read_json(self),self.send_json): return
+            except ValueError as e:self.send_json(400,{'ok':False,'error':str(e)});return
+            except Exception as e:self.send_json(503,{'ok':False,'error':str(e)});return
         if path=='/api/catalog/import':
             try:
                 from v99_catalog_import_api import handle_upload
@@ -151,6 +162,11 @@ class Handler(SimpleHTTPRequestHandler):
         self.send_json(404,{'ok':False,'error':'Endpoint não encontrado'})
     def do_PATCH(self):
         path=urlsplit(self.path).path
+        if path=='/api/marketing/coupon' or path=='/api/marketing/promotion':
+            try:
+                from v9.10.11_marketing_api import patch
+                if patch(read_json(self),self.send_json): return
+            except Exception as e:self.send_json(503,{'ok':False,'error':str(e)});return
         if path=='/api/taxonomy':
             try:
                 from v99_taxonomy_api import handle_patch
