@@ -1,7 +1,7 @@
 import os, json, threading, time, urllib.request
 import psycopg
 
-JOB_KEY="rida-content-41-v1"
+JOB_KEY="rida-content-41-v2"
 GARDEN={"RGT11280","RHT09025","RCS03V016","RCS06006","RBP01040","RBL06650","REP16245"}
 CONSTRUCTION={"RCR11022","RGG11310","RJR12000","RHD01075","RCG07115","RCG07125","RCH072D6","RCC00190","RCC08150","RCJ08025","RCO11125","RCO13150","RCL1250H"}
 ACCESSORIES={"RB2020","RB2040","RFC24","RDC30","BMCB75"}
@@ -63,14 +63,14 @@ def generate(product):
 def mapping(sku):
     if sku in GARDEN or sku in GARDEN_KITS:
         # Só o produto de poda usa a subcategoria comercial já existente; os restantes ficam na categoria comercial.
-        com=(4,25,33,"Jardim & Agricultura","Serras de Poda","garden") if sku in {"RBP01040","RBP01040-C12"} else (4,None,None,"Jardim & Agricultura",None,None)
+        com=(4,25,33,"Jardim & Agricultura","Serras de Poda","garden") if sku in {"RBP01040","RBP01040-C12"} else (4,None,None,"Jardim & Agricultura","Jardim & Agricultura",None)
         return com,(11,16602,16604,"RIDA","Máquinas a bateria","Jardim")
     if sku in CONSTRUCTION or sku in CONSTRUCTION_KITS:
-        return (7,None,None,"Construção",None,None),(11,16602,16603,"RIDA","Máquinas a bateria","Construção")
+        return (7,None,None,"Construção","Construção",None),(11,16602,16603,"RIDA","Máquinas a bateria","Construção")
     if sku in ACCESSORIES:
-        if sku in {"RB2020","RB2040"}: com=(8,None,None,"Ferragens",None,None)
-        elif sku in {"RFC24","RDC30"}: com=(10,None,None,"Eletricidade",None,None)
-        else: com=(8,None,None,"Ferragens",None,None)
+        if sku in {"RB2020","RB2040"}: com=(8,None,None,"Ferragens","Acessórios",None)
+        elif sku in {"RFC24","RDC30"}: com=(10,None,None,"Eletricidade","Acessórios",None)
+        else: com=(8,None,None,"Ferragens","Acessórios",None)
         return com,(11,16602,16605,"RIDA","Máquinas a bateria","Acessórios")
     return None,None
 
@@ -86,7 +86,8 @@ def worker():
     try:
         with db() as c:
             with c.cursor() as cur:
-                cur.execute("SELECT id,sku,brand,name,type,description,image,attributes,specs,barcode FROM catalog_products WHERE brand ILIKE 'RIDA' ORDER BY id")
+                cur.execute("""SELECT id,sku,brand,name,type,description,image,attributes,specs,barcode FROM catalog_products
+                  WHERE sku = ANY(%s) ORDER BY id""", [list(GARDEN|CONSTRUCTION|ACCESSORIES|GARDEN_KITS|CONSTRUCTION_KITS)])
                 rows=cur.fetchall()
                 cur.execute("UPDATE mm_ai_bulk_runs SET total=%s,status='running',started_at=COALESCE(started_at,NOW()),updated_at=NOW() WHERE job_key=%s",(len(rows),JOB_KEY));c.commit()
                 for row in rows:
