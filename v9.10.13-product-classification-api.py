@@ -59,11 +59,16 @@ def handle_get(path,query,send_json):
             if (qs.get('options') or [''])[0]=='1':
                 send_json(200,{'ok':True,'options':get_options(cur)});return True
             if (qs.get('all') or [''])[0]=='1':
-                cur.execute('''SELECT product_id,classification_type,category_id,subcategory_id,family_id
-                               FROM mm_product_classifications ORDER BY product_id,classification_type''')
+                cur.execute('''SELECT pc.product_id,pc.classification_type,pc.category_id,pc.subcategory_id,pc.family_id,
+                                      cc.name AS category_name,cs.name AS subcategory_name,cf.name AS family_name
+                               FROM mm_product_classifications pc
+                               LEFT JOIN catalog_categories cc ON cc.id=pc.category_id
+                               LEFT JOIN catalog_categories cs ON cs.id=pc.subcategory_id
+                               LEFT JOIN catalog_categories cf ON cf.id=pc.family_id
+                               ORDER BY pc.product_id,pc.classification_type''')
                 grouped={}
                 for r in cur.fetchall():
-                    grouped.setdefault(str(r[0]),{})[r[1]]={'categoryId':r[2],'subcategoryId':r[3],'familyId':r[4]}
+                    grouped.setdefault(str(r[0]),{})[r[1]]={'categoryId':r[2],'subcategoryId':r[3],'familyId':r[4],'category':r[5] or '','subcategory':r[6] or '','family':r[7] or ''}
                 send_json(200,{'ok':True,'items':grouped});return True
             pid=iid((qs.get('productId') or [''])[0])
             if not pid:
