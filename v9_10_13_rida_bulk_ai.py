@@ -149,9 +149,11 @@ def start_once():
 
 def handle_get(query,send_json):
     from urllib.parse import parse_qs
-    q=parse_qs(query or "");token=(q.get("token") or [""])[0]
-    if token != os.environ.get("RIDA_BULK_TOKEN"): send_json(403,{"ok":False,"error":"Acesso não autorizado"});return True
+    q=parse_qs(query or "")
     init_job()
+    if (q.get("run") or ["0"])[0]=="1":
+        started=start_once()
+        send_json(200,{"ok":True,"started":started,"message":"Processamento IA RIDA iniciado ou já estava em execução."});return True
     with db() as c:
         with c.cursor() as x:
             x.execute("SELECT status,total,done,errors,last,started_at,finished_at FROM mm_ai_bulk_runs WHERE job_key=%s",(JOB_KEY,));r=x.fetchone()
