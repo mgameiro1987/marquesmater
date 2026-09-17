@@ -1,7 +1,7 @@
 import os, json, threading, time, urllib.request, urllib.error
 import psycopg
 
-JOB_KEY="rida-content-41-v3"
+JOB_KEY="rida-content-41-v4"
 GARDEN={"RGT11280","RHT09025","RCS03V016","RCS06006","RBP01040","RBL06650","REP16245"}
 CONSTRUCTION={"RCR11022","RGG11310","RJR12000","RHD01075","RCG07115","RCG07125","RCH072D6","RCC00190","RCC08150","RCJ08025","RCO11125","RCO13150","RCL1250H"}
 ACCESSORIES={"RB2020","RB2040","RFC24","RDC30","BMCB75"}
@@ -98,31 +98,37 @@ def worker():
         with db() as c:
             with c.cursor() as cur:
                 cur.execute("""SELECT id,sku,brand,name,type,description,image,attributes,specs,barcode FROM catalog_products
-                  WHERE sku = ANY(%s)
-                  AND (COALESCE(attributes->>'characteristics','')='' OR COALESCE(attributes->>'applications','')='' OR specs IS NULL OR specs='[]'::jsonb OR specs='{}'::jsonb)
-                  ORDER BY id""", [list(GARDEN|CONSTRUCTION|ACCESSORIES|GARDEN_KITS|CONSTRUCTION_KITS)])
+                  WHERE sku = ANY(%s) ORDER BY id""", [list(GARDEN|CONSTRUCTION|ACCESSORIES|GARDEN_KITS|CONSTRUCTION_KITS)])
                 rows=cur.fetchall()
                 cur.execute("UPDATE mm_ai_bulk_runs SET total=%s,status='running',started_at=COALESCE(started_at,NOW()),updated_at=NOW() WHERE job_key=%s",(len(rows),JOB_KEY));c.commit()
                 for row in rows:
                     pid,sku,brand,name,typ,desc,img,attrs,specs,barcode=row
+                    com,rida=mapping(str(sku))
                     try:
-                        com,rida=mapping(str(sku))
-                        product={"sku":sku,"brand":brand,"name":name,"type":typ,"description":desc,"image":img,"barcode":barcode,
-                          "attributes":attrs or {},"specs":specs or {},"commercial_category":com[3] if com else None,
-                          "commercial_subcategory":com[4] if com else None,"rida_category":rida[3] if rida else None,
-                          "rida_subcategory":rida[4] if rida else None,"rida_family":rida[5] if rida else None}
-                        result=generate(product)
-                        newattrs=dict(attrs or {})
-                        newattrs["characteristics"]=str(result.get("characteristics") or "").strip()
-                        newattrs["applications"]=str(result.get("applications") or "").strip()
-                        new_specs=[str(x).strip() for x in (result.get("specifications") or []) if str(x).strip()]
-                        cur.execute("""UPDATE catalog_products SET description=%s,specs=%s,attributes=%s,
-                          category=%s,subcategory=%s,category_id=%s,subcategory_id=%s,family_id=%s,updated_at=NOW() WHERE id=%s""",
-                          (str(result.get("description") or "").strip(),json.dumps(new_specs,ensure_ascii=False),
-                           json.dumps(newattrs,ensure_ascii=False),com[3] if com else None,com[4] if com else None,
-                           com[0] if com else None,com[1] if com else None,com[2] if com else None,pid))
-                        ensure_classification(cur,pid,"commercial",com);ensure_classification(cur,pid,"rida",rida)
-                        cur.execute("UPDATE mm_ai_bulk_runs SET done=done+1,last=%s,updated_at=NOW() WHERE job_key=%s",(sku,JOB_KEY));c.commit()\n                        time.sleep(10)
+                        # Primeiro fixa a classificação comercial + RIDA, independentemente da IA.
+                        cur.execute("""UPDATE catalog_products SET category=%s,subcategory=%s,category_id=%s,subcategory_id=%s,family_id=%s,updated_at=NOW() WHERE id=%s""",
+                          (com[3] if com else None,com[4] if com else "Acessórios",com[0] if com else None,com[1] if com else None,com[2] if com else None,pid))
+                        ensure_classification(cur,pid,"commercial",com);ensure_classification(cur,pid,"rida",rida);c.commit()
+                        attrs=attrs or {}; specs=specs or {}
+                        chars=str(attrs.get("characteristics") or "").strip()
+                        apps=str(attrs.get("applications") or "").strip()
+                        needs_ai=(not chars or not apps or not isinstance(specs,list) or len(specs)==0)
+                        if needs_ai:
+                            product={"sku":sku,"brand":brand,"name":name,"type":typ,"description":desc,"image":img,"barcode":barcode,
+                              "attributes":attrs,"specs":specs,"commercial_category":com[3] if com else None,
+                              "commercial_subcategory":com[4] if com else None,"rida_category":rida[3] if rida else None,
+                              "rida_subcategory":rida[4] if rida else None,"rida_family":rida[5] if rida else None}
+                            result=generate(product)
+                            newattrs=dict(attrs)
+                            newattrs["characteristics"]=str(result.get("characteristics") or "").strip()
+                            newattrs["applications"]=str(result.get("applications") or "").strip()
+                            new_specs=[str(x).strip() for x in (result.get("specifications") or []) if str(x).strip()]
+                            cur.execute("""UPDATE catalog_products SET description=%s,specs=%s,attributes=%s,updated_at=NOW() WHERE id=%s""",
+                              (str(result.get("description") or "").strip(),json.dumps(new_specs,ensure_ascii=False),
+                               json.dumps(newattrs,ensure_ascii=False),pid))
+                            c.commit()
+                            time.sleep(10)
+                        cur.execute("UPDATE mm_ai_bulk_runs SET done=done+1,last=%s,updated_at=NOW() WHERE job_key=%s",(sku,JOB_KEY));c.commit()
                     except Exception as e:
                         c.rollback()
                         with c.cursor() as x:
