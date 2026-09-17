@@ -1,4 +1,4 @@
-import csv, io, json, re, base64
+import csv, io, json, re, base64, zipfile, xml.etree.ElementTree as ET
 from urllib.parse import parse_qs
 
 def _clean(v):
@@ -102,16 +102,39 @@ def _find_header(ws):
             if best is None or candidate[0]>best[0]:best=candidate
     return (best[1],best[2]) if best else None
 
-def _extract_embedded_images(ws):
+def _extract_embedded_images(data,ws):
     result={}
-    for image in getattr(ws,'_images',[]) or []:
-        try:
-            row=image.anchor._from.row+1
-            raw=image._data()
-            ext=str(getattr(image,'format','png') or 'png').lower().replace('jpeg','jpg')
-            mime='image/jpeg' if ext in ('jpg','jpeg') else 'image/png'
-            result[row]=f'data:{mime};base64,'+base64.b64encode(raw).decode('ascii')
-        except Exception:continue
+    try:
+        drawing_target=None
+        for rel in getattr(ws,'_rels',[]) or []:
+            if str(getattr(rel,'Type','')).endswith('/drawing'):
+                drawing_target=str(getattr(rel,'Target','')).lstrip('/')
+                break
+        if not drawing_target:return result
+        with zipfile.ZipFile(io.BytesIO(data)) as zf:
+            if drawing_target not in zf.namelist():return result
+            drawing_root=ET.fromstring(zf.read(drawing_target))
+            rel_path=posixpath.join(posixpath.dirname(drawing_target),'_rels',posixpath.basename(drawing_target)+'.rels')
+            if rel_path not in zf.namelist():return result
+            rel_root=ET.fromstring(zf.read(rel_path))
+            relmap={r.attrib.get('Id'):r.attrib.get('Target','') for r in rel_root}
+            ns={'xdr':'http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing','a':'http://schemas.openxmlformats.org/drawingml/2006/main','r':'http://schemas.openxmlformats.org/officeDocument/2006/relationships'}
+            for anchor in drawing_root:
+                frm=anchor.find('xdr:from',ns)
+                if frm is None:continue
+                row_el=frm.find('xdr:row',ns)
+                pic=anchor.find('.//xdr:pic',ns)
+                blip=pic.find('.//a:blip',ns) if pic is not None else None
+                if row_el is None or blip is None:continue
+                row=int(row_el.text)+1
+                rid=blip.attrib.get('{%s}embed'%ns['r']);target=relmap.get(rid)
+                if not target:continue
+                media=posixpath.normpath(posixpath.join(posixpath.dirname(drawing_target),target))
+                if media not in zf.namelist():continue
+                raw=zf.read(media);ext=media.rsplit('.',1)[-1].lower();mime={'jpg':'image/jpeg','jpeg':'image/jpeg','gif':'image/gif','webp':'image/webp','bmp':'image/bmp'}.get(ext,'image/png')
+                result[row]=f'data:{mime};base64,'+base64.b64encode(raw).decode('ascii')
+    except Exception:
+        return result
     return result
 
 def _read_excel(data,filename=''):
@@ -121,7 +144,7 @@ def _read_excel(data,filename=''):
     for ws in wb.worksheets:
         header=_find_header(ws)
         if not header:continue
-        header_row,headers=header;images=_extract_embedded_images(ws);rows=[]
+        header_row,headers=header;images=_extract_embedded_images(data,ws);rows=[]
         image_header_col=next((i+1 for i,h in enumerate(headers) if _match_field(h)=='image'),None)
         for r in range(header_row+1,ws.max_row+1):
             vals=[ws.cell(r,c).value for c in range(1,ws.max_column+1)]
