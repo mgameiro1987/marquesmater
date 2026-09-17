@@ -97,6 +97,11 @@ class Handler(SimpleHTTPRequestHandler):
         super().do_GET()
     def do_POST(self):
         path=urlsplit(self.path).path
+        if path=='/api/ai/rida-bulk':
+            try:
+                from v9_10_13_rida_bulk_ai import handle_get
+                if handle_get(self.path.split('?',1)[1] if '?' in self.path else '',self.send_json): return
+            except Exception as e:self.send_json(503,{'ok':False,'error':str(e)});return
         if path=='/api/ai/product-content':
             try:
                 from v9_10_13_ai_product_api import handle_post
