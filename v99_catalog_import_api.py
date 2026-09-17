@@ -161,11 +161,15 @@ def _read_excel(data,filename=''):
             vals=[ws.cell(r,c).value for c in range(1,ws.max_column+1)]
             if not any(v not in (None,'') for v in vals):continue
             raw=dict(zip(headers,vals));item=_row_payload(raw)
+            embedded_img=images.get(r,'')
+            cell_img=''
             if image_header_col:
                 cell_img=_image_cell_value(ws.cell(r,image_header_col))
-                if cell_img:item['image']=cell_img
+            if embedded_img:
+                item['image']=embedded_img
+            elif cell_img:
+                item['image']=cell_img
             if not item.get('sku') and not item.get('name'):continue
-            if r in images and not item.get('image'):item['image']=images[r]
             rows.append(item)
         if rows:
             title=ws.title.strip().lower();preference=1 if any(p in title for p in preferred) else 0;candidates.append((preference,len(rows),ws.title,rows))
