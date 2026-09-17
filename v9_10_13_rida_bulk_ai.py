@@ -1,7 +1,7 @@
 import os, json, threading, time, urllib.request, urllib.error
 import psycopg
 
-JOB_KEY="rida-content-41-v6"
+JOB_KEY="rida-content-41-v7"
 GARDEN={"RGT11280","RHT09025","RCS03V016","RCS06006","RBP01040","RBL06650","REP16245"}
 CONSTRUCTION={"RCR11022","RGG11310","RJR12000","RHD01075","RCG07115","RCG07125","RCH072D6","RCC00190","RCC08150","RCJ08025","RCO11125","RCO13150","RCL1250H"}
 ACCESSORIES={"RB2020","RB2040","RFC24","RDC30","BMCB75"}
@@ -85,6 +85,45 @@ def ensure_classification(cur,pid,ctype,m):
       ON CONFLICT(product_id,classification_type) DO UPDATE SET category_id=EXCLUDED.category_id,
       subcategory_id=EXCLUDED.subcategory_id,family_id=EXCLUDED.family_id,updated_at=NOW()""",(pid,ctype,cat,sub,fam))
 
+def local_content(p):
+    name=str(p.get("name") or "Produto RIDA").strip()
+    sku=str(p.get("sku") or "").strip()
+    cat=str(p.get("commercial_category") or "RIDA").strip()
+    lname=name.lower()
+    if "berbequim" in lname: use="perfuração e aparafusamento em trabalhos de construção, montagem e manutenção"
+    elif "rebarbadora" in lname: use="corte, desbaste e acabamento em trabalhos de construção e oficina"
+    elif "martelo perfurador" in lname: use="perfuração e trabalhos de construção"
+    elif "serra circular" in lname: use="corte de materiais em trabalhos de construção e montagem"
+    elif "tico-tico" in lname: use="corte e recorte de materiais em trabalhos de construção e bricolage"
+    elif "serra sabre" in lname: use="corte e desmontagem em trabalhos de construção e manutenção"
+    elif "lixadora" in lname: use="lixagem e preparação de superfícies em construção e bricolage"
+    elif "pistola de silicone" in lname: use="aplicação de selantes e adesivos em trabalhos de montagem e acabamento"
+    elif "luz de trabalho" in lname: use="iluminação de zonas de trabalho e manutenção"
+    elif "aparador de relva" in lname: use="corte e acabamento de relvados e manutenção de espaços verdes"
+    elif "corta-sebes" in lname: use="manutenção e corte de sebes e arbustos"
+    elif "motosserra" in lname: use="corte e manutenção de madeira e vegetação em espaços exteriores"
+    elif "tesoura de poda" in lname: use="poda e manutenção de árvores, arbustos e plantas"
+    elif "soprador" in lname: use="remoção de folhas e resíduos em jardins e espaços exteriores"
+    elif "vara extensível" in lname: use="trabalhos de jardinagem que exijam alcance adicional"
+    elif "bateria" in lname: use="alimentação de equipamentos RIDA compatíveis"
+    elif "carregador" in lname: use="carregamento de baterias RIDA compatíveis"
+    elif "mala" in lname: use="transporte e acondicionamento de equipamento"
+    elif "coluna" in lname: use="utilização portátil em espaços de trabalho e lazer"
+    else: use="trabalhos gerais de manutenção"
+    is_kit="kit " in lname
+    desc=(f"{name} RIDA, uma solução destinada a {use}. "
+          f"O artigo pertence à gama RIDA e está enquadrado na categoria comercial {cat}. "
+          f"A configuração e os dados técnicos específicos devem ser confirmados na ficha do produto.")
+    chars="\n".join([
+      "• Marca: RIDA",
+      f"• Designação: {name}",
+      f"• Referência/SKU: {sku}",
+      f"• Categoria comercial: {cat}",
+      "• Plataforma de equipamento RIDA a bateria" if ("bateria" in lname or is_kit or cat in ("Construção","Jardim & Agricultura")) else "• Acessório para a gama RIDA"
+    ])
+    apps=f"• {use.capitalize()}\n• Utilização em contexto profissional ou de manutenção, de acordo com o tipo de produto\n• Consultar a ficha do artigo para confirmar a configuração e compatibilidade"
+    return {"description":desc,"characteristics":chars,"specifications":[],"applications":apps}
+
 def worker():
     try:
         with db() as c:
@@ -93,35 +132,28 @@ def worker():
                   WHERE sku = ANY(%s) ORDER BY id""", [list(GARDEN|CONSTRUCTION|ACCESSORIES|GARDEN_KITS|CONSTRUCTION_KITS)])
                 rows=cur.fetchall()
                 cur.execute("UPDATE mm_ai_bulk_runs SET total=%s,status='running',started_at=COALESCE(started_at,NOW()),updated_at=NOW() WHERE job_key=%s",(len(rows),JOB_KEY));c.commit()
-                pending=[]
                 for row in rows:
                     pid,sku,brand,name,typ,desc,img,attrs,specs,barcode=row
-                    com,rida=mapping(str(sku))
-                    attrs=attrs or {}; specs=specs or {}
-                    cur.execute("""UPDATE catalog_products SET category=%s,subcategory=%s,category_id=%s,subcategory_id=%s,family_id=%s,updated_at=NOW() WHERE id=%s""",
-                      (com[3] if com else None,com[4] if com else "Acessórios",com[0] if com else None,com[1] if com else None,com[2] if com else None,pid))
-                    ensure_classification(cur,pid,"commercial",com);ensure_classification(cur,pid,"rida",rida)
-                    needs_ai=(not str(attrs.get("characteristics") or "").strip() or not str(attrs.get("applications") or "").strip() or not isinstance(specs,list) or len(specs)==0)
-                    if needs_ai:
-                        pending.append({"id":pid,"sku":sku,"brand":brand,"name":name,"type":typ,"description":desc,
-                          "attributes":attrs,"specs":specs,"commercial_category":com[3] if com else None,
-                          "commercial_subcategory":com[4] if com else None,"rida_category":rida[3] if rida else None,
-                          "rida_subcategory":rida[4] if rida else None,"rida_family":rida[5] if rida else None})
-                c.commit()
-                if pending:
-                    results=generate_batch(pending)
-                    bysku={str(x.get("sku")):x for x in results}
-                    for p in pending:
-                        x=bysku.get(str(p["sku"]))
-                        if not x: 
-                            cur.execute("UPDATE mm_ai_bulk_runs SET errors=errors+1,last=%s,updated_at=NOW() WHERE job_key=%s",("Sem resposta IA para "+str(p["sku"]),JOB_KEY));continue
-                        attrs=dict(p["attributes"]);attrs["characteristics"]=str(x.get("characteristics") or "").strip();attrs["applications"]=str(x.get("applications") or "").strip()
-                        specs=[str(v).strip() for v in (x.get("specifications") or []) if str(v).strip()]
-                        cur.execute("UPDATE catalog_products SET description=%s,specs=%s,attributes=%s,updated_at=NOW() WHERE id=%s",
-                          (str(x.get("description") or "").strip(),json.dumps(specs,ensure_ascii=False),json.dumps(attrs,ensure_ascii=False),p["id"]))
-                        cur.execute("UPDATE mm_ai_bulk_runs SET done=done+1,last=%s,updated_at=NOW() WHERE job_key=%s",(p["sku"],JOB_KEY))
+                    try:
+                        com,rida=mapping(str(sku))
+                        attrs=attrs or {};specs=specs or []
+                        cur.execute("""UPDATE catalog_products SET category=%s,subcategory=%s,category_id=%s,subcategory_id=%s,family_id=%s,updated_at=NOW() WHERE id=%s""",
+                          (com[3] if com else None,com[4] if com else "Acessórios",com[0] if com else None,com[1] if com else None,com[2] if com else None,pid))
+                        ensure_classification(cur,pid,"commercial",com);ensure_classification(cur,pid,"rida",rida)
+                        if not str(attrs.get("characteristics") or "").strip() or not str(attrs.get("applications") or "").strip() or not isinstance(specs,list) or len(specs)==0:
+                            x=local_content({"sku":sku,"name":name,"commercial_category":com[3] if com else None})
+                            attrs["characteristics"]=x["characteristics"];attrs["applications"]=x["applications"]
+                            # Não inventar especificações técnicas: só gravamos lista vazia quando não há dados confirmados.
+                            cur.execute("""UPDATE catalog_products SET description=%s,specs=%s,attributes=%s,updated_at=NOW() WHERE id=%s""",
+                              (x["description"],json.dumps(x["specifications"],ensure_ascii=False),json.dumps(attrs,ensure_ascii=False),pid))
                         c.commit()
-                cur.execute("UPDATE mm_ai_bulk_runs SET status='done',finished_at=NOW(),updated_at=NOW() WHERE job_key=%s",(JOB_KEY,));c.commit()
+                        cur.execute("UPDATE mm_ai_bulk_runs SET done=done+1,last=%s,updated_at=NOW() WHERE job_key=%s",(sku,JOB_KEY));c.commit()
+                    except Exception as e:
+                        c.rollback()
+                        with c.cursor() as x:
+                            x.execute("UPDATE mm_ai_bulk_runs SET errors=errors+1,last=%s,updated_at=NOW() WHERE job_key=%s",(str(sku)+": "+str(e)[:500],JOB_KEY));c.commit()
+                with c.cursor() as x:
+                    x.execute("UPDATE mm_ai_bulk_runs SET status='done',finished_at=NOW(),updated_at=NOW() WHERE job_key=%s",(JOB_KEY,));c.commit()
     except Exception as e:
         try:
             with db() as c:
