@@ -1,9 +1,4 @@
-import os, json
-
-try:
-    from openai import OpenAI
-except Exception:
-    OpenAI = None
+import os, json, urllib.request
 
 MODEL = os.environ.get('OPENAI_MODEL', 'gpt-5.6-luna')
 
@@ -20,20 +15,13 @@ def _image_url(value):
         return value
     if value.startswith('http://') or value.startswith('https://'):
         return value
-    if value.startswith('/'):
-        host = os.environ.get('PUBLIC_BASE_URL', '').rstrip('/')
-        if host:
-            return host + value
     host = os.environ.get('PUBLIC_BASE_URL', 'https://marquesmater-7ap1.onrender.com').rstrip('/')
     return host + '/' + value.lstrip('/')
 
 
 def handle_post(body, send_json):
-    if OpenAI is None:
-        send_json(503, {'ok': False, 'error': 'O módulo OpenAI ainda não está instalado no servidor.'})
-        return True
     if not os.environ.get('OPENAI_API_KEY'):
-        send_json(503, {'ok': False, 'error': 'A IA do MarquesMater ainda não está configurada no Render (OPENAI_API_KEY).'} )
+        send_json(503, {'ok': False, 'error': 'A IA do MarquesMater ainda não está configurada no Render (OPENAI_API_KEY).'})
         return True
 
     product = body.get('product') or {}
@@ -60,7 +48,6 @@ def handle_post(body, send_json):
         'existing_specifications': _clean(product.get('specifications'), 5000),
         'existing_applications': _clean(product.get('applications'), 4000),
     }
-
     task_instruction = {
         'all': 'Preenche os quatro campos: descrição, características, especificações e aplicações.',
         'description': 'Concentra-te na descrição comercial profissional.',
@@ -68,24 +55,17 @@ def handle_post(body, send_json):
         'specifications': 'Concentra-te nas especificações técnicas confirmáveis.',
         'applications': 'Concentra-te nas aplicações e utilizações adequadas.'
     }[task]
-
     instructions = (
         'És o assistente de conteúdos do backoffice MarquesMater. Escreve em português de Portugal. '
-        'Analisa a imagem do produto quando fornecida e usa também os dados estruturados. '
-        'A informação deve ser profissional, clara e adequada a uma loja online de materiais, ferramentas e máquinas. '
+        'Analisa a imagem quando fornecida e usa também os dados estruturados. Profissional, claro e adequado a uma loja online. '
         'NUNCA inventes números, tensões, potências, capacidades, rotações, pesos, dimensões, certificações ou outras especificações técnicas. '
-        'Só coloca uma especificação como confirmada quando estiver visível na imagem ou tiver sido fornecida nos dados. '
-        'Quando algo técnico não puder ser confirmado, deixa esse campo vazio ou indica que deve ser confirmado. '
-        'Não uses linguagem enganadora, superlativos não comprovados ou alegações de desempenho não suportadas. '
-        + task_instruction
+        'Só considera confirmada uma especificação quando estiver visível na imagem ou fornecida nos dados. '
+        'Quando algo técnico não puder ser confirmado, deixa o campo vazio ou indica que deve ser confirmado. '
+        'Não uses alegações de desempenho não suportadas. ' + task_instruction
     )
-
-    content = [
-        {'type': 'input_text', 'text': 'Dados do produto:\n' + json.dumps(context, ensure_ascii=False) + '\n\nGera o conteúdo solicitado.'}
-    ]
+    content = [{'type': 'input_text', 'text': 'Dados do produto:\n' + json.dumps(context, ensure_ascii=False) + '\n\nGera o conteúdo solicitado.'}]
     if image:
         content.append({'type': 'input_image', 'image_url': image, 'detail': 'high'})
-
     schema = {
         'type': 'object',
         'properties': {
@@ -98,19 +78,33 @@ def handle_post(body, send_json):
         'required': ['description', 'characteristics', 'specifications', 'applications', 'notes'],
         'additionalProperties': False
     }
-
+    payload = {
+        'model': MODEL,
+        'store': False,
+        'instructions': instructions,
+        'input': [{'role': 'user', 'content': content}],
+        'text': {'format': {'type': 'json_schema', 'name': 'marquesmater_product_content', 'schema': schema, 'strict': True}}
+    }
     try:
-        client = OpenAI()
-        response = client.responses.create(
-            model=MODEL,
-            store=False,
-            instructions=instructions,
-            input=[{'role': 'user', 'content': content}],
-            text={'format': {'type': 'json_schema', 'name': 'marquesmater_product_content', 'schema': schema, 'strict': True}},
+        req = urllib.request.Request(
+            'https://api.openai.com/v1/responses',
+            data=json.dumps(payload, ensure_ascii=False).encode('utf-8'),
+            headers={'Authorization': 'Bearer ' + os.environ['OPENAI_API_KEY'], 'Content-Type': 'application/json'},
+            method='POST'
         )
-        raw = response.output_text or '{}'
-        data = json.loads(raw)
-        send_json(200, {'ok': True, 'model': MODEL, 'content': data})
+        with urllib.request.urlopen(req, timeout=90) as response:
+            data = json.loads(response.read().decode('utf-8'))
+        raw = data.get('output_text') or ''
+        if not raw:
+            for item in data.get('output') or []:
+                for part in item.get('content') or []:
+                    if part.get('type') == 'output_text':
+                        raw = part.get('text') or ''
+                        break
+                if raw:
+                    break
+        result = json.loads(raw or '{}')
+        send_json(200, {'ok': True, 'model': MODEL, 'content': result})
         return True
     except Exception as e:
         send_json(502, {'ok': False, 'error': 'A IA não conseguiu gerar o conteúdo: ' + str(e)[:700]})
