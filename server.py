@@ -67,6 +67,11 @@ class Handler(SimpleHTTPRequestHandler):
                 from v99_taxonomy_api import handle_get
                 if handle_get(path,self.path.split('?',1)[1] if '?' in self.path else '',self.send_json): return
             except Exception as e:self.send_json(503,{'ok':False,'error':str(e)});return
+        if path=='/api/catalog/classification':
+            try:
+                from v9_10_13_product_classification_api import handle_get
+                if handle_get(path,self.path.split('?',1)[1] if '?' in self.path else '',self.send_json): return
+            except Exception as e:self.send_json(503,{'ok':False,'error':str(e)});return
         if path in ('/api/stock','/api/stock/movements'):
             try:
                 from v96_stock_api import handle_get
@@ -108,6 +113,12 @@ class Handler(SimpleHTTPRequestHandler):
             try:
                 from v99_catalog_import_api import handle_upload
                 if handle_upload(self,self.send_json): return
+            except Exception as e:self.send_json(503,{'ok':False,'error':str(e)});return
+        if path=='/api/catalog/classification':
+            try:
+                from v9_10_13_product_classification_api import handle_post
+                if handle_post(path,read_json(self),self.send_json): return
+            except ValueError as e:self.send_json(400,{'ok':False,'error':str(e)});return
             except Exception as e:self.send_json(503,{'ok':False,'error':str(e)});return
         if path in ('/api/account/register','/api/account/login','/api/account/logout'):
             try:
