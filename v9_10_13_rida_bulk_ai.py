@@ -1,7 +1,7 @@
-import os, json, threading, time, urllib.request
+import os, json, threading, time, urllib.request, urllib.error
 import psycopg
 
-JOB_KEY="rida-content-41-v2"
+JOB_KEY="rida-content-41-v3"
 GARDEN={"RGT11280","RHT09025","RCS03V016","RCS06006","RBP01040","RBL06650","REP16245"}
 CONSTRUCTION={"RCR11022","RGG11310","RJR12000","RHD01075","RCG07115","RCG07125","RCH072D6","RCC00190","RCC08150","RCJ08025","RCO11125","RCO13150","RCL1250H"}
 ACCESSORIES={"RB2020","RB2040","RFC24","RDC30","BMCB75"}
@@ -51,8 +51,19 @@ def generate(product):
       "text":{"format":{"type":"json_schema","name":"marquesmater_rida_bulk_content","schema":schema,"strict":True}}}
     req=urllib.request.Request("https://api.openai.com/v1/responses",data=json.dumps(payload,ensure_ascii=False).encode(),
       headers={"Authorization":"Bearer "+key,"Content-Type":"application/json"},method="POST")
-    with urllib.request.urlopen(req,timeout=120) as response: data=json.loads(response.read().decode())
-    raw=data.get("output_text") or ""
+    data=None
+    for attempt in range(6):
+        try:
+            with urllib.request.urlopen(req,timeout=120) as response:
+                data=json.loads(response.read().decode())
+            break
+        except urllib.error.HTTPError as e:
+            if e.code!=429 or attempt>=5: raise
+            retry=e.headers.get("Retry-After")
+            try: wait=max(10,min(60,float(retry))) if retry else min(60,15*(attempt+1))
+            except Exception: wait=min(60,15*(attempt+1))
+            time.sleep(wait)
+    raw=(data or {}).get("output_text") or ""
     if not raw:
         for item in data.get("output") or []:
             for part in item.get("content") or []:
@@ -87,7 +98,9 @@ def worker():
         with db() as c:
             with c.cursor() as cur:
                 cur.execute("""SELECT id,sku,brand,name,type,description,image,attributes,specs,barcode FROM catalog_products
-                  WHERE sku = ANY(%s) ORDER BY id""", [list(GARDEN|CONSTRUCTION|ACCESSORIES|GARDEN_KITS|CONSTRUCTION_KITS)])
+                  WHERE sku = ANY(%s)
+                  AND (COALESCE(attributes->>'characteristics','')='' OR COALESCE(attributes->>'applications','')='' OR specs IS NULL OR specs='[]'::jsonb OR specs='{}'::jsonb)
+                  ORDER BY id""", [list(GARDEN|CONSTRUCTION|ACCESSORIES|GARDEN_KITS|CONSTRUCTION_KITS)])
                 rows=cur.fetchall()
                 cur.execute("UPDATE mm_ai_bulk_runs SET total=%s,status='running',started_at=COALESCE(started_at,NOW()),updated_at=NOW() WHERE job_key=%s",(len(rows),JOB_KEY));c.commit()
                 for row in rows:
@@ -109,7 +122,7 @@ def worker():
                            json.dumps(newattrs,ensure_ascii=False),com[3] if com else None,com[4] if com else None,
                            com[0] if com else None,com[1] if com else None,com[2] if com else None,pid))
                         ensure_classification(cur,pid,"commercial",com);ensure_classification(cur,pid,"rida",rida)
-                        cur.execute("UPDATE mm_ai_bulk_runs SET done=done+1,last=%s,updated_at=NOW() WHERE job_key=%s",(sku,JOB_KEY));c.commit()
+                        cur.execute("UPDATE mm_ai_bulk_runs SET done=done+1,last=%s,updated_at=NOW() WHERE job_key=%s",(sku,JOB_KEY));c.commit()\n                        time.sleep(10)
                     except Exception as e:
                         c.rollback()
                         with c.cursor() as x:
