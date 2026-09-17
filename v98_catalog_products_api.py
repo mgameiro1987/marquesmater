@@ -28,7 +28,7 @@ def _reserved(cur,sku):
 def _specs(v):
     if isinstance(v,list): return v
     if isinstance(v,dict): return [f'{k}: {x}' for k,x in v.items()]
-    if v is None: return []
+    if v is None:return []
     return [str(v)]
 
 def _row(row):
@@ -58,7 +58,7 @@ def handle_post(path,body,send_json):
         sku=_clean(body.get('sku'));name=_clean(body.get('name'))
         if not sku:raise ValueError('SKU obrigatório')
         if not name:raise ValueError('Nome do produto obrigatório')
-        price=_num(body.get('price'));old_price=_num(body.get('oldPrice'));active=bool(body.get('active',True));stock_text=_clean(body.get('stockText'))
+        price=_num(body.get('price'));old_price=_num(body.get('oldPrice'));active=bool(body.get('active',True))
         options=_json(body.get('options'),[]);specs=_json(body.get('specs'),{});attributes=_json(body.get('attributes'),{})
         if not isinstance(attributes,dict):attributes={}
         if 'family' in body:attributes['family']=_clean(body.get('family'))
@@ -66,13 +66,13 @@ def handle_post(path,body,send_json):
         if 'vatRate' in body:attributes['vatRate']=_num(body.get('vatRate'),23)
         barcode=_clean(body.get('barcode')) or None
         stock_min=max(0,int(_num(body.get('stockMin'),0)))
-        fields=(sku,_clean(body.get('brand')),name,_clean(body.get('category')),_clean(body.get('subcategory')),_clean(body.get('type')),price,old_price,stock_text,_clean(body.get('image')),_clean(body.get('badge')),_clean(body.get('description')),json.dumps(options,ensure_ascii=False),json.dumps(specs,ensure_ascii=False),active,_int_or_none(body.get('categoryId')),_int_or_none(body.get('subcategoryId')),_int_or_none(body.get('familyId')),_int_or_none(body.get('brandId')),json.dumps(attributes,ensure_ascii=False),barcode)
+        fields=(sku,_clean(body.get('brand')),name,_clean(body.get('category')),_clean(body.get('subcategory')),_clean(body.get('type')),price,old_price,_clean(body.get('image')),_clean(body.get('badge')),_clean(body.get('description')),json.dumps(options,ensure_ascii=False),json.dumps(specs,ensure_ascii=False),active,_int_or_none(body.get('categoryId')),_int_or_none(body.get('subcategoryId')),_int_or_none(body.get('familyId')),_int_or_none(body.get('brandId')),json.dumps(attributes,ensure_ascii=False),barcode)
         with db() as conn,conn.cursor() as cur:
             pid=_int_or_none(body.get('id'))
             if pid:
                 cur.execute("UPDATE catalog_products SET sku=%s,brand=%s,name=%s,category=%s,subcategory=%s,type=%s,price=%s,old_price=%s,stock=stock,image=%s,badge=%s,description=%s,options=%s::jsonb,specs=%s::jsonb,active=%s,category_id=%s,subcategory_id=%s,family_id=%s,brand_id=%s,attributes=%s::jsonb,barcode=%s,updated_at=NOW() WHERE id=%s RETURNING id",fields+(pid,))
             else:
-                cur.execute("INSERT INTO catalog_products (sku,brand,name,category,subcategory,type,price,old_price,stock,image,badge,description,options,specs,active,category_id,subcategory_id,family_id,brand_id,attributes,barcode,created_at,updated_at) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,0,%s,%s,%s,%s::jsonb,%s::jsonb,%s,%s,%s,%s,%s,%s::jsonb,%s,NOW(),NOW()) ON CONFLICT (sku) DO UPDATE SET brand=EXCLUDED.brand,name=EXCLUDED.name,category=EXCLUDED.category,subcategory=EXCLUDED.subcategory,type=EXCLUDED.type,price=EXCLUDED.price,old_price=EXCLUDED.old_price,stock=catalog_products.stock,image=EXCLUDED.image,badge=EXCLUDED.badge,description=EXCLUDED.description,options=EXCLUDED.options,specs=EXCLUDED.specs,active=EXCLUDED.active,category_id=EXCLUDED.category_id,subcategory_id=EXCLUDED.subcategory_id,family_id=EXCLUDED.family_id,brand_id=EXCLUDED.brand_id,attributes=EXCLUDED.attributes,barcode=EXCLUDED.barcode,updated_at=NOW() RETURNING id",fields)
+                cur.execute("INSERT INTO catalog_products (sku,brand,name,category,subcategory,type,price,old_price,stock,image,badge,description,options,specs,active,category_id,subcategory_id,family_id,brand_id,attributes,barcode,created_at,updated_at) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,0,%s,%s,%s,%s::jsonb,%s::jsonb,%s,%s,%s,%s,%s,%s::jsonb,%s,NOW(),NOW()) ON CONFLICT (sku) DO UPDATE SET brand=EXCLUDED.brand,name=EXCLUDED.name,category=EXCLUDED.category,subcategory=EXCLUDED.subcategory,type=EXCLUDED.type,price=EXCLUDED.price,old_price=EXCLUDED.old_price,stock=catalog_products.stock,image=EXCLUDED.image,badge=EXCLUDED.badge,description=EXCLUDED.description,options=EXCLUDED.options,specs=EXCLUDED.specs,active=EXCLUDED.active,category_id=EXCLUDED.category_id,subcategory_id=EXCLUDED.subcategory_id,family_id=EXCLUDED.family_id,brand_id=EXCLUDED.brand_id,attributes=EXCLUDED.attributes,barcode=EXCLUDED.barcode,updated_at=NOW() RETURNING id",fields)
             row=cur.fetchone()
             if not row:raise RuntimeError('Não foi possível guardar o produto')
             pid=row[0]
