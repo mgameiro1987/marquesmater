@@ -1,7 +1,7 @@
 import os, json, threading, time, urllib.request, urllib.error
 import psycopg
 
-JOB_KEY="rida-content-41-v7"
+JOB_KEY="rida-content-41-v8-ai-real"
 GARDEN={"RGT11280","RHT09025","RCS03V016","RCS06006","RBP01040","RBL06650","REP16245"}
 CONSTRUCTION={"RCR11022","RGG11310","RJR12000","RHD01075","RCG07115","RCG07125","RCH072D6","RCC00190","RCC08150","RCJ08025","RCO11125","RCO13150","RCL1250H"}
 ACCESSORIES={"RB2020","RB2040","RFC24","RDC30","BMCB75"}
@@ -132,34 +132,59 @@ def worker():
                   WHERE sku = ANY(%s) ORDER BY id""", [list(GARDEN|CONSTRUCTION|ACCESSORIES|GARDEN_KITS|CONSTRUCTION_KITS)])
                 rows=cur.fetchall()
                 cur.execute("UPDATE mm_ai_bulk_runs SET total=%s,status='running',started_at=COALESCE(started_at,NOW()),updated_at=NOW() WHERE job_key=%s",(len(rows),JOB_KEY));c.commit()
+
+                # Primeiro fixa a classificação comercial + RIDA dos 41 artigos.
+                products=[]
                 for row in rows:
                     pid,sku,brand,name,typ,desc,img,attrs,specs,barcode=row
-                    try:
-                        com,rida=mapping(str(sku))
-                        attrs=attrs or {};specs=specs or []
-                        cur.execute("""UPDATE catalog_products SET category=%s,subcategory=%s,category_id=%s,subcategory_id=%s,family_id=%s,updated_at=NOW() WHERE id=%s""",
-                          (com[3] if com else None,com[4] if com else "Acessórios",com[0] if com else None,com[1] if com else None,com[2] if com else None,pid))
-                        ensure_classification(cur,pid,"commercial",com);ensure_classification(cur,pid,"rida",rida)
-                        if not str(attrs.get("characteristics") or "").strip() or not str(attrs.get("applications") or "").strip() or not isinstance(specs,list) or len(specs)==0:
-                            x=local_content({"sku":sku,"name":name,"commercial_category":com[3] if com else None})
-                            attrs["characteristics"]=x["characteristics"];attrs["applications"]=x["applications"]
-                            # Não inventar especificações técnicas: só gravamos lista vazia quando não há dados confirmados.
+                    com,rida=mapping(str(sku))
+                    cur.execute("""UPDATE catalog_products SET category=%s,subcategory=%s,category_id=%s,subcategory_id=%s,family_id=%s,updated_at=NOW() WHERE id=%s""",
+                      (com[3] if com else None,com[4] if com else "Acessórios",com[0] if com else None,com[1] if com else None,com[2] if com else None,pid))
+                    ensure_classification(cur,pid,"commercial",com)
+                    ensure_classification(cur,pid,"rida",rida)
+                    products.append({"id":pid,"sku":sku,"name":name,"brand":brand,"type":typ,"image":img,"description":desc,
+                      "attributes":attrs or {},"specs":specs or [],"barcode":barcode,
+                      "commercial_category":com[3] if com else None,"commercial_subcategory":com[4] if com else None,
+                      "rida_category":rida[3] if rida else None,"rida_subcategory":rida[4] if rida else None,"rida_family":rida[5] if rida else None})
+                c.commit()
+
+        # IA real em lotes pequenos, com imagem quando disponível.
+        for offset in range(0,len(products),5):
+            batch=products[offset:offset+5]
+            try:
+                generated=generate_batch(batch)
+                bysku={str(x.get("sku")):x for x in generated}
+                with db() as c:
+                    with c.cursor() as cur:
+                        for p in batch:
+                            g=bysku.get(str(p["sku"]))
+                            if not g:
+                                raise RuntimeError("A IA não devolveu conteúdo para "+str(p["sku"]))
+                            attrs=p["attributes"] or {}
+                            # A IA escreve os quatro campos. Especificações só são gravadas se confirmadas.
+                            attrs["characteristics"]=str(g.get("characteristics") or "").strip()
+                            attrs["applications"]=str(g.get("applications") or "").strip()
+                            specs=g.get("specifications") if isinstance(g.get("specifications"),list) else []
                             cur.execute("""UPDATE catalog_products SET description=%s,specs=%s,attributes=%s,updated_at=NOW() WHERE id=%s""",
-                              (x["description"],json.dumps(x["specifications"],ensure_ascii=False),json.dumps(attrs,ensure_ascii=False),pid))
+                              (str(g.get("description") or "").strip(),json.dumps(specs,ensure_ascii=False),json.dumps(attrs,ensure_ascii=False),p["id"]))
+                            cur.execute("UPDATE mm_ai_bulk_runs SET done=done+1,last=%s,updated_at=NOW() WHERE job_key=%s",(p["sku"],JOB_KEY))
                         c.commit()
-                        cur.execute("UPDATE mm_ai_bulk_runs SET done=done+1,last=%s,updated_at=NOW() WHERE job_key=%s",(sku,JOB_KEY));c.commit()
-                    except Exception as e:
-                        c.rollback()
-                        with c.cursor() as x:
-                            x.execute("UPDATE mm_ai_bulk_runs SET errors=errors+1,last=%s,updated_at=NOW() WHERE job_key=%s",(str(sku)+": "+str(e)[:500],JOB_KEY));c.commit()
-                with c.cursor() as x:
-                    x.execute("UPDATE mm_ai_bulk_runs SET status='done',finished_at=NOW(),updated_at=NOW() WHERE job_key=%s",(JOB_KEY,));c.commit()
+            except Exception as e:
+                with db() as c:
+                    with c.cursor() as cur:
+                        for p in batch:
+                            cur.execute("UPDATE mm_ai_bulk_runs SET errors=errors+1,last=%s,updated_at=NOW() WHERE job_key=%s",(str(p["sku"])+": "+str(e)[:500],JOB_KEY))
+                        c.commit()
+            time.sleep(1)
+
+        with db() as c:
+            with c.cursor() as x:
+                x.execute("UPDATE mm_ai_bulk_runs SET status='done',finished_at=NOW(),updated_at=NOW() WHERE job_key=%s",(JOB_KEY,));c.commit()
     except Exception as e:
         try:
             with db() as c:
                 with c.cursor() as x:x.execute("UPDATE mm_ai_bulk_runs SET status='error',last=%s,updated_at=NOW() WHERE job_key=%s",(str(e)[:700],JOB_KEY));c.commit()
         except Exception: pass
-
 
 def start_once():
     init_job()
