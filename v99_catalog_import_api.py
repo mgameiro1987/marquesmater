@@ -112,6 +112,8 @@ def _extract_embedded_images(data,ws):
                     target=str(getattr(rel,'Target','')).replace('\\','/')
                     if target.startswith('/'):
                         drawing_target=target.lstrip('/')
+                    elif target.startswith('xl/'):
+                        drawing_target=posixpath.normpath(target)
                     else:
                         drawing_target=posixpath.normpath(posixpath.join('xl/worksheets',target))
                     break
@@ -135,6 +137,8 @@ def _extract_embedded_images(data,ws):
                 target=str(target).replace('\\','/')
                 if target.startswith('/'):
                     media=posixpath.normpath(target.lstrip('/'))
+                elif target.startswith('xl/'):
+                    media=posixpath.normpath(target)
                 else:
                     media=posixpath.normpath(posixpath.join(posixpath.dirname(drawing_target),target))
                 if media not in zf.namelist():continue
