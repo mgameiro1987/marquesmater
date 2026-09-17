@@ -58,6 +58,13 @@ def handle_get(path,query,send_json):
             ensure(cur);conn.commit()
             if (qs.get('options') or [''])[0]=='1':
                 send_json(200,{'ok':True,'options':get_options(cur)});return True
+            if (qs.get('all') or [''])[0]=='1':
+                cur.execute('''SELECT product_id,classification_type,category_id,subcategory_id,family_id
+                               FROM mm_product_classifications ORDER BY product_id,classification_type''')
+                grouped={}
+                for r in cur.fetchall():
+                    grouped.setdefault(str(r[0]),{})[r[1]]={'categoryId':r[2],'subcategoryId':r[3],'familyId':r[4]}
+                send_json(200,{'ok':True,'items':grouped});return True
             pid=iid((qs.get('productId') or [''])[0])
             if not pid:
                 send_json(400,{'ok':False,'error':'productId obrigatório'});return True
