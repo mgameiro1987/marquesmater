@@ -18,7 +18,7 @@ def read_json(h):
 class Handler(SimpleHTTPRequestHandler):
     extensions_map={**SimpleHTTPRequestHandler.extensions_map,'.svg':'image/svg+xml','.js':'application/javascript','.css':'text/css'}
     def send_json(self,status,payload):
-        data=json.dumps(payload,ensure_ascii=False,default=str).encode();self.send_response(status);self.send_header('Content-Type','application/json; charset=utf-8');self.send_header('Cache-Control','no-store');self.send_header('Access-Control-Allow-Origin','*');self.send_header('Access-Control-Allow-Headers','Content-Type');self.send_header('Access-Control-Allow-Methods','GET,POST,PATCH,OPTIONS');self.send_header('Content-Length',str(len(data)));self.end_headers();self.wfile.write(data)
+        data=json.dumps(payload,ensure_ascii=False,default=str).encode();self.send_response(status);self.send_header('Content-Type','application/json; charset=utf-8');self.send_header('Cache-Control','no-store');self.send_header('Access-Control-Allow-Origin','*');self.send_header('Access-Control-Allow-Headers','Content-Type');self.send_header('Access-Control-Allow-Methods','GET,POST,PATCH,DELETE,OPTIONS');self.send_header('Content-Length',str(len(data)));self.end_headers();self.wfile.write(data)
     def do_OPTIONS(self): self.send_json(204,{})
     def do_GET(self):
         path=urlsplit(self.path).path;query=parse_qs(urlsplit(self.path).query)
@@ -208,6 +208,14 @@ class Handler(SimpleHTTPRequestHandler):
             try:
                 from v99_purchases_api import handle_patch
                 if handle_patch(path,read_json(self),self.send_json):return
+            except Exception as e:self.send_json(503,{'ok':False,'error':str(e)});return
+        self.send_json(404,{'ok':False,'error':'Endpoint não encontrado'})
+    def do_DELETE(self):
+        path=urlsplit(self.path).path
+        if path=='/api/catalog/products':
+            try:
+                from v9_10_13_product_delete_api import handle_delete
+                if handle_delete(path,urlsplit(self.path).query,self.send_json): return
             except Exception as e:self.send_json(503,{'ok':False,'error':str(e)});return
         self.send_json(404,{'ok':False,'error':'Endpoint não encontrado'})
 try:init_db();print('MarquesMater PostgreSQL stock API ready')
