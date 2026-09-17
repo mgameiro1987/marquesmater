@@ -1,7 +1,7 @@
 import os, json, threading, time, urllib.request, urllib.error
 import psycopg
 
-JOB_KEY="rida-content-41-v5"
+JOB_KEY="rida-content-41-v6"
 GARDEN={"RGT11280","RHT09025","RCS03V016","RCS06006","RBP01040","RBL06650","REP16245"}
 CONSTRUCTION={"RCR11022","RGG11310","RJR12000","RHD01075","RCG07115","RCG07125","RCH072D6","RCC00190","RCC08150","RCJ08025","RCO11125","RCO13150","RCL1250H"}
 ACCESSORIES={"RB2020","RB2040","RFC24","RDC30","BMCB75"}
@@ -26,49 +26,42 @@ def image_url(value):
     host=os.environ.get("PUBLIC_BASE_URL","https://marquesmater-7ap1.onrender.com").rstrip("/")
     return host+"/"+value.lstrip("/")
 
-def generate(product):
+def generate_batch(products):
     key=os.environ.get("OPENAI_API_KEY")
     if not key: raise RuntimeError("OPENAI_API_KEY não configurada")
     model=os.environ.get("OPENAI_MODEL","gpt-5.6-luna")
-    attrs=product.get("attributes") or {}
-    context={"sku":product.get("sku"),"ean":product.get("barcode"),"brand":product.get("brand"),"name":product.get("name"),
-      "type":product.get("type"),"commercial_category":product.get("commercial_category"),
-      "commercial_subcategory":product.get("commercial_subcategory"),"rida_category":product.get("rida_category"),
-      "rida_subcategory":product.get("rida_subcategory"),"rida_family":product.get("rida_family"),
-      "existing_description":product.get("description") or "","source_attributes":attrs,"source_specs":product.get("specs") or {}}
-    instructions=("És o assistente de conteúdos da MarquesMater. Escreve em português de Portugal e cria conteúdo profissional para uma loja online de ferramentas e máquinas RIDA. "
-      "Analisa a imagem quando fornecida e cruza-a com SKU, nome e dados estruturados. "
+    contexts=[]
+    for p in products:
+        attrs=p.get("attributes") or {}
+        contexts.append({"sku":p.get("sku"),"name":p.get("name"),"brand":p.get("brand"),"type":p.get("type"),
+          "commercial_category":p.get("commercial_category"),"commercial_subcategory":p.get("commercial_subcategory"),
+          "rida_category":p.get("rida_category"),"rida_subcategory":p.get("rida_subcategory"),"rida_family":p.get("rida_family"),
+          "existing_description":p.get("description") or "","source_attributes":attrs,"source_specs":p.get("specs") or {}})
+    instructions=("És o assistente de conteúdos da MarquesMater. Escreve em português de Portugal. "
+      "Gera conteúdo profissional para os produtos RIDA abaixo. Usa apenas os dados fornecidos. "
       "NUNCA inventes números, tensões, potências, capacidades, rotações, pesos, dimensões, certificações, autonomia ou outras especificações técnicas. "
-      "Só apresentes como confirmado o que estiver visível na imagem ou fornecido nos dados. Se uma especificação técnica não puder ser confirmada, deixa-a vazia. "
-      "A descrição deve ser comercial mas factual. Características e aplicações devem ser objetivas.")
-    schema={"type":"object","properties":{"description":{"type":"string"},"characteristics":{"type":"string"},
+      "Se uma especificação não puder ser confirmada pelos dados fornecidos, deixa a lista de especificações vazia. "
+      "A descrição deve ser comercial mas factual; características e aplicações devem ser objetivas. "
+      "Devolve exatamente um resultado por SKU, mantendo o SKU original.")
+    schema={"type":"object","properties":{"items":{"type":"array","items":{"type":"object","properties":{
+      "sku":{"type":"string"},"description":{"type":"string"},"characteristics":{"type":"string"},
       "specifications":{"type":"array","items":{"type":"string"}},"applications":{"type":"string"}},
-      "required":["description","characteristics","specifications","applications"],"additionalProperties":False}
-    content=[{"type":"input_text","text":"Dados do produto:\n"+json.dumps(context,ensure_ascii=False)+"\n\nGera os quatro campos."}]
-    # No lote automático usamos os dados estruturados para evitar bloqueios por payloads de imagens incorporadas; a análise visual continua disponível no editor individual.
-    payload={"model":model,"store":False,"instructions":instructions,"input":[{"role":"user","content":content}],
-      "text":{"format":{"type":"json_schema","name":"marquesmater_rida_bulk_content","schema":schema,"strict":True}}}
+      "required":["sku","description","characteristics","specifications","applications"],"additionalProperties":False}}},
+      "required":["items"],"additionalProperties":False}
+    payload={"model":model,"store":False,"instructions":instructions,
+      "input":[{"role":"user","content":[{"type":"input_text","text":"Dados dos produtos:\n"+json.dumps(contexts,ensure_ascii=False)+"\n\nGera os quatro campos para cada produto."}]}],
+      "text":{"format":{"type":"json_schema","name":"marquesmater_rida_bulk_contents","schema":schema,"strict":True}}}
     req=urllib.request.Request("https://api.openai.com/v1/responses",data=json.dumps(payload,ensure_ascii=False).encode(),
       headers={"Authorization":"Bearer "+key,"Content-Type":"application/json"},method="POST")
-    data=None
-    for attempt in range(6):
-        try:
-            with urllib.request.urlopen(req,timeout=60) as response:
-                data=json.loads(response.read().decode())
-            break
-        except urllib.error.HTTPError as e:
-            if e.code!=429 or attempt>=5: raise
-            retry=e.headers.get("Retry-After")
-            try: wait=max(10,min(60,float(retry))) if retry else min(60,15*(attempt+1))
-            except Exception: wait=min(60,15*(attempt+1))
-            time.sleep(wait)
-    raw=(data or {}).get("output_text") or ""
+    with urllib.request.urlopen(req,timeout=180) as response: data=json.loads(response.read().decode())
+    raw=data.get("output_text") or ""
     if not raw:
         for item in data.get("output") or []:
             for part in item.get("content") or []:
                 if part.get("type")=="output_text": raw=part.get("text") or ""; break
             if raw: break
-    return json.loads(raw or "{}")
+    return json.loads(raw or "{}").get("items") or []
+
 
 def mapping(sku):
     if sku in GARDEN or sku in GARDEN_KITS:
@@ -100,45 +93,41 @@ def worker():
                   WHERE sku = ANY(%s) ORDER BY id""", [list(GARDEN|CONSTRUCTION|ACCESSORIES|GARDEN_KITS|CONSTRUCTION_KITS)])
                 rows=cur.fetchall()
                 cur.execute("UPDATE mm_ai_bulk_runs SET total=%s,status='running',started_at=COALESCE(started_at,NOW()),updated_at=NOW() WHERE job_key=%s",(len(rows),JOB_KEY));c.commit()
+                pending=[]
                 for row in rows:
                     pid,sku,brand,name,typ,desc,img,attrs,specs,barcode=row
                     com,rida=mapping(str(sku))
-                    try:
-                        # Primeiro fixa a classificação comercial + RIDA, independentemente da IA.
-                        cur.execute("""UPDATE catalog_products SET category=%s,subcategory=%s,category_id=%s,subcategory_id=%s,family_id=%s,updated_at=NOW() WHERE id=%s""",
-                          (com[3] if com else None,com[4] if com else "Acessórios",com[0] if com else None,com[1] if com else None,com[2] if com else None,pid))
-                        ensure_classification(cur,pid,"commercial",com);ensure_classification(cur,pid,"rida",rida);c.commit()
-                        attrs=attrs or {}; specs=specs or {}
-                        chars=str(attrs.get("characteristics") or "").strip()
-                        apps=str(attrs.get("applications") or "").strip()
-                        needs_ai=(not chars or not apps or not isinstance(specs,list) or len(specs)==0)
-                        if needs_ai:
-                            product={"sku":sku,"brand":brand,"name":name,"type":typ,"description":desc,"image":img,"barcode":barcode,
-                              "attributes":attrs,"specs":specs,"commercial_category":com[3] if com else None,
-                              "commercial_subcategory":com[4] if com else None,"rida_category":rida[3] if rida else None,
-                              "rida_subcategory":rida[4] if rida else None,"rida_family":rida[5] if rida else None}
-                            result=generate(product)
-                            newattrs=dict(attrs)
-                            newattrs["characteristics"]=str(result.get("characteristics") or "").strip()
-                            newattrs["applications"]=str(result.get("applications") or "").strip()
-                            new_specs=[str(x).strip() for x in (result.get("specifications") or []) if str(x).strip()]
-                            cur.execute("""UPDATE catalog_products SET description=%s,specs=%s,attributes=%s,updated_at=NOW() WHERE id=%s""",
-                              (str(result.get("description") or "").strip(),json.dumps(new_specs,ensure_ascii=False),
-                               json.dumps(newattrs,ensure_ascii=False),pid))
-                            c.commit()
-                            time.sleep(10)
-                        cur.execute("UPDATE mm_ai_bulk_runs SET done=done+1,last=%s,updated_at=NOW() WHERE job_key=%s",(sku,JOB_KEY));c.commit()
-                    except Exception as e:
-                        c.rollback()
-                        with c.cursor() as x:
-                            x.execute("UPDATE mm_ai_bulk_runs SET errors=errors+1,last=%s,updated_at=NOW() WHERE job_key=%s",(str(sku)+": "+str(e)[:500],JOB_KEY));c.commit()
-                with c.cursor() as x:
-                    x.execute("UPDATE mm_ai_bulk_runs SET status='done',finished_at=NOW(),updated_at=NOW() WHERE job_key=%s",(JOB_KEY,));c.commit()
+                    attrs=attrs or {}; specs=specs or {}
+                    cur.execute("""UPDATE catalog_products SET category=%s,subcategory=%s,category_id=%s,subcategory_id=%s,family_id=%s,updated_at=NOW() WHERE id=%s""",
+                      (com[3] if com else None,com[4] if com else "Acessórios",com[0] if com else None,com[1] if com else None,com[2] if com else None,pid))
+                    ensure_classification(cur,pid,"commercial",com);ensure_classification(cur,pid,"rida",rida)
+                    needs_ai=(not str(attrs.get("characteristics") or "").strip() or not str(attrs.get("applications") or "").strip() or not isinstance(specs,list) or len(specs)==0)
+                    if needs_ai:
+                        pending.append({"id":pid,"sku":sku,"brand":brand,"name":name,"type":typ,"description":desc,
+                          "attributes":attrs,"specs":specs,"commercial_category":com[3] if com else None,
+                          "commercial_subcategory":com[4] if com else None,"rida_category":rida[3] if rida else None,
+                          "rida_subcategory":rida[4] if rida else None,"rida_family":rida[5] if rida else None})
+                c.commit()
+                if pending:
+                    results=generate_batch(pending)
+                    bysku={str(x.get("sku")):x for x in results}
+                    for p in pending:
+                        x=bysku.get(str(p["sku"]))
+                        if not x: 
+                            cur.execute("UPDATE mm_ai_bulk_runs SET errors=errors+1,last=%s,updated_at=NOW() WHERE job_key=%s",("Sem resposta IA para "+str(p["sku"]),JOB_KEY));continue
+                        attrs=dict(p["attributes"]);attrs["characteristics"]=str(x.get("characteristics") or "").strip();attrs["applications"]=str(x.get("applications") or "").strip()
+                        specs=[str(v).strip() for v in (x.get("specifications") or []) if str(v).strip()]
+                        cur.execute("UPDATE catalog_products SET description=%s,specs=%s,attributes=%s,updated_at=NOW() WHERE id=%s",
+                          (str(x.get("description") or "").strip(),json.dumps(specs,ensure_ascii=False),json.dumps(attrs,ensure_ascii=False),p["id"]))
+                        cur.execute("UPDATE mm_ai_bulk_runs SET done=done+1,last=%s,updated_at=NOW() WHERE job_key=%s",(p["sku"],JOB_KEY))
+                        c.commit()
+                cur.execute("UPDATE mm_ai_bulk_runs SET status='done',finished_at=NOW(),updated_at=NOW() WHERE job_key=%s",(JOB_KEY,));c.commit()
     except Exception as e:
         try:
             with db() as c:
                 with c.cursor() as x:x.execute("UPDATE mm_ai_bulk_runs SET status='error',last=%s,updated_at=NOW() WHERE job_key=%s",(str(e)[:700],JOB_KEY));c.commit()
         except Exception: pass
+
 
 def start_once():
     init_job()
