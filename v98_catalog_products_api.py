@@ -37,6 +37,36 @@ def _row(row):
 
 SELECT="""SELECT p.id,p.sku,p.brand,p.name,p.category,p.subcategory,p.type,p.price,p.old_price,p.stock,p.image,p.badge,p.description,p.options,p.specs,p.active,p.created_at,p.updated_at,p.category_id,p.subcategory_id,p.family_id,p.brand_id,p.attributes,p.barcode,COALESCE(s.stock,0),COALESCE(s.stock_min,0),s.updated_at FROM catalog_products p LEFT JOIN mm_product_stock s ON s.sku=p.sku"""
 
+def _resolve_taxonomy(cur,body):
+    category=_clean(body.get('category'));subcategory=_clean(body.get('subcategory'));family=_clean(body.get('family'))
+    category_id=_int_or_none(body.get('categoryId'));subcategory_id=_int_or_none(body.get('subcategoryId'));family_id=_int_or_none(body.get('familyId'))
+    brand_id=_int_or_none(body.get('brandId'));brand=_clean(body.get('brand'))
+    if category_id:
+        cur.execute("SELECT id FROM catalog_categories WHERE id=%s AND kind='category' AND active=true",(category_id,))
+        if not cur.fetchone(): category_id=None
+    if not category_id and category:
+        cur.execute("SELECT id FROM catalog_categories WHERE lower(name)=lower(%s) AND kind='category' AND active=true ORDER BY id LIMIT 1",(category,))
+        x=cur.fetchone(); category_id=x[0] if x else None
+    if subcategory_id:
+        cur.execute("SELECT id FROM catalog_categories WHERE id=%s AND kind='subcategory' AND active=true",(subcategory_id,))
+        if not cur.fetchone(): subcategory_id=None
+    if not subcategory_id and subcategory:
+        cur.execute("SELECT id FROM catalog_categories WHERE lower(name)=lower(%s) AND kind='subcategory' AND active=true ORDER BY id LIMIT 1",(subcategory,))
+        x=cur.fetchone(); subcategory_id=x[0] if x else None
+    if family_id:
+        cur.execute("SELECT id FROM catalog_categories WHERE id=%s AND kind='family' AND active=true",(family_id,))
+        if not cur.fetchone(): family_id=None
+    if not family_id and family:
+        cur.execute("SELECT id FROM catalog_categories WHERE lower(name)=lower(%s) AND kind='family' AND active=true ORDER BY id LIMIT 1",(family,))
+        x=cur.fetchone(); family_id=x[0] if x else None
+    if brand_id:
+        cur.execute("SELECT id FROM catalog_brands WHERE id=%s",(brand_id,))
+        if not cur.fetchone(): brand_id=None
+    if not brand_id and brand:
+        cur.execute("SELECT id FROM catalog_brands WHERE lower(name)=lower(%s) ORDER BY id LIMIT 1",(brand,))
+        x=cur.fetchone(); brand_id=x[0] if x else None
+    return category_id,subcategory_id,family_id,brand_id
+
 def handle_get(path,query,send_json):
     if path!='/api/catalog/products':return False
     try:
@@ -66,8 +96,9 @@ def handle_post(path,body,send_json):
         if 'vatRate' in body:attributes['vatRate']=_num(body.get('vatRate'),23)
         barcode=_clean(body.get('barcode')) or None
         stock_min=max(0,int(_num(body.get('stockMin'),0)))
-        fields=(sku,_clean(body.get('brand')),name,_clean(body.get('category')),_clean(body.get('subcategory')),_clean(body.get('type')),price,old_price,_clean(body.get('image')),_clean(body.get('badge')),_clean(body.get('description')),json.dumps(options,ensure_ascii=False),json.dumps(specs,ensure_ascii=False),active,_int_or_none(body.get('categoryId')),_int_or_none(body.get('subcategoryId')),_int_or_none(body.get('familyId')),_int_or_none(body.get('brandId')),json.dumps(attributes,ensure_ascii=False),barcode)
         with db() as conn,conn.cursor() as cur:
+            category_id,subcategory_id,family_id,brand_id=_resolve_taxonomy(cur,body)
+            fields=(sku,_clean(body.get('brand')),name,_clean(body.get('category')),_clean(body.get('subcategory')),_clean(body.get('type')),price,old_price,_clean(body.get('image')),_clean(body.get('badge')),_clean(body.get('description')),json.dumps(options,ensure_ascii=False),json.dumps(specs,ensure_ascii=False),active,category_id,subcategory_id,family_id,brand_id,json.dumps(attributes,ensure_ascii=False),barcode)
             pid=_int_or_none(body.get('id'))
             if pid:
                 cur.execute("UPDATE catalog_products SET sku=%s,brand=%s,name=%s,category=%s,subcategory=%s,type=%s,price=%s,old_price=%s,stock=stock,image=%s,badge=%s,description=%s,options=%s::jsonb,specs=%s::jsonb,active=%s,category_id=%s,subcategory_id=%s,family_id=%s,brand_id=%s,attributes=%s::jsonb,barcode=%s,updated_at=NOW() WHERE id=%s RETURNING id",fields+(pid,))
