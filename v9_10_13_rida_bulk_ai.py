@@ -1,7 +1,7 @@
 import os, json, threading, time, urllib.request, urllib.error
 import psycopg
 
-JOB_KEY="rida-content-41-v4"
+JOB_KEY="rida-content-41-v5"
 GARDEN={"RGT11280","RHT09025","RCS03V016","RCS06006","RBP01040","RBL06650","REP16245"}
 CONSTRUCTION={"RCR11022","RGG11310","RJR12000","RHD01075","RCG07115","RCG07125","RCH072D6","RCC00190","RCC08150","RCJ08025","RCO11125","RCO13150","RCL1250H"}
 ACCESSORIES={"RB2020","RB2040","RFC24","RDC30","BMCB75"}
@@ -45,8 +45,7 @@ def generate(product):
       "specifications":{"type":"array","items":{"type":"string"}},"applications":{"type":"string"}},
       "required":["description","characteristics","specifications","applications"],"additionalProperties":False}
     content=[{"type":"input_text","text":"Dados do produto:\n"+json.dumps(context,ensure_ascii=False)+"\n\nGera os quatro campos."}]
-    img=image_url(product.get("image"))
-    if img: content.append({"type":"input_image","image_url":img,"detail":"high"})
+    # No lote automático usamos os dados estruturados para evitar bloqueios por payloads de imagens incorporadas; a análise visual continua disponível no editor individual.
     payload={"model":model,"store":False,"instructions":instructions,"input":[{"role":"user","content":content}],
       "text":{"format":{"type":"json_schema","name":"marquesmater_rida_bulk_content","schema":schema,"strict":True}}}
     req=urllib.request.Request("https://api.openai.com/v1/responses",data=json.dumps(payload,ensure_ascii=False).encode(),
@@ -54,7 +53,7 @@ def generate(product):
     data=None
     for attempt in range(6):
         try:
-            with urllib.request.urlopen(req,timeout=120) as response:
+            with urllib.request.urlopen(req,timeout=60) as response:
                 data=json.loads(response.read().decode())
             break
         except urllib.error.HTTPError as e:
