@@ -25,9 +25,15 @@ def _reserved(cur,sku):
     cur.execute("SELECT COALESCE(SUM(COALESCE((x->>'qty')::int,COALESCE((x->>'quantity')::int,0))),0) FROM orders o CROSS JOIN LATERAL jsonb_array_elements(CASE WHEN jsonb_typeof(o.data->'items')='array' THEN o.data->'items' ELSE '[]'::jsonb END) x WHERE x->>'sku'=%s AND LOWER(COALESCE(o.data->>'status','')) IN ('recebida','pendente','pending','em processamento','processing','em preparação','pago')",(sku,))
     return int(cur.fetchone()[0] or 0)
 
+def _specs(v):
+    if isinstance(v,list): return v
+    if isinstance(v,dict): return [f'{k}: {x}' for k,x in v.items()]
+    if v is None: return []
+    return [str(v)]
+
 def _row(row):
     attrs=row[22] or {}
-    return {'id':row[0],'sku':row[1],'brand':row[2] or '','name':row[3] or '','category':row[4] or '','subcategory':row[5] or '','type':row[6] or '','price':float(row[7] or 0),'oldPrice':float(row[8] or 0),'stockText':row[9] or '','image':row[10] or '','badge':row[11] or '','description':row[12] or '','options':row[13] or [],'specs':row[14] or {},'active':bool(row[15]),'createdAt':row[16],'updatedAt':row[17],'categoryId':row[18],'subcategoryId':row[19],'familyId':row[20],'brandId':row[21],'attributes':attrs,'barcode':row[23] or '','family':attrs.get('family',''),'cost':float(attrs.get('cost') or 0),'vatRate':float(attrs.get('vatRate') or 23)}
+    return {'id':row[0],'sku':row[1],'brand':row[2] or '','name':row[3] or '','category':row[4] or '','subcategory':row[5] or '','type':row[6] or '','price':float(row[7] or 0),'oldPrice':float(row[8] or 0),'stockText':row[9] or '','image':row[10] or '','badge':row[11] or '','description':row[12] or '','options':row[13] or {},'specs':_specs(row[14]),'active':bool(row[15]),'createdAt':row[16],'updatedAt':row[17],'categoryId':row[18],'subcategoryId':row[19],'familyId':row[20],'brandId':row[21],'attributes':attrs,'barcode':row[23] or '','family':attrs.get('family',''),'cost':float(attrs.get('cost') or 0),'vatRate':float(attrs.get('vatRate') or 23)}
 
 SELECT="""SELECT p.id,p.sku,p.brand,p.name,p.category,p.subcategory,p.type,p.price,p.old_price,p.stock,p.image,p.badge,p.description,p.options,p.specs,p.active,p.created_at,p.updated_at,p.category_id,p.subcategory_id,p.family_id,p.brand_id,p.attributes,p.barcode,COALESCE(s.stock,0),COALESCE(s.stock_min,0),s.updated_at FROM catalog_products p LEFT JOIN mm_product_stock s ON s.sku=p.sku"""
 
