@@ -105,14 +105,17 @@ def _find_header(ws):
 def _extract_embedded_images(data,ws):
     result={}
     try:
-        drawing_target=None
-        for rel in getattr(ws,'_rels',[]) or []:
-            if str(getattr(rel,'Type','')).endswith('/drawing'):
-                drawing_target=str(getattr(rel,'Target','')).lstrip('/')
-                break
-        if not drawing_target:return result
         with zipfile.ZipFile(io.BytesIO(data)) as zf:
-            if drawing_target not in zf.namelist():return result
+            drawing_target=None
+            for rel in getattr(ws,'_rels',[]) or []:
+                if str(getattr(rel,'Type','')).endswith('/drawing'):
+                    target=str(getattr(rel,'Target','')).replace('\\','/')
+                    if target.startswith('/'):
+                        drawing_target=target.lstrip('/')
+                    else:
+                        drawing_target=posixpath.normpath(posixpath.join('xl/worksheets',target))
+                    break
+            if not drawing_target or drawing_target not in zf.namelist():return result
             drawing_root=ET.fromstring(zf.read(drawing_target))
             rel_path=posixpath.join(posixpath.dirname(drawing_target),'_rels',posixpath.basename(drawing_target)+'.rels')
             if rel_path not in zf.namelist():return result
@@ -129,7 +132,11 @@ def _extract_embedded_images(data,ws):
                 row=int(row_el.text)+1
                 rid=blip.attrib.get('{%s}embed'%ns['r']);target=relmap.get(rid)
                 if not target:continue
-                media=posixpath.normpath(posixpath.join(posixpath.dirname(drawing_target),target))
+                target=str(target).replace('\\','/')
+                if target.startswith('/'):
+                    media=posixpath.normpath(target.lstrip('/'))
+                else:
+                    media=posixpath.normpath(posixpath.join(posixpath.dirname(drawing_target),target))
                 if media not in zf.namelist():continue
                 raw=zf.read(media);ext=media.rsplit('.',1)[-1].lower();mime={'jpg':'image/jpeg','jpeg':'image/jpeg','gif':'image/gif','webp':'image/webp','bmp':'image/bmp'}.get(ext,'image/png')
                 result[row]=f'data:{mime};base64,'+base64.b64encode(raw).decode('ascii')
