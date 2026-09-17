@@ -1,4 +1,4 @@
-import csv, io, json, re, base64, zipfile, xml.etree.ElementTree as ET
+import csv, io, json, re, base64, zipfile, posixpath, xml.etree.ElementTree as ET
 from urllib.parse import parse_qs
 
 def _clean(v):
