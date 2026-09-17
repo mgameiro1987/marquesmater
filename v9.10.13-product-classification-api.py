@@ -41,6 +41,32 @@ def save_one(cur,product_id,typ,data):
                    VALUES(%s,%s,%s,%s,%s)
                    ON CONFLICT(product_id,classification_type) DO UPDATE SET category_id=EXCLUDED.category_id,subcategory_id=EXCLUDED.subcategory_id,family_id=EXCLUDED.family_id,updated_at=NOW()''',(product_id,typ,cid,sid,fid))
 
+KNOWN_GARDEN={'RGT11280','RHT09025','RCS03V016','RCS06006','RBP01040','RBL06650','REP16245'}
+KNOWN_CONSTRUCTION={'RCR11022','RGG11310','RJR12000','RHD01075','RCG07115','RCG07125','RCH072D6','RCC00190','RCC08150','RCJ08025','RCO11125','RCO13150','RCL1250H'}
+KNOWN_ACCESSORIES={'RB2020','RB2040','RFC24','RDC30','BMCB75'}
+KNOWN_GARDEN_KITS={'RGT11280-C12','RHT09025-C12','RCS03V016-C24','RCS06006-C12','RBP01040-C12','RBL06650-C22'}
+KNOWN_CONSTRUCTION_KITS={'RHD01075-B22','RCG07115-B24','RCG07125-B24','RCH072D6-B24','RCC00190-C14','RCC08150-C14','RCJ08025-C22','RCO11125-C12','RCO13150-C12','RCL1250H-C12'}
+
+def default_for_sku(sku):
+    sku=clean(sku).upper()
+    if sku in KNOWN_GARDEN or sku in KNOWN_GARDEN_KITS:
+        return {'commercial':{'categoryId':4,'subcategoryId':25,'familyId':33},'rida':{'categoryId':11,'subcategoryId':16602,'familyId':16604}}
+    if sku in KNOWN_CONSTRUCTION or sku in KNOWN_CONSTRUCTION_KITS:
+        return {'commercial':{'categoryId':7,'subcategoryId':None,'familyId':None},'rida':{'categoryId':11,'subcategoryId':16602,'familyId':16603}}
+    if sku in KNOWN_ACCESSORIES:
+        return {'commercial':{'categoryId':None,'subcategoryId':None,'familyId':None},'rida':{'categoryId':11,'subcategoryId':16602,'familyId':16605}}
+    return None
+
+def ensure_default_for_product(cur,pid):
+    cur.execute('SELECT sku FROM catalog_products WHERE id=%s',(pid,))
+    row=cur.fetchone()
+    if not row:return
+    cur.execute('SELECT COUNT(*) FROM mm_product_classifications WHERE product_id=%s',(pid,))
+    if int(cur.fetchone()[0] or 0)>0:return
+    defaults=default_for_sku(row[0])
+    if not defaults:return
+    for typ,data in defaults.items(): save_one(cur,pid,typ,data)
+
 def get_for_product(cur,pid):
     cur.execute('''SELECT id,classification_type,category_id,subcategory_id,family_id FROM mm_product_classifications WHERE product_id=%s ORDER BY classification_type''',(pid,))
     return [{'id':r[0],'type':r[1],'categoryId':r[2],'subcategoryId':r[3],'familyId':r[4]} for r in cur.fetchall()]
@@ -59,6 +85,9 @@ def handle_get(path,query,send_json):
             if (qs.get('options') or [''])[0]=='1':
                 send_json(200,{'ok':True,'options':get_options(cur)});return True
             if (qs.get('all') or [''])[0]=='1':
+                cur.execute("SELECT id FROM catalog_products")
+                for (pid,) in cur.fetchall(): ensure_default_for_product(cur,pid)
+                conn.commit()
                 cur.execute('''SELECT pc.product_id,pc.classification_type,pc.category_id,pc.subcategory_id,pc.family_id,
                                       cc.name AS category_name,cs.name AS subcategory_name,cf.name AS family_name
                                FROM mm_product_classifications pc
@@ -73,6 +102,7 @@ def handle_get(path,query,send_json):
             pid=iid((qs.get('productId') or [''])[0])
             if not pid:
                 send_json(400,{'ok':False,'error':'productId obrigatório'});return True
+            ensure_default_for_product(cur,pid);conn.commit()
             send_json(200,{'ok':True,'classifications':get_for_product(cur,pid)});return True
     except Exception as e:
         send_json(503,{'ok':False,'error':f'Classificação: {e}'});return True
