@@ -229,6 +229,12 @@ class Handler(SimpleHTTPRequestHandler):
                 if handle_delete(path,urlsplit(self.path).query,self.send_json): return
             except Exception as e:self.send_json(503,{'ok':False,'error':str(e)});return
         self.send_json(404,{'ok':False,'error':'Endpoint não encontrado'})
-try:init_db();print('MarquesMater PostgreSQL stock API ready')
+try:
+    init_db();print('MarquesMater PostgreSQL stock API ready')
+    try:
+        from v9_10_13_rida_bulk_ai import start_once
+        if start_once(): print('RIDA IA bulk: iniciado automaticamente')
+        else: print('RIDA IA bulk: já executado ou em execução')
+    except Exception as e: print(f'RIDA IA bulk não iniciado: {e}')
 except Exception as e:print(f'PostgreSQL stock API not ready: {e}')
 server=ThreadingHTTPServer(('0.0.0.0',PORT),Handler);print(f'MarquesMater server running on port {PORT}');server.serve_forever()
