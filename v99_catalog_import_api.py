@@ -1,4 +1,4 @@
-import csv, io, json, re
+import csv, io, json, re, base64
 
 
 def _clean(v):
@@ -29,14 +29,15 @@ def _norm(s):
 ALIASES={
  'sku':{'sku','codigo','codigoartigo','ref','referencia','referenciaartigo'},
  'barcode':{'ean','ean13','ean8','barcode','codigodebarras','gtin'},
- 'name':{'nome','name','produto','designacao','descricao curta','designacaoproduto'},
+ 'name':{'nome','name','produto','designacao','designacaoproduto','descricao curta'},
  'brand':{'marca','brand'}, 'category':{'categoria','category'},
- 'subcategory':{'subcategoria','subcategory'}, 'family':{'familia','family'},
+ 'subcategory':{'subcategoria','subcategory','subfamilia','subfamilias'}, 'family':{'familia','family'},
  'type':{'tipo','type'}, 'price':{'preco','price','pvp','pvpciva','precovenda'},
  'oldPrice':{'precoantigo','oldprice','oldpvp'}, 'description':{'descricao','description','descricaolonga'},
  'image':{'imagem','image','urlimagem','imagemurl'}, 'badge':{'badge','etiqueta'},
  'cost':{'custo','cost','precocusto'}, 'vatRate':{'iva','ivarate','taxaiva'},
- 'active':{'ativo','active','estado'}, 'stockMin':{'stockmin','stockminimo','minstock'}
+ 'active':{'ativo','active','estado'}, 'stockMin':{'stockmin','stockminimo','minstock'},
+ 'stockInitial':{'stock','stockinicial','stockinicialfisico','quantidade','quantidadeinicial'}
 }
 
 
@@ -50,76 +51,136 @@ def _row_payload(raw):
                 out[field]=normalized[nk]
                 break
     if 'name' not in out and 'description' in out: out['name']=out['description']
-    out['sku']=_clean(out.get('sku'))
-    out['name']=_clean(out.get('name'))
-    out['brand']=_clean(out.get('brand'));out['category']=_clean(out.get('category'));out['subcategory']=_clean(out.get('subcategory'));out['family']=_clean(out.get('family'));out['type']=_clean(out.get('type'))
-    out['barcode']=_clean(out.get('barcode'))
+    out['sku']=_clean(out.get('sku'));out['name']=_clean(out.get('name'))
+    for k in ('brand','category','subcategory','family','type','barcode','description','image','badge'): out[k]=_clean(out.get(k))
     out['price']=_num(out.get('price'));out['oldPrice']=_num(out.get('oldPrice'));out['cost']=_num(out.get('cost'));out['vatRate']=_num(out.get('vatRate'),23);out['stockMin']=max(0,int(_num(out.get('stockMin'),0)))
-    out['active']=_bool(out.get('active'),True)
-    out['description']=_clean(out.get('description'));out['image']=_clean(out.get('image'));out['badge']=_clean(out.get('badge'))
+    out['stockInitial']=max(0,int(_num(out.get('stockInitial'),0)));out['active']=_bool(out.get('active'),True)
     return out
 
 
-def _read_file(data, filename):
+def _find_header(ws):
+    for row in ws.iter_rows(min_row=1,max_row=min(ws.max_row,30),values_only=True):
+        vals=[_norm(v) for v in row if v not in (None,'')]
+        if 'sku' in vals and ('descricao' in vals or 'produto' in vals or 'nome' in vals): return row
+    return None
+
+
+def _extract_embedded_images(ws):
+    result={}
+    for image in getattr(ws,'_images',[]) or []:
+        try:
+            row=image.anchor._from.row+1
+            col=image.anchor._from.col+1
+            if col!=2: continue
+            raw=image._data()
+            ext='png'
+            fmt=getattr(image,'format',None)
+            if fmt: ext=str(fmt).lower().replace('jpeg','jpg')
+            mime='image/jpeg' if ext in ('jpg','jpeg') else 'image/png'
+            result[row]=f'data:{mime};base64,'+base64.b64encode(raw).decode('ascii')
+        except Exception:
+            continue
+    return result
+
+
+def _read_excel(data):
+    from openpyxl import load_workbook
+    wb=load_workbook(io.BytesIO(data),read_only=False,data_only=True)
+    ws=wb.active
+    headers=_find_header(ws)
+    if not headers: raise ValueError('Excel: não encontrei uma linha de cabeçalhos com SKU e Descrição/Nome.')
+    header_row=None
+    for i,row in enumerate(ws.iter_rows(min_row=1,max_row=min(ws.max_row,30),values_only=True),1):
+        if tuple(row)==tuple(headers): header_row=i;break
+    images=_extract_embedded_images(ws)
+    rows=[]
+    for r in range((header_row or 1)+1,ws.max_row+1):
+        vals=[ws.cell(r,c).value for c in range(1,ws.max_column+1)]
+        if not any(v not in (None,'') for v in vals): continue
+        raw=dict(zip(headers,vals))
+        item=_row_payload(raw)
+        if not item.get('sku') and not item.get('name'): continue
+        if r in images: item['image']=images[r]
+        rows.append(item)
+    return rows
+
+
+def _read_file(data,filename):
     lower=filename.lower()
-    if lower.endswith('.xlsx') or lower.endswith('.xlsm'):
-        from openpyxl import load_workbook
-        wb=load_workbook(io.BytesIO(data),read_only=True,data_only=True)
-        ws=wb.active; rows=ws.iter_rows(values_only=True)
-        headers=next(rows,None)
-        if not headers: return []
-        return [dict(zip(headers,row)) for row in rows if any(v not in (None,'') for v in row)]
-    text=data.decode('utf-8-sig',errors='replace')
-    sample=text[:4096]
-    try: dialect=csv.Sniffer().sniff(sample,delimiters=',;\t')
-    except Exception: dialect=csv.excel; dialect.delimiter=';'
-    return list(csv.DictReader(io.StringIO(text),dialect=dialect))
+    if lower.endswith('.xlsx') or lower.endswith('.xlsm'): return _read_excel(data)
+    text=data.decode('utf-8-sig',errors='replace');sample=text[:4096]
+    try:dialect=csv.Sniffer().sniff(sample,delimiters=',;\t')
+    except Exception:dialect=csv.excel;dialect.delimiter=';'
+    return [_row_payload(r) for r in csv.DictReader(io.StringIO(text),dialect=dialect)]
 
 
 def _extract_multipart(handler):
-    length=int(handler.headers.get('Content-Length','0') or 0)
-    raw=handler.rfile.read(length)
-    ctype=handler.headers.get('Content-Type','')
+    length=int(handler.headers.get('Content-Length','0') or 0);raw=handler.rfile.read(length);ctype=handler.headers.get('Content-Type','')
     m=re.search(r'boundary=(?:"([^"]+)"|([^;]+))',ctype)
     if not m: raise ValueError('Multipart inválido: boundary em falta')
-    boundary=(m.group(1) or m.group(2)).encode()
-    marker=b'--'+boundary
+    boundary=(m.group(1) or m.group(2)).encode();marker=b'--'+boundary
     for part in raw.split(marker):
         if b'filename=' not in part: continue
         head,sep,body=part.partition(b'\r\n\r\n')
         if not sep: continue
-        hm=re.search(br'filename="([^"]*)"',head)
-        filename=(hm.group(1).decode('utf-8','replace') if hm else 'import.csv')
-        body=body.rstrip(b'\r\n-')
-        return filename,body
+        hm=re.search(br'filename="([^"]*)"',head);filename=(hm.group(1).decode('utf-8','replace') if hm else 'import.csv')
+        body=body.rstrip(b'\r\n-');return filename,body
     raise ValueError('Nenhum ficheiro encontrado')
+
+
+def _preview(rows):
+    return {'total':len(rows),'with_images':sum(bool(r.get('image','').startswith('data:image/')) for r in rows),'with_stock':sum(1 for r in rows if r.get('stockInitial',0)>0),'new_stock_total':sum(int(r.get('stockInitial',0)) for r in rows),'skus':[r['sku'] for r in rows[:100]]}
+
+
+def _import_rows(rows):
+    from v98_catalog_products_api import handle_post
+    import psycopg, os
+    if not os.environ.get('DATABASE_URL'): raise RuntimeError('DATABASE_URL não configurado')
+    results=[];errors=[];created=0;updated=0;stock_added=0;images=0
+    with psycopg.connect(os.environ['DATABASE_URL']) as conn:
+        with conn.cursor() as cur:
+            for line,row in enumerate(rows,2):
+                # Determine whether this SKU already has a stock row before product upsert.
+                cur.execute('SELECT stock FROM mm_product_stock WHERE sku=%s',(row['sku'],));stock_row=cur.fetchone()
+                had_stock=stock_row is not None
+                # Excel-specific fields are not passed to product API.
+                payload={k:v for k,v in row.items() if k!='stockInitial'}
+                captured=[]
+                def capture(status,payload): captured.append((status,payload))
+                handle_post('/api/catalog/products',payload,capture)
+                status,payload_result=captured[-1] if captured else (500,{'ok':False,'error':'Sem resposta'})
+                if status>=300 or not payload_result.get('ok'):
+                    errors.append({'linha':line,'sku':row['sku'],'error':payload_result.get('error','Erro desconhecido')});continue
+                if row.get('image','').startswith('data:image/'): images+=1
+                if had_stock: updated+=1
+                else: created+=1
+                initial=int(row.get('stockInitial',0) or 0)
+                if initial>0 and not had_stock:
+                    cur.execute('UPDATE mm_product_stock SET stock=%s,updated_at=NOW() WHERE sku=%s',(initial,row['sku']))
+                    cur.execute("INSERT INTO mm_stock_movements(sku,movement_type,delta,resulting_stock,reason,notes) VALUES(%s,'entrada',%s,%s,%s,%s)",(row['sku'],initial,initial,'Importação inicial de catálogo', 'Stock inicial importado do ficheiro '+str(row.get('_filename',''))))
+                    stock_added+=initial
+        conn.commit()
+    return {'created':created,'updated':updated,'images':images,'stock_added':stock_added,'errors':errors}
 
 
 def handle_upload(handler,send_json):
     try:
         filename,data=_extract_multipart(handler)
-        if not filename.lower().endswith(('.csv','.xlsx','.xlsm')):
-            raise ValueError('Formato não suportado. Use CSV ou Excel (.xlsx).')
-        rows=[_row_payload(r) for r in _read_file(data,filename)]
+        if not filename.lower().endswith(('.csv','.xlsx','.xlsm')): raise ValueError('Formato não suportado. Use CSV ou Excel (.xlsx).')
+        rows=[_row_payload(r) for r in _read_file(data,filename)] if not filename.lower().endswith(('.xlsx','.xlsm')) else _read_file(data,filename)
         if not rows: raise ValueError('O ficheiro não contém linhas de dados.')
         if len(rows)>5000: raise ValueError('Limite de 5000 linhas por importação.')
         bad=[i+2 for i,r in enumerate(rows) if not r.get('sku') or not r.get('name')]
         if bad: raise ValueError('SKU e Nome são obrigatórios. Linhas inválidas: '+', '.join(map(str,bad[:20]))+('…' if len(bad)>20 else ''))
-        from v98_catalog_products_api import handle_post
-        results=[]; ok=0
-        def capture(status,payload): results.append((status,payload))
-        for i,row in enumerate(rows,2):
-            results.clear();handle_post('/api/catalog/products',row,capture)
-            status,payload=results[-1] if results else (500,{'ok':False,'error':'Sem resposta'})
-            if status<300 and payload.get('ok'):
-                ok+=1
-            else:
-                results.append((status,payload))
-        errors=[{'linha':i+2,'error':(next((p.get('error') for s,p in []),None) or 'Erro')} for i in []]
-        # Re-run is intentionally avoided: handle_post is the single source of truth and protects stock.
-        send_json(200,{'ok':True,'filename':filename,'total':len(rows),'imported':ok,'failed':len(rows)-ok,'message':f'{ok} de {len(rows)} linhas processadas. Stock não é alterado pela importação.'})
+        qs=handler.path.split('?',1)[1] if '?' in handler.path else ''
+        mode=(parse_qs(qs).get('mode') or [''])[0] if 'parse_qs' in globals() else ''
+        if mode=='preview':
+            send_json(200,{'ok':True,'filename':filename,'preview':_preview(rows)});return True
+        for r in rows:r['_filename']=filename
+        result=_import_rows(rows)
+        send_json(200,{'ok':not result['errors'],'filename':filename,'total':len(rows),'created':result['created'],'updated':result['updated'],'images':result['images'],'stockAdded':result['stock_added'],'failed':len(result['errors']),'errors':result['errors'][:50],'message':f"Importação concluída: {result['created']} novos, {result['updated']} atualizados, {result['images']} imagens e +{result['stock_added']} unidades de stock inicial."})
         return True
-    except ValueError as e:
-        send_json(400,{'ok':False,'error':str(e)});return True
-    except Exception as e:
-        send_json(503,{'ok':False,'error':f'Importação: {e}'});return True
+    except ValueError as e: send_json(400,{'ok':False,'error':str(e)});return True
+    except Exception as e: send_json(503,{'ok':False,'error':f'Importação: {e}'});return True
+
+from urllib.parse import parse_qs
