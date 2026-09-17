@@ -66,6 +66,16 @@ def _match_field(header):
     if n=='stock' or n.startswith('stock') and 'min' not in n:return 'stockInitial'
     return None
 
+def _image_cell_value(cell):
+    try:
+        v=cell.value
+        if isinstance(v,str) and v.strip():return v.strip()
+        link=getattr(cell,'hyperlink',None)
+        target=getattr(link,'target',None) if link else None
+        if target:return str(target).strip()
+    except Exception:pass
+    return ''
+
 def _row_payload(raw):
     normalized={}
     for k,v in raw.items():
@@ -87,7 +97,7 @@ def _find_header(ws):
     for row_number,row in enumerate(ws.iter_rows(min_row=1,max_row=min(ws.max_row,60),values_only=True),1):
         fields=[_match_field(v) for v in row if v not in (None,'')]
         if 'sku' in fields and ('name' in fields or 'description' in fields):
-            score=3+int('brand' in fields)+int('category' in fields)+int('price' in fields)+int('stockInitial' in fields)
+            score=3+int('brand' in fields)+int('category' in fields)+int('price' in fields)+int('stockInitial' in fields)+int('image' in fields)
             candidate=(score,row_number,row)
             if best is None or candidate[0]>best[0]:best=candidate
     return (best[1],best[2]) if best else None
@@ -96,26 +106,32 @@ def _extract_embedded_images(ws):
     result={}
     for image in getattr(ws,'_images',[]) or []:
         try:
-            row=image.anchor._from.row+1;col=image.anchor._from.col+1
-            if col!=2:continue
-            raw=image._data();ext=str(getattr(image,'format','png') or 'png').lower().replace('jpeg','jpg');mime='image/jpeg' if ext in ('jpg','jpeg') else 'image/png'
+            row=image.anchor._from.row+1
+            raw=image._data()
+            ext=str(getattr(image,'format','png') or 'png').lower().replace('jpeg','jpg')
+            mime='image/jpeg' if ext in ('jpg','jpeg') else 'image/png'
             result[row]=f'data:{mime};base64,'+base64.b64encode(raw).decode('ascii')
         except Exception:continue
     return result
 
 def _read_excel(data,filename=''):
     from openpyxl import load_workbook
-    wb=load_workbook(io.BytesIO(data),read_only=False,data_only=True);candidates=[];preferred=('produtos','catalogo','catálogo','rida','composição skus','composicao skus')
+    wb=load_workbook(io.BytesIO(data),read_only=False,data_only=True)
+    candidates=[];preferred=('produtos','catalogo','catálogo','rida','composição skus','composicao skus')
     for ws in wb.worksheets:
         header=_find_header(ws)
         if not header:continue
         header_row,headers=header;images=_extract_embedded_images(ws);rows=[]
+        image_header_col=next((i+1 for i,h in enumerate(headers) if _match_field(h)=='image'),None)
         for r in range(header_row+1,ws.max_row+1):
             vals=[ws.cell(r,c).value for c in range(1,ws.max_column+1)]
             if not any(v not in (None,'') for v in vals):continue
-            item=_row_payload(dict(zip(headers,vals)))
+            raw=dict(zip(headers,vals));item=_row_payload(raw)
+            if image_header_col:
+                cell_img=_image_cell_value(ws.cell(r,image_header_col))
+                if cell_img:item['image']=cell_img
             if not item.get('sku') and not item.get('name'):continue
-            if r in images:item['image']=images[r]
+            if r in images and not item.get('image'):item['image']=images[r]
             rows.append(item)
         if rows:
             title=ws.title.strip().lower();preference=1 if any(p in title for p in preferred) else 0;candidates.append((preference,len(rows),ws.title,rows))
@@ -141,7 +157,10 @@ def _extract_multipart(handler):
     raise ValueError('Nenhum ficheiro encontrado')
 
 def _preview(rows):
-    return {'total':len(rows),'with_images':sum(bool(r.get('image','').startswith('data:image/')) for r in rows),'with_stock':sum(1 for r in rows if r.get('stockProvided')),'excel_stock_total':sum(int(r.get('stockInitial',0) or 0) for r in rows if r.get('stockProvided')),'without_stock':sum(1 for r in rows if not r.get('stockProvided'))}
+    def has_image(r):
+        v=_clean(r.get('image','')).lower()
+        return v.startswith('data:image/') or v.startswith('http://') or v.startswith('https://')
+    return {'total':len(rows),'with_images':sum(1 for r in rows if has_image(r)),'with_stock':sum(1 for r in rows if r.get('stockProvided')),'excel_stock_total':sum(int(r.get('stockInitial',0) or 0) for r in rows if r.get('stockProvided')),'without_stock':sum(1 for r in rows if not r.get('stockProvided'))}
 
 def _import_rows(rows):
     from v98_catalog_products_api import handle_post
@@ -157,7 +176,7 @@ def _import_rows(rows):
                 status,result=captured[-1] if captured else (500,{'ok':False,'error':'Sem resposta'})
                 if status>=300 or not result.get('ok'):
                     errors.append({'linha':line,'sku':row['sku'],'error':result.get('error','Erro desconhecido')});continue
-                if row.get('image','').startswith('data:image/'):images+=1
+                if _clean(row.get('image','')).lower().startswith(('data:image/','http://','https://')):images+=1
                 if had_stock:updated+=1
                 else:created+=1
                 if row.get('stockProvided') and not had_stock:
