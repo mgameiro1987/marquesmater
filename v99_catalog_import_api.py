@@ -215,6 +215,9 @@ def _preview(rows):
         return v.startswith('data:image/') or v.startswith('http://') or v.startswith('https://')
     return {'total':len(rows),'with_images':sum(1 for r in rows if has_image(r)),'with_stock':sum(1 for r in rows if r.get('stockProvided')),'excel_stock_total':sum(int(r.get('stockInitial',0) or 0) for r in rows if r.get('stockProvided')),'without_stock':sum(1 for r in rows if not r.get('stockProvided')),'with_commercial_classification':sum(1 for r in rows if r.get('commercialCategory') or r.get('category')),'with_rida_classification':sum(1 for r in rows if r.get('ridaCategory') or r.get('ridaSubcategory') or r.get('ridaFamily'))}
 
+def _category_slug(name):
+    return re.sub(r'-+','-',re.sub(r'[^a-z0-9]+','-',_norm(name))).strip('-')
+
 def _resolve_classification(cur,category_name,subcategory_name,family_name,auto_create=False):
     category_name=_clean(category_name);subcategory_name=_clean(subcategory_name);family_name=_clean(family_name)
     if not category_name and not subcategory_name and not family_name:return (None,None,None)
