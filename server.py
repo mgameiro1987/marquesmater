@@ -235,7 +235,17 @@ class Handler(SimpleHTTPRequestHandler):
             except Exception as e:self.send_json(503,{'ok':False,'error':str(e)});return
         self.send_json(404,{'ok':False,'error':'Endpoint não encontrado'})
 try:
-    init_db();print('MarquesMater PostgreSQL stock API ready')
+    init_db()
+    # Limpeza dos três produtos de demonstração confirmados pelo proprietário.
+    try:
+        with db() as c:
+            with c.cursor() as x:
+                x.execute("DELETE FROM catalog_products WHERE sku IN ('DEMO-VAR-SILICONE','DEMO-VAR-RIDA-KIT','DEMO-VAR-CAIXA')")
+            c.commit()
+        print('Produtos demo: limpeza concluída')
+    except Exception as e:
+        print(f'Produtos demo: limpeza não concluída: {e}')
+    print('MarquesMater PostgreSQL stock API ready')
     try:
         from v9_10_13_rida_bulk_ai import start_once
         if start_once(): print('RIDA IA bulk: iniciado automaticamente')
