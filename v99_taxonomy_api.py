@@ -105,45 +105,8 @@ def handle_get(path,query,send_json):
             cur.execute("SELECT id,category_id,subcategory_id,name,active,display_order FROM mm_families ORDER BY category_id,COALESCE(display_order,2147483647),name")
             for r in cur.fetchall():
                 by[r[1]]['families'].append({'id':r[0],'categoryId':r[1],'subcategoryId':r[2],'name':r[3],'active':r[4],'order':r[5],'products':0})
-            # Contagens comerciais/RIDA vêm da mesma fonte de classificação usada pelo editor.
-            cur.execute("""
-                SELECT pc.classification_type, cc.name, cs.name, cf.name, COUNT(*)
-                FROM mm_product_classifications pc
-                JOIN catalog_products p ON p.id=pc.product_id
-                LEFT JOIN catalog_categories cc ON cc.id=pc.category_id
-                LEFT JOIN catalog_categories cs ON cs.id=pc.subcategory_id
-                LEFT JOIN catalog_categories cf ON cf.id=pc.family_id
-                WHERE p.active IS DISTINCT FROM FALSE
-                GROUP BY 1,2,3,4
-            """)
-            for typ,cname,sname,fname,n in cur.fetchall():
-                if typ not in ('commercial','rida'): continue
-                # Cada produto conta uma vez por árvore: comercial nas categorias comerciais;
-                # RIDA apenas na árvore RIDA. Nunca misturar as duas contagens.
-                if (typ=='rida') != (cname=='RIDA'): continue
-                cat=next((x for x in cats if x['name']==cname),None)
-                if not cat: continue
-                cat['products']+=n
-                for x in cat['subcategories']:
-                    if x['name']==sname: x['products']+=n
-                for x in cat['families']:
-                    if x['name']==fname: x['products']+=n
-            # Produtos ainda sem classificação mantêm a contagem legacy da categoria principal.
-            cur.execute("""
-                SELECT p.category,p.subcategory,p.attributes->>'family',COUNT(*)
-                FROM catalog_products p
-                WHERE p.active IS DISTINCT FROM FALSE
-                  AND NOT EXISTS (SELECT 1 FROM mm_product_classifications pc WHERE pc.product_id=p.id)
-                GROUP BY 1,2,3
-            """)
-            for c,sn,fn,n in cur.fetchall():
-                cat=next((x for x in cats if x['name']==c),None)
-                if not cat: continue
-                cat['products']+=n
-                for x in cat['subcategories']:
-                    if x['name']==sn: x['products']+=n
-                for x in cat['families']:
-                    if x['name']==fn: x['products']+=n
+            # GET estabilizado: a abertura do gestor depende apenas da árvore estrutural.
+            # As contagens de produtos não podem bloquear a entrada em Categorias.
             send_json(200,{'ok':True,'categories':cats,'count':len(cats)});return True
     except Exception as e:
         send_json(503,{'ok':False,'error':f'API taxonomia: {e}'});return True
