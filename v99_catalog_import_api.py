@@ -260,7 +260,11 @@ def _import_rows(rows):
         with conn.cursor() as cur:
             for line,row in enumerate(rows,2):
                 cur.execute('SELECT stock FROM mm_product_stock WHERE sku=%s',(row['sku'],));stock_row=cur.fetchone();had_stock=stock_row is not None
-                payload={k:v for k,v in row.items() if k not in ('stockInitial','stockProvided','_filename','commercialCategory','commercialSubcategory','commercialFamily','ridaCategory','ridaSubcategory','ridaFamily')};captured=[]
+                payload={k:v for k,v in row.items() if k not in ('stockInitial','stockProvided','_filename','commercialCategory','commercialSubcategory','commercialFamily','ridaCategory','ridaSubcategory','ridaFamily')};
+                # "MANTER_IMAGEM_ATUAL" (ou vazio) significa preservar a fotografia já existente no catálogo.
+                if not _clean(payload.get('image','')).lower().startswith(('data:image/','http://','https://')):
+                    payload.pop('image',None)
+                captured=[]
                 handle_post('/api/catalog/products',payload,lambda status,payload:captured.append((status,payload)))
                 status,result=captured[-1] if captured else (500,{'ok':False,'error':'Sem resposta'})
                 if status>=300 or not result.get('ok'):
