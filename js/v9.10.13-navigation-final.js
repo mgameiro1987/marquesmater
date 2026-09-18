@@ -1,5 +1,6 @@
 (()=>{'use strict';if(window.__MM1013NAVFINAL)return;window.__MM1013NAVFINAL=1;
 function activate(section){document.querySelectorAll('.navitem[data-section]').forEach(b=>b.classList.toggle('active',b.dataset.section===section));document.getElementById('sidebar')?.classList.remove('open')}
+function loadChat(){return new Promise((resolve,reject)=>{if(window.__MM1013CHAT)return resolve();const x=document.createElement('script');x.src='js/v9.10.13-chat-foundation.js?v=1090';x.onload=()=>resolve();x.onerror=reject;document.head.appendChild(x)})}
 async function open(section){
  activate(section);
  try{
@@ -7,6 +8,7 @@ async function open(section){
   if(section==='categories'){if(window.MM99Taxonomy)return window.MM99Taxonomy();throw Error('Gestor de Categorias não disponível.')}
   if(section==='brands'){if(window.MMForceBrands?.render)return window.MMForceBrands.render();throw Error('Gestor de Marcas não disponível.')}
   if(section==='attributes'){if(window.MM95AttributesRender)return window.MM95AttributesRender();throw Error('Gestor de Atributos não disponível.')}
+  if(section==='chat'){await loadChat();return window.MMAdmin.go('chat')}
   if(window.MMAdmin?.go)return window.MMAdmin.go(section);
  }catch(e){console.error('MM navigation final',e);const a=document.getElementById('app');if(a)a.innerHTML='<section class="page"><div class="card info"><h2>Não foi possível abrir esta área</h2><p>'+String(e.message||e)+'</p><button class="btn" onclick="location.reload()">Recarregar</button></div></section>'}
 }
