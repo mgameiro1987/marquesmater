@@ -10,7 +10,13 @@ def db():
 def clean(v): return str(v or '').strip()
 
 def ensure(cur):
-    cur.execute("CREATE TABLE IF NOT EXISTS mm_categories (id BIGSERIAL PRIMARY KEY,name TEXT NOT NULL UNIQUE,description TEXT NOT NULL DEFAULT '',icon TEXT NOT NULL DEFAULT '',active BOOLEAN NOT NULL DEFAULT TRUE,created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())")
+    cur.execute("ALTER TABLE mm_categories ADD COLUMN IF NOT EXISTS display_order INTEGER")
+    cur.execute("ALTER TABLE mm_subcategories ADD COLUMN IF NOT EXISTS display_order INTEGER")
+    cur.execute("ALTER TABLE mm_families ADD COLUMN IF NOT EXISTS display_order INTEGER")
+    cur.execute("UPDATE mm_categories SET display_order=x.rn FROM (SELECT id,ROW_NUMBER() OVER(ORDER BY name) rn FROM mm_categories) x WHERE mm_categories.id=x.id AND mm_categories.display_order IS NULL")
+    cur.execute("UPDATE mm_subcategories SET display_order=x.rn FROM (SELECT id,ROW_NUMBER() OVER(PARTITION BY category_id ORDER BY name) rn FROM mm_subcategories) x WHERE mm_subcategories.id=x.id AND mm_subcategories.display_order IS NULL")
+    cur.execute("UPDATE mm_families SET display_order=x.rn FROM (SELECT id,ROW_NUMBER() OVER(PARTITION BY category_id ORDER BY name) rn FROM mm_families) x WHERE mm_families.id=x.id AND mm_families.display_order IS NULL")
+    cur.execute("CREATE TABLE IF NOT EXISTS mm_categories (id BIGSERIAL PRIMARY KEY,name TEXT NOT NULL UNIQUE,description TEXT NOT NULL DEFAULT '',icon TEXT NOT NULL DEFAULT '',active BOOLEAN NOT NULL DEFAULT TRUE,display_order INTEGER,created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())")
     cur.execute("CREATE TABLE IF NOT EXISTS mm_subcategories (id BIGSERIAL PRIMARY KEY,category_id BIGINT NOT NULL REFERENCES mm_categories(id) ON DELETE CASCADE,name TEXT NOT NULL,active BOOLEAN NOT NULL DEFAULT TRUE,created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),UNIQUE(category_id,name))")
     cur.execute("CREATE TABLE IF NOT EXISTS mm_families (id BIGSERIAL PRIMARY KEY,category_id BIGINT NOT NULL REFERENCES mm_categories(id) ON DELETE CASCADE,subcategory_id BIGINT REFERENCES mm_subcategories(id) ON DELETE SET NULL,name TEXT NOT NULL,active BOOLEAN NOT NULL DEFAULT TRUE,created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),UNIQUE(category_id,name))")
     cur.execute("SELECT DISTINCT NULLIF(BTRIM(category),'') FROM catalog_products WHERE NULLIF(BTRIM(category),'') IS NOT NULL")
@@ -31,15 +37,15 @@ def handle_get(path,query,send_json):
     try:
         with db() as conn,conn.cursor() as cur:
             ensure(cur);conn.commit()
-            cur.execute("SELECT id,name,description,icon,active FROM mm_categories ORDER BY name")
-            cats=[{'id':r[0],'name':r[1],'description':r[2],'icon':r[3],'active':r[4],'products':0,'subcategories':[],'families':[]} for r in cur.fetchall()]
+            cur.execute("SELECT id,name,description,icon,active,display_order FROM mm_categories ORDER BY COALESCE(display_order,2147483647),name")
+            cats=[{'id':r[0],'name':r[1],'description':r[2],'icon':r[3],'active':r[4],'order':r[5],'products':0,'subcategories':[],'families':[]} for r in cur.fetchall()]
             by={x['id']:x for x in cats}
-            cur.execute("SELECT id,category_id,name,active FROM mm_subcategories ORDER BY name")
+            cur.execute("SELECT id,category_id,name,active,display_order FROM mm_subcategories ORDER BY category_id,COALESCE(display_order,2147483647),name")
             subs={}
             for r in cur.fetchall():
-                x={'id':r[0],'categoryId':r[1],'name':r[2],'active':r[3],'products':0};subs[x['id']]=x;by[r[1]]['subcategories'].append(x)
-            cur.execute("SELECT id,category_id,subcategory_id,name,active FROM mm_families ORDER BY name")
-            for r in cur.fetchall(): by[r[1]]['families'].append({'id':r[0],'categoryId':r[1],'subcategoryId':r[2],'name':r[3],'active':r[4],'products':0})
+                x={'id':r[0],'categoryId':r[1],'name':r[2],'active':r[3],'order':r[4],'products':0};subs[x['id']]=x;by[r[1]]['subcategories'].append(x)
+            cur.execute("SELECT id,category_id,subcategory_id,name,active,display_order FROM mm_families ORDER BY category_id,COALESCE(display_order,2147483647),name")
+            for r in cur.fetchall(): by[r[1]]['families'].append({'id':r[0],'categoryId':r[1],'subcategoryId':r[2],'name':r[3],'active':r[4],'order':r[5],'products':0})
             cur.execute("SELECT category,subcategory,attributes->>'family',COUNT(*) FROM catalog_products GROUP BY 1,2,3")
             for c,s,f,n in cur.fetchall():
                 cat=next((x for x in cats if x['name']==c),None)
@@ -59,13 +65,13 @@ def handle_post(path,body,send_json):
         if kind not in ('category','subcategory','family') or not name: raise ValueError('Tipo e nome são obrigatórios')
         with db() as conn,conn.cursor() as cur:
             ensure(cur)
-            if kind=='category': cur.execute("INSERT INTO mm_categories(name,description,icon,active) VALUES(%s,%s,%s,%s) RETURNING id",(name,clean(body.get('description')),clean(body.get('icon')),bool(body.get('active',True))))
+            if kind=='category': cur.execute("INSERT INTO mm_categories(name,description,icon,active,display_order) VALUES(%s,%s,%s,%s,(SELECT COALESCE(MAX(display_order),0)+1 FROM mm_categories)) RETURNING id",(name,clean(body.get('description')),clean(body.get('icon')),bool(body.get('active',True))))
             elif kind=='subcategory':
                 if not cid: raise ValueError('Categoria obrigatória')
-                cur.execute("INSERT INTO mm_subcategories(category_id,name,active) VALUES(%s,%s,%s) RETURNING id",(cid,name,bool(body.get('active',True))))
+                cur.execute("INSERT INTO mm_subcategories(category_id,name,active,display_order) VALUES(%s,%s,%s,(SELECT COALESCE(MAX(display_order),0)+1 FROM mm_subcategories WHERE category_id=%s)) RETURNING id",(cid,name,bool(body.get('active',True)),cid))
             else:
                 if not cid: raise ValueError('Categoria obrigatória')
-                cur.execute("INSERT INTO mm_families(category_id,subcategory_id,name,active) VALUES(%s,%s,%s,%s) RETURNING id",(cid,sid,name,bool(body.get('active',True))))
+                cur.execute("INSERT INTO mm_families(category_id,subcategory_id,name,active,display_order) VALUES(%s,%s,%s,%s,(SELECT COALESCE(MAX(display_order),0)+1 FROM mm_families WHERE category_id=%s)) RETURNING id",(cid,sid,name,bool(body.get('active',True)),cid))
             new=cur.fetchone()[0];conn.commit();send_json(201,{'ok':True,'id':new});return True
     except psycopg.errors.UniqueViolation:
         send_json(409,{'ok':False,'error':'Já existe um registo com esse nome neste nível.'});return True
@@ -74,6 +80,17 @@ def handle_post(path,body,send_json):
 
 def handle_patch(path,body,send_json):
     if path!='/api/taxonomy': return False
+    try:
+        if body.get('action')=='reorder':
+            kind=clean(body.get('kind'));items=body.get('items') or []
+            if kind not in ('category','subcategory','family') or not items: raise ValueError('Ordem inválida')
+            table={'category':'mm_categories','subcategory':'mm_subcategories','family':'mm_families'}[kind]
+            with db() as conn,conn.cursor() as cur:
+                ensure(cur)
+                for pos,item in enumerate(items,1):
+                    rid=int(item.get('id') or 0)
+                    if rid: cur.execute(f"UPDATE {table} SET display_order=%s,updated_at=NOW() WHERE id=%s",(pos,rid))
+                conn.commit();send_json(200,{'ok':True,'count':len(items)});return True
     try:
         kind=clean(body.get('kind'));rid=int(body.get('id') or 0);name=clean(body.get('name'));active=bool(body.get('active',True))
         if kind not in ('category','subcategory','family') or not rid or not name: raise ValueError('Dados inválidos')
