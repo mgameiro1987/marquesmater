@@ -147,6 +147,45 @@ def handle_get(path,query,send_json):
     except Exception as e:
         send_json(503,{'ok':False,'error':f'API taxonomia: {e}'});return True
 
+def slugify(v):
+    import unicodedata,re
+    s=unicodedata.normalize('NFKD',clean(v)).encode('ascii','ignore').decode('ascii').lower()
+    return re.sub(r'-+','-',re.sub(r'[^a-z0-9]+','-',s)).strip('-')
+
+def canonical_node(cur,kind,name,parent_id=None):
+    if parent_id is None:
+        cur.execute("SELECT id,slug FROM catalog_categories WHERE kind=%s AND lower(name)=lower(%s) AND parent_id IS NULL LIMIT 1",(kind,name))
+    else:
+        cur.execute("SELECT id,slug FROM catalog_categories WHERE kind=%s AND lower(name)=lower(%s) AND parent_id=%s LIMIT 1",(kind,name,parent_id))
+    return cur.fetchone()
+
+def canonical_upsert(cur,kind,name,parent_id=None,active=True,old_id=None):
+    old=None
+    if old_id:
+        cur.execute("SELECT id,name,parent_id FROM catalog_categories WHERE id=%s AND kind=%s",(old_id,kind));old=cur.fetchone()
+    existing=canonical_node(cur,kind,name,parent_id)
+    if existing and (not old or existing[0]==old[0]):
+        cid=existing[0]
+        cur.execute("UPDATE catalog_categories SET active=%s WHERE id=%s",(active,cid))
+        return cid
+    base=slugify(name)
+    if parent_id:
+        cur.execute("SELECT slug FROM catalog_categories WHERE id=%s",(parent_id,))
+        p=cur.fetchone()
+        if p and p[0]: base=p[0]+'-'+base
+    slug=base or 'categoria'
+    n=1
+    while True:
+        cur.execute("SELECT id FROM catalog_categories WHERE slug=%s AND (%s IS NULL OR id<>%s)",(slug,old_id,old_id))
+        hit=cur.fetchone()
+        if not hit: break
+        n+=1;slug=f"{base}-{n}"
+    if old:
+        cur.execute("UPDATE catalog_categories SET name=%s,parent_id=%s,slug=%s,active=%s WHERE id=%s",(name,parent_id,slug,active,old[0]))
+        return old[0]
+    cur.execute("INSERT INTO catalog_categories(name,kind,parent_id,slug,active) VALUES(%s,%s,%s,%s,%s) RETURNING id",(name,kind,parent_id,slug,active))
+    return cur.fetchone()[0]
+
 def handle_post(path,body,send_json):
     if path!='/api/taxonomy': return False
     try:
@@ -156,14 +195,30 @@ def handle_post(path,body,send_json):
         if kind not in ('category','subcategory','family') or not name: raise ValueError('Tipo e nome são obrigatórios')
         with db() as conn,conn.cursor() as cur:
             ensure(cur)
+            active=bool(body.get('active',True))
             if kind=='category':
-                cur.execute("INSERT INTO mm_categories(name,description,icon,image,active,display_order) VALUES(%s,%s,%s,%s,%s,(SELECT COALESCE(MAX(display_order),0)+1 FROM mm_categories)) RETURNING id",(name,clean(body.get('description')),clean(body.get('icon')),clean(body.get('image')),bool(body.get('active',True))))
+                canonical_upsert(cur,'category',name,None,active)
+                cur.execute("INSERT INTO mm_categories(name,description,icon,image,active,display_order) VALUES(%s,%s,%s,%s,%s,(SELECT COALESCE(MAX(display_order),0)+1 FROM mm_categories)) RETURNING id",(name,clean(body.get('description')),clean(body.get('icon')),clean(body.get('image')),active))
             elif kind=='subcategory':
                 if not cid: raise ValueError('Categoria obrigatória')
-                cur.execute("INSERT INTO mm_subcategories(category_id,name,active,display_order) VALUES(%s,%s,%s,(SELECT COALESCE(MAX(display_order),0)+1 FROM mm_subcategories WHERE category_id=%s)) RETURNING id",(cid,name,bool(body.get('active',True)),cid))
+                cur.execute("SELECT name FROM mm_categories WHERE id=%s",(cid,));z=cur.fetchone()
+                if not z: raise ValueError('Categoria não encontrada')
+                cur.execute("SELECT id FROM catalog_categories WHERE kind='category' AND lower(name)=lower(%s) AND active=true LIMIT 1",(z[0],));pc=cur.fetchone()
+                if not pc: raise ValueError('Categoria canónica não encontrada')
+                canonical_upsert(cur,'subcategory',name,pc[0],active)
+                cur.execute("INSERT INTO mm_subcategories(category_id,name,active,display_order) VALUES(%s,%s,%s,(SELECT COALESCE(MAX(display_order),0)+1 FROM mm_subcategories WHERE category_id=%s)) RETURNING id",(cid,name,active,cid))
             else:
                 if not cid: raise ValueError('Categoria obrigatória')
-                cur.execute("INSERT INTO mm_families(category_id,subcategory_id,name,active,display_order) VALUES(%s,%s,%s,%s,(SELECT COALESCE(MAX(display_order),0)+1 FROM mm_families WHERE category_id=%s)) RETURNING id",(cid,sid,name,bool(body.get('active',True)),cid))
+                if sid:
+                    cur.execute("SELECT s.name,c.name FROM mm_subcategories s JOIN mm_categories c ON c.id=s.category_id WHERE s.id=%s",(sid,));z=cur.fetchone()
+                else:
+                    z=None
+                if not z: raise ValueError('Subcategoria obrigatória')
+                cur.execute("SELECT id FROM catalog_categories WHERE kind='category' AND lower(name)=lower(%s) AND active=true LIMIT 1",(z[1],));pc=cur.fetchone()
+                cur.execute("SELECT id FROM catalog_categories WHERE kind='subcategory' AND lower(name)=lower(%s) AND parent_id=%s AND active=true LIMIT 1",(z[0],pc[0] if pc else 0));ps=cur.fetchone()
+                if not ps: raise ValueError('Subcategoria canónica não encontrada')
+                canonical_upsert(cur,'family',name,ps[0],active)
+                cur.execute("INSERT INTO mm_families(category_id,subcategory_id,name,active,display_order) VALUES(%s,%s,%s,%s,(SELECT COALESCE(MAX(display_order),0)+1 FROM mm_families WHERE category_id=%s)) RETURNING id",(cid,sid,name,active,cid))
             new=cur.fetchone()[0];conn.commit();send_json(201,{'ok':True,'id':new});return True
     except psycopg.errors.UniqueViolation:
         send_json(409,{'ok':False,'error':'Já existe um registo com esse nome neste nível.'});return True
@@ -190,11 +245,30 @@ def handle_patch(path,body,send_json):
         with db() as conn,conn.cursor() as cur:
             ensure(cur)
             if kind=='category':
+                cur.execute("SELECT name FROM mm_categories WHERE id=%s",(rid,));z=cur.fetchone()
+                if not z: raise ValueError('Registo não encontrado')
+                cur.execute("SELECT id FROM catalog_categories WHERE kind='category' AND lower(name)=lower(%s) LIMIT 1",(z[0],));cc=cur.fetchone()
+                canonical_upsert(cur,'category',name,None,active,cc[0] if cc else None)
                 cur.execute("UPDATE mm_categories SET name=%s,description=%s,icon=%s,image=%s,active=%s,updated_at=NOW() WHERE id=%s",(name,clean(body.get('description')),clean(body.get('icon')),clean(body.get('image')),active,rid))
             elif kind=='subcategory':
+                cur.execute("SELECT s.name,c.name FROM mm_subcategories s JOIN mm_categories c ON c.id=s.category_id WHERE s.id=%s",(rid,));z=cur.fetchone()
+                if not z: raise ValueError('Registo não encontrado')
+                cur.execute("SELECT id FROM catalog_categories WHERE kind='category' AND lower(name)=lower(%s) LIMIT 1",(z[1],));pc=cur.fetchone()
+                if not pc: raise ValueError('Categoria canónica não encontrada')
+                cur.execute("SELECT id FROM catalog_categories WHERE kind='subcategory' AND lower(name)=lower(%s) AND parent_id=%s LIMIT 1",(z[0],pc[0]));old=cur.fetchone()
+                canonical_upsert(cur,'subcategory',name,pc[0],active,old[0] if old else None)
                 cur.execute("UPDATE mm_subcategories SET name=%s,active=%s,updated_at=NOW() WHERE id=%s",(name,active,rid))
             else:
-                cur.execute("UPDATE mm_families SET name=%s,subcategory_id=%s,active=%s,updated_at=NOW() WHERE id=%s",(name,int(body.get('subcategoryId')) if str(body.get('subcategoryId') or '').isdigit() else None,active,rid))
+                cur.execute("SELECT f.name,s.name,c.name FROM mm_families f JOIN mm_categories c ON c.id=f.category_id LEFT JOIN mm_subcategories s ON s.id=f.subcategory_id WHERE f.id=%s",(rid,));z=cur.fetchone()
+                if not z: raise ValueError('Registo não encontrado')
+                if not z[1]: raise ValueError('Subcategoria obrigatória')
+                cur.execute("SELECT id FROM catalog_categories WHERE kind='category' AND lower(name)=lower(%s) LIMIT 1",(z[2],));pc=cur.fetchone()
+                cur.execute("SELECT id FROM catalog_categories WHERE kind='subcategory' AND lower(name)=lower(%s) AND parent_id=%s LIMIT 1",(z[1],pc[0] if pc else 0));ps=cur.fetchone()
+                if not ps: raise ValueError('Subcategoria canónica não encontrada')
+                cur.execute("SELECT id FROM catalog_categories WHERE kind='family' AND lower(name)=lower(%s) AND parent_id=%s LIMIT 1",(z[0],ps[0]));old=cur.fetchone()
+                canonical_upsert(cur,'family',name,ps[0],active,old[0] if old else None)
+                nsid=int(body.get('subcategoryId')) if str(body.get('subcategoryId') or '').isdigit() else None
+                cur.execute("UPDATE mm_families SET name=%s,subcategory_id=%s,active=%s,updated_at=NOW() WHERE id=%s",(name,nsid,active,rid))
             if cur.rowcount!=1: raise ValueError('Registo não encontrado')
             conn.commit();send_json(200,{'ok':True});return True
     except psycopg.errors.UniqueViolation:
