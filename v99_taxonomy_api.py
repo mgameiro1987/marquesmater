@@ -86,6 +86,9 @@ def handle_get(path,query,send_json):
             """)
             for typ,cname,sname,fname,n in cur.fetchall():
                 if typ not in ('commercial','rida'): continue
+                # Cada produto conta uma vez por árvore: comercial nas categorias comerciais;
+                # RIDA apenas na árvore RIDA. Nunca misturar as duas contagens.
+                if (typ=='rida') != (cname=='RIDA'): continue
                 cat=next((x for x in cats if x['name']==cname),None)
                 if not cat: continue
                 cat['products']+=n
