@@ -94,7 +94,11 @@ def handle_get(path,query,send_json):
     if path!='/api/taxonomy': return False
     try:
         with db() as conn,conn.cursor() as cur:
-            ensure(cur);conn.commit()
+            try:
+                ensure(cur);conn.commit()
+            except Exception as sync_error:
+                conn.rollback()
+                print(f"API taxonomia: sincronização não concluída; leitura da estrutura existente: {sync_error}", flush=True)
             cur.execute("SELECT id,name,description,icon,image,active,display_order FROM mm_categories ORDER BY COALESCE(display_order,2147483647),name")
             cats=[{'id':r[0],'name':r[1],'description':r[2],'icon':r[3],'image':r[4],'active':r[5],'order':r[6],'products':0,'subcategories':[],'families':[]} for r in cur.fetchall()]
             by={x['id']:x for x in cats}
