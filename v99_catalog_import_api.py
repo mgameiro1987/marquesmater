@@ -31,6 +31,12 @@ ALIASES={
     'category':{'categoria','category'},
     'subcategory':{'subcategoria','subcategory','subfamilia','subfamilias'},
     'family':{'familia','family'},
+    'commercialCategory':{'categoriacomercial','categoria comercial','commercialcategory'},
+    'commercialSubcategory':{'subcategoriacomercial','subcategoria comercial','commercialsubcategory'},
+    'commercialFamily':{'familiacomercial','familia comercial','commercialfamily'},
+    'ridaCategory':{'categoriarida','categoria rida','ridacategory'},
+    'ridaSubcategory':{'subcategoriarida','subcategoria rida','ridasubcategory'},
+    'ridaFamily':{'familiarida','familia rida','ridafamily'},
     'type':{'tipo','type'},
     'price':{'preco','price','pvp','pvpciva','precovenda','precodevenda'},
     'oldPrice':{'precoantigo','oldprice','oldpvp'},
@@ -48,6 +54,12 @@ _ALIAS_NORM={field:{_norm(x) for x in keys} for field,keys in ALIASES.items()}
 def _match_field(header):
     n=_norm(header)
     if not n:return None
+    if n in _ALIAS_NORM['commercialCategory']:return 'commercialCategory'
+    if n in _ALIAS_NORM['commercialSubcategory']:return 'commercialSubcategory'
+    if n in _ALIAS_NORM['commercialFamily']:return 'commercialFamily'
+    if n in _ALIAS_NORM['ridaCategory']:return 'ridaCategory'
+    if n in _ALIAS_NORM['ridaSubcategory']:return 'ridaSubcategory'
+    if n in _ALIAS_NORM['ridaFamily']:return 'ridaFamily'
     for field,keys in _ALIAS_NORM.items():
         if n in keys:return field
     if n.startswith('sku') or n.endswith('sku'):return 'sku'
@@ -83,8 +95,11 @@ def _row_payload(raw):
         if field and field not in normalized:normalized[field]=v
     out=dict(normalized)
     if 'name' not in out and 'description' in out:out['name']=out['description']
-    for k in ('sku','name','brand','category','subcategory','family','type','barcode','description','image','badge'):
+    for k in ('sku','name','brand','category','subcategory','family','type','barcode','description','image','badge','commercialCategory','commercialSubcategory','commercialFamily','ridaCategory','ridaSubcategory','ridaFamily'):
         out[k]=_clean(out.get(k))
+    if out.get('commercialCategory'): out['category']=out['commercialCategory']
+    if out.get('commercialSubcategory'): out['subcategory']=out['commercialSubcategory']
+    if out.get('commercialFamily'): out['family']=out['commercialFamily']
     out['price']=_num(out.get('price'));out['oldPrice']=_num(out.get('oldPrice'));out['cost']=_num(out.get('cost'));out['vatRate']=_num(out.get('vatRate'),23);out['stockMin']=max(0,int(_num(out.get('stockMin'),0)));out['active']=_bool(out.get('active'),True)
     if 'stockInitial' in normalized:
         out['stockInitial']=max(0,int(_num(normalized.get('stockInitial'),0)));out['stockProvided']=True
@@ -198,7 +213,43 @@ def _preview(rows):
     def has_image(r):
         v=_clean(r.get('image','')).lower()
         return v.startswith('data:image/') or v.startswith('http://') or v.startswith('https://')
-    return {'total':len(rows),'with_images':sum(1 for r in rows if has_image(r)),'with_stock':sum(1 for r in rows if r.get('stockProvided')),'excel_stock_total':sum(int(r.get('stockInitial',0) or 0) for r in rows if r.get('stockProvided')),'without_stock':sum(1 for r in rows if not r.get('stockProvided'))}
+    return {'total':len(rows),'with_images':sum(1 for r in rows if has_image(r)),'with_stock':sum(1 for r in rows if r.get('stockProvided')),'excel_stock_total':sum(int(r.get('stockInitial',0) or 0) for r in rows if r.get('stockProvided')),'without_stock':sum(1 for r in rows if not r.get('stockProvided')),'with_commercial_classification':sum(1 for r in rows if r.get('commercialCategory') or r.get('category')),'with_rida_classification':sum(1 for r in rows if r.get('ridaCategory') or r.get('ridaSubcategory') or r.get('ridaFamily'))}
+
+def _resolve_classification(cur,category_name,subcategory_name,family_name):
+    category_name=_clean(category_name);subcategory_name=_clean(subcategory_name);family_name=_clean(family_name)
+    if not category_name and not subcategory_name and not family_name:return (None,None,None)
+    if not category_name:raise ValueError('Classificação: Categoria obrigatória quando é indicada uma subcategoria/família.')
+    cur.execute("SELECT id FROM catalog_categories WHERE kind='category' AND lower(name)=lower(%s) AND active=true ORDER BY id LIMIT 1",(category_name,))
+    rc=cur.fetchone()
+    if not rc:raise ValueError('Categoria não encontrada: '+category_name)
+    cid=rc[0];sid=fid=None
+    if subcategory_name:
+        cur.execute("SELECT id FROM catalog_categories WHERE kind='subcategory' AND lower(name)=lower(%s) AND parent_id=%s AND active=true LIMIT 1",(subcategory_name,cid))
+        rs=cur.fetchone()
+        if not rs:raise ValueError('Subcategoria não encontrada: '+subcategory_name+' em '+category_name)
+        sid=rs[0]
+    if family_name:
+        if not sid:raise ValueError('Família indicada sem subcategoria: '+family_name)
+        cur.execute("SELECT id FROM catalog_categories WHERE kind='family' AND lower(name)=lower(%s) AND parent_id=%s AND active=true LIMIT 1",(family_name,sid))
+        rf=cur.fetchone()
+        if not rf:raise ValueError('Família não encontrada: '+family_name+' em '+subcategory_name)
+        fid=rf[0]
+    return cid,sid,fid
+
+def _save_classifications(cur,pid,row):
+    from v9_10_13_product_classification_api import save_one
+    cc,cs,cf=_resolve_classification(cur,row.get('commercialCategory') or row.get('category'),row.get('commercialSubcategory') or row.get('subcategory'),row.get('commercialFamily') or row.get('family'))
+    rc,rs,rf=_resolve_classification(cur,row.get('ridaCategory'),row.get('ridaSubcategory'),row.get('ridaFamily'))
+    if cc or cs or cf:
+        save_one(cur,pid,'commercial',{'categoryId':cc,'subcategoryId':cs,'familyId':cf})
+    if rc or rs or rf:
+        if (row.get('ridaCategory') or '').strip().lower()!='rida':
+            raise ValueError('Classificação RIDA: a Categoria RIDA deve ser exatamente "RIDA".')
+        if (row.get('ridaSubcategory') or '').strip().lower()!='máquinas a bateria':
+            raise ValueError('Classificação RIDA: a Subcategoria RIDA deve ser exatamente "Máquinas a bateria".')
+        if (row.get('ridaFamily') or '').strip().lower() not in ('construção','jardim','acessórios'):
+            raise ValueError('Classificação RIDA: a Família RIDA deve ser Construção, Jardim ou Acessórios.')
+        save_one(cur,pid,'rida',{'categoryId':rc,'subcategoryId':rs,'familyId':rf})
 
 def _import_rows(rows):
     from v98_catalog_products_api import handle_post
@@ -209,11 +260,15 @@ def _import_rows(rows):
         with conn.cursor() as cur:
             for line,row in enumerate(rows,2):
                 cur.execute('SELECT stock FROM mm_product_stock WHERE sku=%s',(row['sku'],));stock_row=cur.fetchone();had_stock=stock_row is not None
-                payload={k:v for k,v in row.items() if k not in ('stockInitial','stockProvided','_filename')};captured=[]
+                payload={k:v for k,v in row.items() if k not in ('stockInitial','stockProvided','_filename','commercialCategory','commercialSubcategory','commercialFamily','ridaCategory','ridaSubcategory','ridaFamily')};captured=[]
                 handle_post('/api/catalog/products',payload,lambda status,payload:captured.append((status,payload)))
                 status,result=captured[-1] if captured else (500,{'ok':False,'error':'Sem resposta'})
                 if status>=300 or not result.get('ok'):
                     errors.append({'linha':line,'sku':row['sku'],'error':result.get('error','Erro desconhecido')});continue
+                try:
+                    _save_classifications(cur,int(result.get('id')),row)
+                except Exception as ce:
+                    errors.append({'linha':line,'sku':row['sku'],'error':'Classificação: '+str(ce)});continue
                 if _clean(row.get('image','')).lower().startswith(('data:image/','http://','https://')):images+=1
                 if had_stock:updated+=1
                 else:created+=1
