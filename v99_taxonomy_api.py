@@ -146,9 +146,6 @@ def handle_get(path,query,send_json):
                     if x['name']==fn: x['products']+=n
             send_json(200,{'ok':True,'categories':cats,'count':len(cats)});return True
     except Exception as e:
-        import traceback
-        print(f'API taxonomia GET falhou: {type(e).__name__}: {e}', flush=True)
-        traceback.print_exc()
         send_json(503,{'ok':False,'error':f'API taxonomia: {e}'});return True
 
 def slugify(v):
