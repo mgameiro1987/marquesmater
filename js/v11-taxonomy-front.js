@@ -1,0 +1,9 @@
+(()=>{'use strict';if(window.__MMV11TAXFRONT)return;window.__MMV11TAXFRONT=1;
+const icons={"Construção":"images/cement.svg","Ferramentas":"images/drill.svg","Tintas":"images/paint.svg","Selantes & Colas":"images/silicone.svg","Jardim & Agricultura":"images/garden.svg","Ferragens":"images/hardware.svg","Eletricidade":"images/electric.svg","Iluminação":"images/lamp.svg","Canalização":"images/plumbing.svg","Casa":"images/home.svg","EPI":"images/epi.svg","RIDA":"images/drill.svg","Promoções":"images/disc.svg"};
+const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+async function load(){try{const r=await fetch('/api/taxonomy?v=1101',{cache:'no-store'});if(!r.ok)throw Error('HTTP '+r.status);const j=await r.json();const cats=(j.categories||[]).filter(c=>c.active!==false).sort((a,b)=>(a.order??999999)-(b.order??999999)||String(a.name).localeCompare(String(b.name),'pt'));if(!cats.length)return;
+const nav=document.getElementById('nav');if(nav)nav.innerHTML=cats.map(c=>'<a href="category.html?cat='+encodeURIComponent(c.name)+'">'+esc(c.name)+'</a>').join('');
+const box=document.getElementById('categories');if(box)box.innerHTML=cats.map(c=>'<a href="category.html?cat='+encodeURIComponent(c.name)+'"><img src="'+esc(c.image||icons[c.name]||'images/cement.svg')+'" alt=""><b>'+esc(c.name)+'</b><span>Explorar →</span></a>').join('');
+}catch(e){console.warn('Taxonomia Front Office indisponível; a página mantém o catálogo base.',e)}}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',load,{once:true});else load();
+})();
