@@ -301,7 +301,7 @@ def _import_rows(rows):
                     delta=initial-current
                     if delta:
                         movement_type='entrada' if delta>0 else 'ajuste'
-                        cur.execute("INSERT INTO mm_stock_movements(sku,movement_type,delta,resulting_stock,reason,notes) VALUES(%s,%s,%s,%s,%s,%s)",(row['sku'],movement_type,delta,initial,'Importação de catálogo','Stock definido pelo Excel '+str(row.get('_filename',''))))
+                        cur.execute("INSERT INTO mm_stock_movements(sku,movement_type,delta,resulting_stock,reason,notes,created_by) VALUES(%s,%s,%s,%s,%s,%s,%s)",(row['sku'],movement_type,delta,initial,'Importação de catálogo','Stock definido pelo Excel '+str(row.get('_filename','')),'importador-excel'))
                         stock_added+=delta
         conn.commit()
     return {'created':created,'updated':updated,'images':images,'stock_added':stock_added,'errors':errors}
