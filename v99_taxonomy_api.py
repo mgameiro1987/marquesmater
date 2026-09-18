@@ -26,6 +26,17 @@ def ensure(cur):
     cur.execute("UPDATE mm_families SET display_order=x.rn FROM (SELECT id,ROW_NUMBER() OVER(PARTITION BY category_id ORDER BY name) rn FROM mm_families) x WHERE mm_families.id=x.id AND mm_families.display_order IS NULL")
     cur.execute("UPDATE mm_subcategories SET active=FALSE WHERE category_id=(SELECT id FROM mm_categories WHERE name='RIDA') AND lower(name) IN ('berbequins e aparafusadoras','rebarbadoras','serras','baterias e carregadores')")
     cur.execute("INSERT INTO mm_subcategories(category_id,name,active,display_order) SELECT id,'Máquinas a bateria',TRUE,1 FROM mm_categories WHERE name='RIDA' ON CONFLICT(category_id,name) DO UPDATE SET active=TRUE,display_order=1")
+    # Imagens visuais das categorias no gestor (editáveis por URL).
+    category_images={
+      'Construção':'/assets/categories/construcao.svg','Ferramentas':'/assets/categories/ferramentas.svg',
+      'Jardim & Agricultura':'/assets/categories/jardim.svg','Tintas':'/assets/categories/tintas.svg',
+      'RIDA':'/assets/categories/rida.svg','Selantes & Colas':'/assets/categories/selantes.svg',
+      'Eletricidade':'/assets/categories/eletricidade.svg','Iluminação':'/assets/categories/iluminacao.svg',
+      'Casa':'/assets/categories/casa.svg','EPI':'/assets/categories/epi.svg',
+      'Canalização':'/assets/categories/canalizacao.svg','Promoções':'/assets/categories/promocoes.svg'
+    }
+    for cname,cimg in category_images.items():
+        cur.execute("UPDATE mm_categories SET image=%s WHERE lower(name)=lower(%s) AND COALESCE(image,'')=''",(cimg,cname))
     # A taxonomia do Backoffice espelha a taxonomia canónica de catalog_categories.
     cur.execute("SELECT id,name FROM catalog_categories WHERE kind='category' AND active IS DISTINCT FROM FALSE ORDER BY id")
     catalog_cats=cur.fetchall()
