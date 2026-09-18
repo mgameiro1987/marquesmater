@@ -98,8 +98,13 @@ def handle_post(path,body,send_json):
         stock_min=max(0,int(_num(body.get('stockMin'),0)))
         with db() as conn,conn.cursor() as cur:
             category_id,subcategory_id,family_id,brand_id=_resolve_taxonomy(cur,body)
-            fields=(sku,_clean(body.get('brand')),name,_clean(body.get('category')),_clean(body.get('subcategory')),_clean(body.get('type')),price,old_price,_clean(body.get('image')),_clean(body.get('badge')),_clean(body.get('description')),json.dumps(options,ensure_ascii=False),json.dumps(specs,ensure_ascii=False),active,category_id,subcategory_id,family_id,brand_id,json.dumps(attributes,ensure_ascii=False),barcode)
+            image_value=_clean(body.get('image'))
             pid=_int_or_none(body.get('id'))
+            if pid and not image_value:
+                cur.execute("SELECT image FROM catalog_products WHERE id=%s LIMIT 1",(pid,))
+                current=cur.fetchone()
+                if current and current[0]: image_value=current[0]
+            fields=(sku,_clean(body.get('brand')),name,_clean(body.get('category')),_clean(body.get('subcategory')),_clean(body.get('type')),price,old_price,image_value,_clean(body.get('badge')),_clean(body.get('description')),json.dumps(options,ensure_ascii=False),json.dumps(specs,ensure_ascii=False),active,category_id,subcategory_id,family_id,brand_id,json.dumps(attributes,ensure_ascii=False),barcode)
             if pid:
                 cur.execute("UPDATE catalog_products SET sku=%s,brand=%s,name=%s,category=%s,subcategory=%s,type=%s,price=%s,old_price=%s,stock=stock,image=%s,badge=%s,description=%s,options=%s::jsonb,specs=%s::jsonb,active=%s,category_id=%s,subcategory_id=%s,family_id=%s,brand_id=%s,attributes=%s::jsonb,barcode=%s,updated_at=NOW() WHERE id=%s RETURNING id",fields+(pid,))
             else:
