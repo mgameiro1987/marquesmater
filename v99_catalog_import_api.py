@@ -279,7 +279,13 @@ def _import_rows(rows):
                     # "MANTER_IMAGEM_ATUAL" (ou vazio) significa preservar exatamente a imagem atual.
                     image_value=_clean(payload.get('image',''))
                     if not image_value.lower().startswith(('data:image/','http://','https://')):
-                        payload.pop('image',None)
+                        # Preservar a fotografia que já está no catálogo.
+                        cur.execute('SELECT image FROM catalog_products WHERE sku=%s LIMIT 1',(row['sku'],))
+                        existing_image=cur.fetchone()
+                        if existing_image and existing_image[0]:
+                            payload['image']=existing_image[0]
+                        else:
+                            payload.pop('image',None)
                     else:
                         images+=1
                     captured=[]
