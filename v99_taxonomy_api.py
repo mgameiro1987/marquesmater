@@ -25,7 +25,7 @@ def ensure(cur):
     cur.execute("UPDATE mm_subcategories SET display_order=x.rn FROM (SELECT id,ROW_NUMBER() OVER(PARTITION BY category_id ORDER BY name) rn FROM mm_subcategories) x WHERE mm_subcategories.id=x.id AND mm_subcategories.display_order IS NULL")
     cur.execute("UPDATE mm_families SET display_order=x.rn FROM (SELECT id,ROW_NUMBER() OVER(PARTITION BY category_id ORDER BY name) rn FROM mm_families) x WHERE mm_families.id=x.id AND mm_families.display_order IS NULL")
     cur.execute("UPDATE mm_subcategories SET active=FALSE WHERE category_id=(SELECT id FROM mm_categories WHERE name='RIDA') AND lower(name) IN ('berbequins e aparafusadoras','rebarbadoras','serras','baterias e carregadores')")
-    cur.execute("INSERT INTO mm_subcategories(category_id,name,active,display_order) SELECT id,'Máquinas a bateria',TRUE,1 FROM mm_categories WHERE name='RIDA' ON CONFLICT(category_id,name) DO UPDATE SET active=TRUE,display_order=1")
+    cur.execute("INSERT INTO mm_subcategories(category_id,name,active,display_order) SELECT id,'Máquinas a bateria',TRUE,1 FROM mm_categories WHERE name='RIDA' ON CONFLICT(category_id,name) DO NOTHING,display_order=1")
     # Imagens visuais das categorias no gestor (editáveis por URL).
     category_images={
       'Construção':'/assets/categories/construcao.svg','Ferramentas':'/assets/categories/ferramentas.svg',
@@ -41,7 +41,7 @@ def ensure(cur):
     cur.execute("SELECT id,name FROM catalog_categories WHERE kind='category' AND active IS DISTINCT FROM FALSE ORDER BY id")
     catalog_cats=cur.fetchall()
     for ccid,cname in catalog_cats:
-        cur.execute("INSERT INTO mm_categories(name,display_order) VALUES(%s,(SELECT COALESCE(MAX(display_order),0)+1 FROM mm_categories)) ON CONFLICT(name) DO UPDATE SET active=TRUE",(cname,))
+        cur.execute("INSERT INTO mm_categories(name,display_order) VALUES(%s,(SELECT COALESCE(MAX(display_order),0)+1 FROM mm_categories)) ON CONFLICT(name) DO NOTHING",(cname,))
     # Desativar categorias/subcategorias/famílias legacy que já não existem na taxonomia canónica.
     cur.execute("UPDATE mm_categories m SET active=FALSE WHERE NOT EXISTS (SELECT 1 FROM catalog_categories c WHERE c.kind='category' AND c.active IS DISTINCT FROM FALSE AND lower(c.name)=lower(m.name))")
     cur.execute("SELECT id,name FROM mm_categories")
@@ -66,7 +66,7 @@ def ensure(cur):
         sname,cname=z
         mcid=mm_by_name.get(cname); msid=mm_sub_by_name.get((mcid,sname)) if mcid else None
         if not mcid: continue
-        cur.execute("INSERT INTO mm_families(category_id,subcategory_id,name,display_order,active) VALUES(%s,%s,%s,(SELECT COALESCE(MAX(display_order),0)+1 FROM mm_families WHERE category_id=%s),TRUE) ON CONFLICT(category_id,name) DO UPDATE SET subcategory_id=EXCLUDED.subcategory_id,active=TRUE",(mcid,msid,fname,mcid))
+        cur.execute("INSERT INTO mm_families(category_id,subcategory_id,name,display_order,active) VALUES(%s,%s,%s,(SELECT COALESCE(MAX(display_order),0)+1 FROM mm_families WHERE category_id=%s),TRUE) ON CONFLICT(category_id,name) DO UPDATE SET subcategory_id=EXCLUDED.subcategory_id",(mcid,msid,fname,mcid))
     cur.execute("UPDATE mm_families m SET active=FALSE WHERE NOT EXISTS (SELECT 1 FROM catalog_categories f JOIN catalog_categories s ON s.id=f.parent_id JOIN catalog_categories c ON c.id=s.parent_id JOIN mm_categories mc ON lower(mc.name)=lower(c.name) WHERE f.kind='family' AND f.active IS DISTINCT FROM FALSE AND lower(f.name)=lower(m.name) AND mc.id=m.category_id)")
     # Limpeza final da árvore RIDA: apenas a taxonomia comercial/RIDA canónica.
     cur.execute("""
