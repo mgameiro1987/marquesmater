@@ -56,6 +56,23 @@ def ensure(cur):
         if not mcid: continue
         cur.execute("INSERT INTO mm_families(category_id,subcategory_id,name,display_order,active) VALUES(%s,%s,%s,(SELECT COALESCE(MAX(display_order),0)+1 FROM mm_families WHERE category_id=%s),TRUE) ON CONFLICT(category_id,name) DO UPDATE SET subcategory_id=EXCLUDED.subcategory_id,active=TRUE",(mcid,msid,fname,mcid))
     cur.execute("UPDATE mm_families m SET active=FALSE WHERE NOT EXISTS (SELECT 1 FROM catalog_categories f JOIN catalog_categories s ON s.id=f.parent_id JOIN catalog_categories c ON c.id=s.parent_id JOIN mm_categories mc ON lower(mc.name)=lower(c.name) WHERE f.kind='family' AND f.active IS DISTINCT FROM FALSE AND lower(f.name)=lower(m.name) AND mc.id=m.category_id)")
+    # Limpeza final da árvore RIDA: apenas a taxonomia comercial/RIDA canónica.
+    cur.execute("""
+        UPDATE mm_families
+        SET active=FALSE
+        WHERE category_id=(SELECT id FROM mm_categories WHERE lower(name)='rida')
+          AND lower(name)='rida'
+    """)
+    # Ordem comercial definida para as famílias RIDA.
+    cur.execute("""
+        UPDATE mm_families SET display_order=CASE lower(name)
+            WHEN 'construção' THEN 1
+            WHEN 'jardim' THEN 2
+            WHEN 'acessórios' THEN 3
+            ELSE display_order END
+        WHERE category_id=(SELECT id FROM mm_categories WHERE lower(name)='rida')
+          AND lower(name) IN ('construção','jardim','acessórios')
+    """)
     # Garantia adicional: a antiga estrutura RIDA não volta a ser criada a partir de produtos legacy.
     cur.execute("UPDATE mm_subcategories SET active=FALSE WHERE category_id=(SELECT id FROM mm_categories WHERE lower(name)='rida') AND lower(name) IN ('berbequins e aparafusadoras','rebarbadoras','serras','baterias e carregadores')")
 
