@@ -273,22 +273,29 @@ def _import_rows(rows):
         with conn.cursor() as cur:
             for line,row in enumerate(rows,2):
                 cur.execute('SELECT stock FROM mm_product_stock WHERE sku=%s',(row['sku'],));stock_row=cur.fetchone();had_stock=stock_row is not None
-                payload={k:v for k,v in row.items() if k not in ('stockInitial','stockProvided','_filename','commercialCategory','commercialSubcategory','commercialFamily','ridaCategory','ridaSubcategory','ridaFamily')};
-                # "MANTER_IMAGEM_ATUAL" (ou vazio) significa preservar a fotografia já existente no catálogo.
-                if not _clean(payload.get('image','')).lower().startswith(('data:image/','http://','https://')):
-                    payload.pop('image',None)
-                captured=[]
-                handle_post('/api/catalog/products',payload,lambda status,payload:captured.append((status,payload)))
-                status,result=captured[-1] if captured else (500,{'ok':False,'error':'Sem resposta'})
-                if status>=300 or not result.get('ok'):
-                    errors.append({'linha':line,'sku':row['sku'],'error':result.get('error','Erro desconhecido')});continue
+                cur.execute('SAVEPOINT import_row')
                 try:
+                    payload={k:v for k,v in row.items() if k not in ('stockInitial','stockProvided','_filename','commercialCategory','commercialSubcategory','commercialFamily','ridaCategory','ridaSubcategory','ridaFamily')}
+                    # "MANTER_IMAGEM_ATUAL" (ou vazio) significa preservar exatamente a imagem atual.
+                    image_value=_clean(payload.get('image',''))
+                    if not image_value.lower().startswith(('data:image/','http://','https://')):
+                        payload.pop('image',None)
+                    else:
+                        images+=1
+                    captured=[]
+                    handle_post('/api/catalog/products',payload,lambda status,payload:captured.append((status,payload)))
+                    status,result=captured[-1] if captured else (500,{'ok':False,'error':'Sem resposta'})
+                    if status>=300 or not result.get('ok'):
+                        raise RuntimeError(result.get('error','Erro desconhecido'))
                     _save_classifications(cur,int(result.get('id')),row)
-                except Exception as ce:
-                    errors.append({'linha':line,'sku':row['sku'],'error':'Classificação: '+str(ce)});continue
-                if _clean(row.get('image','')).lower().startswith(('data:image/','http://','https://')):images+=1
-                if had_stock:updated+=1
-                else:created+=1
+                    if had_stock:updated+=1
+                    else:created+=1
+                except Exception as row_error:
+                    cur.execute('ROLLBACK TO SAVEPOINT import_row')
+                    errors.append({'linha':line,'sku':row['sku'],'error':str(row_error)})
+                    cur.execute('RELEASE SAVEPOINT import_row')
+                    continue
+                cur.execute('RELEASE SAVEPOINT import_row')
                 if row.get('stockProvided'):
                     initial=int(row.get('stockInitial',0) or 0)
                     cur.execute('SELECT stock FROM mm_product_stock WHERE sku=%s FOR UPDATE',(row['sku'],))
