@@ -226,7 +226,7 @@ def _resolve_classification(cur,category_name,subcategory_name,family_name,auto_
     rc=cur.fetchone()
     if not rc:
         if not auto_create: raise ValueError('Categoria não encontrada: '+category_name)
-        cur.execute("INSERT INTO catalog_categories(kind,name,parent_id,active) VALUES('category',%s,NULL,true) RETURNING id",(category_name,))
+        cur.execute("INSERT INTO catalog_categories(name,slug,parent_id,kind,active) VALUES(%s,%s,NULL,'category',true) RETURNING id",(category_name,_category_slug(category_name)))
         cid=cur.fetchone()[0]
     else: cid=rc[0]
     sid=fid=None
@@ -235,7 +235,7 @@ def _resolve_classification(cur,category_name,subcategory_name,family_name,auto_
         rs=cur.fetchone()
         if not rs:
             if not auto_create: raise ValueError('Subcategoria não encontrada: '+subcategory_name+' em '+category_name)
-            cur.execute("INSERT INTO catalog_categories(kind,name,parent_id,active) VALUES('subcategory',%s,%s,true) RETURNING id",(subcategory_name,cid))
+            cur.execute("INSERT INTO catalog_categories(name,slug,parent_id,kind,active) VALUES(%s,%s,%s,'subcategory',true) RETURNING id",(subcategory_name,_category_slug(subcategory_name),cid))
             sid=cur.fetchone()[0]
         else: sid=rs[0]
     if family_name:
@@ -244,7 +244,7 @@ def _resolve_classification(cur,category_name,subcategory_name,family_name,auto_
         rf=cur.fetchone()
         if not rf:
             if not auto_create: raise ValueError('Família não encontrada: '+family_name+' em '+subcategory_name)
-            cur.execute("INSERT INTO catalog_categories(kind,name,parent_id,active) VALUES('family',%s,%s,true) RETURNING id",(family_name,sid))
+            cur.execute("INSERT INTO catalog_categories(name,slug,parent_id,kind,active) VALUES(%s,%s,%s,'family',true) RETURNING id",(family_name,_category_slug(family_name),sid))
             fid=cur.fetchone()[0]
         else: fid=rf[0]
     return cid,sid,fid
