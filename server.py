@@ -243,6 +243,8 @@ try:
                 x.execute("DELETE FROM catalog_products WHERE sku IN ('DEMO-VAR-SILICONE','DEMO-VAR-RIDA-KIT','DEMO-VAR-CAIXA')")
             c.commit()
         print('Produtos demo: limpeza concluída')
+        with db() as c:
+            with c.cursor() as x:
                 x.execute("""
                     UPDATE mm_families
                     SET active=FALSE
@@ -256,6 +258,7 @@ try:
                     WHERE category_id=(SELECT id FROM mm_categories WHERE lower(name)='rida')
                       AND lower(name) IN ('construção','jardim','acessórios')
                 """)
+            c.commit()
     except Exception as e:
         print(f'Produtos demo: limpeza não concluída: {e}')
     print('MarquesMater PostgreSQL stock API ready')
