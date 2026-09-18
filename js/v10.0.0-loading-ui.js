@@ -1,8 +1,9 @@
 (()=>{'use strict';if(window.__MM1000LOADUI)return;window.__MM1000LOADUI=1;
 const css=()=>{if(document.getElementById('mm1000loadcss'))return;const s=document.createElement('style');s.id='mm1000loadcss';s.textContent='.mm1000-loadingbar{position:fixed;top:0;left:0;height:3px;width:0;z-index:99999;opacity:0;transition:opacity .2s}.mm1000-loadingbar.on{opacity:1;animation:mm1000load 1.15s ease-in-out infinite}.mm1000-loadingbar.done{width:100%;opacity:0;transition:width .18s ease,opacity .35s ease}@keyframes mm1000load{0%{width:8%}55%{width:68%}100%{width:92%}}';document.head.appendChild(s)};
 const start=()=>{css();let b=document.getElementById('mm1000loading');if(!b){b=document.createElement('div');b.id='mm1000loading';b.className='mm1000-loadingbar';document.body.appendChild(b)}b.classList.remove('done');b.classList.add('on')};
-const done=()=>{const b=document.getElementById('mm1000loading');if(!b)return;b.classList.remove('on');b.classList.add('done');setTimeout(()=>b.remove(),450)};
+const api={}; const done=()=>{const b=document.getElementById('mm1000loading');if(!b)return;b.classList.remove('on');b.classList.add('done');setTimeout(()=>b.remove(),450)};
 const check=()=>{const app=document.getElementById('app');if(!app)return;const t=(app.innerText||'').toLowerCase();if(t.includes('a carregar')||t.includes('a carregar dados')||t.includes('a carregar produtos')||t.includes('a processar'))start();else done()};
+api.start=start;api.done=done;window.MM1000Loading=api;
 const boot=()=>{css();check();const app=document.getElementById('app');if(app)new MutationObserver(()=>check()).observe(app,{childList:true,subtree:true,characterData:true});};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
