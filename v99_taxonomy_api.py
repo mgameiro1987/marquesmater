@@ -18,6 +18,8 @@ def ensure(cur):
     cur.execute("UPDATE mm_categories SET display_order=x.rn FROM (SELECT id,ROW_NUMBER() OVER(ORDER BY name) rn FROM mm_categories) x WHERE mm_categories.id=x.id AND mm_categories.display_order IS NULL")
     cur.execute("UPDATE mm_subcategories SET display_order=x.rn FROM (SELECT id,ROW_NUMBER() OVER(PARTITION BY category_id ORDER BY name) rn FROM mm_subcategories) x WHERE mm_subcategories.id=x.id AND mm_subcategories.display_order IS NULL")
     cur.execute("UPDATE mm_families SET display_order=x.rn FROM (SELECT id,ROW_NUMBER() OVER(PARTITION BY category_id ORDER BY name) rn FROM mm_families) x WHERE mm_families.id=x.id AND mm_families.display_order IS NULL")
+    cur.execute("UPDATE mm_subcategories SET active=FALSE WHERE category_id=(SELECT id FROM mm_categories WHERE name='RIDA') AND lower(name) IN ('berbequins e aparafusadoras','rebarbadoras','serras','baterias e carregadores')")
+    cur.execute("INSERT INTO mm_subcategories(category_id,name,active,display_order) SELECT id,'Máquinas a bateria',TRUE,1 FROM mm_categories WHERE name='RIDA' ON CONFLICT(category_id,name) DO UPDATE SET active=TRUE,display_order=1")
     cur.execute("SELECT DISTINCT NULLIF(BTRIM(category),'') FROM catalog_products WHERE NULLIF(BTRIM(category),'') IS NOT NULL")
     for (name,) in cur.fetchall():
         cur.execute("INSERT INTO mm_categories(name,display_order) VALUES(%s,(SELECT COALESCE(MAX(display_order),0)+1 FROM mm_categories)) ON CONFLICT(name) DO NOTHING",(name,))
