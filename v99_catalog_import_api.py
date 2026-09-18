@@ -215,30 +215,40 @@ def _preview(rows):
         return v.startswith('data:image/') or v.startswith('http://') or v.startswith('https://')
     return {'total':len(rows),'with_images':sum(1 for r in rows if has_image(r)),'with_stock':sum(1 for r in rows if r.get('stockProvided')),'excel_stock_total':sum(int(r.get('stockInitial',0) or 0) for r in rows if r.get('stockProvided')),'without_stock':sum(1 for r in rows if not r.get('stockProvided')),'with_commercial_classification':sum(1 for r in rows if r.get('commercialCategory') or r.get('category')),'with_rida_classification':sum(1 for r in rows if r.get('ridaCategory') or r.get('ridaSubcategory') or r.get('ridaFamily'))}
 
-def _resolve_classification(cur,category_name,subcategory_name,family_name):
+def _resolve_classification(cur,category_name,subcategory_name,family_name,auto_create=False):
     category_name=_clean(category_name);subcategory_name=_clean(subcategory_name);family_name=_clean(family_name)
     if not category_name and not subcategory_name and not family_name:return (None,None,None)
     if not category_name:raise ValueError('Classificação: Categoria obrigatória quando é indicada uma subcategoria/família.')
     cur.execute("SELECT id FROM catalog_categories WHERE kind='category' AND lower(name)=lower(%s) AND active=true ORDER BY id LIMIT 1",(category_name,))
     rc=cur.fetchone()
-    if not rc:raise ValueError('Categoria não encontrada: '+category_name)
-    cid=rc[0];sid=fid=None
+    if not rc:
+        if not auto_create: raise ValueError('Categoria não encontrada: '+category_name)
+        cur.execute("INSERT INTO catalog_categories(kind,name,parent_id,active) VALUES('category',%s,NULL,true) RETURNING id",(category_name,))
+        cid=cur.fetchone()[0]
+    else: cid=rc[0]
+    sid=fid=None
     if subcategory_name:
         cur.execute("SELECT id FROM catalog_categories WHERE kind='subcategory' AND lower(name)=lower(%s) AND parent_id=%s AND active=true LIMIT 1",(subcategory_name,cid))
         rs=cur.fetchone()
-        if not rs:raise ValueError('Subcategoria não encontrada: '+subcategory_name+' em '+category_name)
-        sid=rs[0]
+        if not rs:
+            if not auto_create: raise ValueError('Subcategoria não encontrada: '+subcategory_name+' em '+category_name)
+            cur.execute("INSERT INTO catalog_categories(kind,name,parent_id,active) VALUES('subcategory',%s,%s,true) RETURNING id",(subcategory_name,cid))
+            sid=cur.fetchone()[0]
+        else: sid=rs[0]
     if family_name:
         if not sid:raise ValueError('Família indicada sem subcategoria: '+family_name)
         cur.execute("SELECT id FROM catalog_categories WHERE kind='family' AND lower(name)=lower(%s) AND parent_id=%s AND active=true LIMIT 1",(family_name,sid))
         rf=cur.fetchone()
-        if not rf:raise ValueError('Família não encontrada: '+family_name+' em '+subcategory_name)
-        fid=rf[0]
+        if not rf:
+            if not auto_create: raise ValueError('Família não encontrada: '+family_name+' em '+subcategory_name)
+            cur.execute("INSERT INTO catalog_categories(kind,name,parent_id,active) VALUES('family',%s,%s,true) RETURNING id",(family_name,sid))
+            fid=cur.fetchone()[0]
+        else: fid=rf[0]
     return cid,sid,fid
 
 def _save_classifications(cur,pid,row):
     from v9_10_13_product_classification_api import save_one
-    cc,cs,cf=_resolve_classification(cur,row.get('commercialCategory') or row.get('category'),row.get('commercialSubcategory') or row.get('subcategory'),row.get('commercialFamily') or row.get('family'))
+    cc,cs,cf=_resolve_classification(cur,row.get('commercialCategory') or row.get('category'),row.get('commercialSubcategory') or row.get('subcategory'),row.get('commercialFamily') or row.get('family'),auto_create=True)
     rc,rs,rf=_resolve_classification(cur,row.get('ridaCategory'),row.get('ridaSubcategory'),row.get('ridaFamily'))
     if cc or cs or cf:
         save_one(cur,pid,'commercial',{'categoryId':cc,'subcategoryId':cs,'familyId':cf})
@@ -276,11 +286,20 @@ def _import_rows(rows):
                 if _clean(row.get('image','')).lower().startswith(('data:image/','http://','https://')):images+=1
                 if had_stock:updated+=1
                 else:created+=1
-                if row.get('stockProvided') and not had_stock:
+                if row.get('stockProvided'):
                     initial=int(row.get('stockInitial',0) or 0)
-                    cur.execute('UPDATE mm_product_stock SET stock=%s,updated_at=NOW() WHERE sku=%s',(initial,row['sku']))
-                    if initial>0:
-                        cur.execute("INSERT INTO mm_stock_movements(sku,movement_type,delta,resulting_stock,reason,notes) VALUES(%s,'entrada',%s,%s,%s,%s)",(row['sku'],initial,initial,'Importação inicial de catálogo','Stock inicial importado do Excel '+str(row.get('_filename',''))));stock_added+=initial
+                    cur.execute('SELECT stock FROM mm_product_stock WHERE sku=%s FOR UPDATE',(row['sku'],))
+                    sr=cur.fetchone()
+                    current=int(sr[0]) if sr else 0
+                    if sr:
+                        cur.execute('UPDATE mm_product_stock SET stock=%s,stock_min=%s,updated_at=NOW() WHERE sku=%s',(initial,int(row.get('stockMin',0) or 0),row['sku']))
+                    else:
+                        cur.execute('INSERT INTO mm_product_stock(sku,stock,stock_min) VALUES(%s,%s,%s)',(row['sku'],initial,int(row.get('stockMin',0) or 0)))
+                    delta=initial-current
+                    if delta:
+                        movement_type='entrada' if delta>0 else 'ajuste'
+                        cur.execute("INSERT INTO mm_stock_movements(sku,movement_type,delta,resulting_stock,reason,notes) VALUES(%s,%s,%s,%s,%s,%s)",(row['sku'],movement_type,delta,initial,'Importação de catálogo','Stock definido pelo Excel '+str(row.get('_filename',''))))
+                        stock_added+=delta
         conn.commit()
     return {'created':created,'updated':updated,'images':images,'stock_added':stock_added,'errors':errors}
 
