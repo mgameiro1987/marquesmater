@@ -56,10 +56,38 @@ def handle_get(path,query,send_json):
             ensure(cur);conn.commit()
             if (qs.get('options') or [''])[0]=='1':
                 send_json(200,{'ok':True,'options':get_options(cur)});return True
+            if (qs.get('all') or [''])[0]=='1':
+                cur.execute('''SELECT pc.product_id,pc.classification_type,pc.category_id,pc.subcategory_id,pc.family_id,
+                                      c.name,sc.name,f.name
+                               FROM mm_product_classifications pc
+                               LEFT JOIN catalog_categories c ON c.id=pc.category_id
+                               LEFT JOIN catalog_categories sc ON sc.id=pc.subcategory_id
+                               LEFT JOIN catalog_categories f ON f.id=pc.family_id
+                               ORDER BY pc.product_id,pc.classification_type''')
+                items={}
+                for r in cur.fetchall():
+                    pid,typ,cid,sid,fid,cn,sn,fn=r
+                    items.setdefault(str(pid),{})[typ]={
+                        'categoryId':cid,'subcategoryId':sid,'familyId':fid,
+                        'category':cn,'subcategory':sn,'family':fn
+                    }
+                send_json(200,{'ok':True,'items':items});return True
             pid=iid((qs.get('productId') or [''])[0])
             if not pid:
                 send_json(400,{'ok':False,'error':'productId obrigatório'});return True
-            send_json(200,{'ok':True,'classifications':get_for_product(cur,pid)});return True
+            rows=get_for_product(cur,pid)
+            enriched=[]
+            for row in rows:
+                cur.execute('''SELECT c.name,sc.name,f.name
+                               FROM (SELECT %s::bigint AS category_id,%s::bigint AS subcategory_id,%s::bigint AS family_id) z
+                               LEFT JOIN catalog_categories c ON c.id=z.category_id
+                               LEFT JOIN catalog_categories sc ON sc.id=z.subcategory_id
+                               LEFT JOIN catalog_categories f ON f.id=z.family_id''',
+                            (row['categoryId'],row['subcategoryId'],row['familyId']))
+                names=cur.fetchone() or (None,None,None)
+                row.update({'category':names[0],'subcategory':names[1],'family':names[2]})
+                enriched.append(row)
+            send_json(200,{'ok':True,'classifications':enriched});return True
     except Exception as e:
         send_json(503,{'ok':False,'error':f'Classificação: {e}'});return True
 
