@@ -87,6 +87,8 @@ def ensure(cur):
     """)
     # Garantia adicional: a antiga estrutura RIDA não volta a ser criada a partir de produtos legacy.
     cur.execute("UPDATE mm_subcategories SET active=FALSE WHERE category_id=(SELECT id FROM mm_categories WHERE lower(name)='rida') AND lower(name) IN ('berbequins e aparafusadoras','rebarbadoras','serras','baterias e carregadores')")
+    cur.execute("UPDATE mm_subcategories SET active=TRUE,display_order=1 WHERE category_id=(SELECT id FROM mm_categories WHERE lower(name)='rida') AND lower(name)='máquinas a bateria'")
+    cur.execute("UPDATE mm_families SET active=TRUE,display_order=CASE lower(name) WHEN 'construção' THEN 1 WHEN 'jardim' THEN 2 WHEN 'acessórios' THEN 3 ELSE display_order END,subcategory_id=(SELECT id FROM mm_subcategories WHERE category_id=(SELECT id FROM mm_categories WHERE lower(name)='rida') AND lower(name)='máquinas a bateria' LIMIT 1) WHERE category_id=(SELECT id FROM mm_categories WHERE lower(name)='rida') AND lower(name) IN ('construção','jardim','acessórios')
 
 def handle_get(path,query,send_json):
     if path!='/api/taxonomy': return False
