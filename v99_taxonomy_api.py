@@ -90,6 +90,26 @@ def ensure(cur):
     cur.execute("UPDATE mm_subcategories SET active=TRUE,display_order=1 WHERE category_id=(SELECT id FROM mm_categories WHERE lower(name)='rida') AND lower(name)='máquinas a bateria'")
     cur.execute("UPDATE mm_families SET active=TRUE,display_order=CASE lower(name) WHEN 'construção' THEN 1 WHEN 'jardim' THEN 2 WHEN 'acessórios' THEN 3 ELSE display_order END,subcategory_id=(SELECT id FROM mm_subcategories WHERE category_id=(SELECT id FROM mm_categories WHERE lower(name)='rida') AND lower(name)='máquinas a bateria' LIMIT 1) WHERE category_id=(SELECT id FROM mm_categories WHERE lower(name)='rida') AND lower(name) IN ('construção','jardim','acessórios')")
 
+def repair_rida(cur):
+    # Reclassifica os produtos RIDA existentes na árvore RIDA canónica, sem criar produtos.
+    cur.execute("SELECT id FROM catalog_categories WHERE kind='category' AND lower(name)='rida' LIMIT 1"); rc=cur.fetchone()
+    cur.execute("SELECT id FROM catalog_categories WHERE kind='subcategory' AND parent_id=%s AND lower(name)='máquinas a bateria' LIMIT 1",(rc[0] if rc else 0,)); rs=cur.fetchone()
+    if not rc or not rs: raise ValueError('Taxonomia RIDA canónica incompleta')
+    cur.execute("SELECT id,name,sku FROM catalog_products WHERE active IS DISTINCT FROM FALSE AND upper(brand) LIKE '%RIDA%'")
+    rows=cur.fetchall()
+    for pid,name,sku in rows:
+        text=(str(name or '')+' '+str(sku or '')).lower()
+        family='Acessórios' if int(pid) in (54,55,56,57,58) or any(x in text for x in ('bateria 2ah','bateria 4ah','carregador','mala bmc')) else ('Jardim' if any(x in text for x in ('relva','corta-sebes','motosserra','tesoura de poda','soprador','vara extensível','serra de poda')) else 'Construção')
+        cur.execute("SELECT id FROM catalog_categories WHERE kind='family' AND parent_id=%s AND lower(name)=lower(%s) LIMIT 1",(rs[0],family)); rf=cur.fetchone()
+        if not rf: raise ValueError('Família RIDA não encontrada: '+family)
+        cur.execute("SELECT id FROM mm_product_classifications WHERE product_id=%s AND classification_type='rida' LIMIT 1",(pid,)); old=cur.fetchone()
+        if old:
+            cur.execute("UPDATE mm_product_classifications SET category_id=%s,subcategory_id=%s,family_id=%s,updated_at=NOW() WHERE id=%s",(rc[0],rs[0],rf[0],old[0]))
+        else:
+            cur.execute("INSERT INTO mm_product_classifications(product_id,classification_type,category_id,subcategory_id,family_id) VALUES(%s,'rida',%s,%s,%s)",(pid,rc[0],rs[0],rf[0]))
+        cur.execute("UPDATE catalog_products SET category_id=COALESCE(category_id,category_id) WHERE id=%s",(pid,))
+    return len(rows)
+
 def handle_get(path,query,send_json):
     if path!='/api/taxonomy': return False
     try:
