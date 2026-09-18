@@ -25,21 +25,39 @@ def ensure(cur):
     cur.execute("UPDATE mm_families SET display_order=x.rn FROM (SELECT id,ROW_NUMBER() OVER(PARTITION BY category_id ORDER BY name) rn FROM mm_families) x WHERE mm_families.id=x.id AND mm_families.display_order IS NULL")
     cur.execute("UPDATE mm_subcategories SET active=FALSE WHERE category_id=(SELECT id FROM mm_categories WHERE name='RIDA') AND lower(name) IN ('berbequins e aparafusadoras','rebarbadoras','serras','baterias e carregadores')")
     cur.execute("INSERT INTO mm_subcategories(category_id,name,active,display_order) SELECT id,'Máquinas a bateria',TRUE,1 FROM mm_categories WHERE name='RIDA' ON CONFLICT(category_id,name) DO UPDATE SET active=TRUE,display_order=1")
-    cur.execute("SELECT DISTINCT NULLIF(BTRIM(category),'') FROM catalog_products WHERE NULLIF(BTRIM(category),'') IS NOT NULL")
-    for (name,) in cur.fetchall():
-        cur.execute("INSERT INTO mm_categories(name,display_order) VALUES(%s,(SELECT COALESCE(MAX(display_order),0)+1 FROM mm_categories)) ON CONFLICT(name) DO NOTHING",(name,))
+    # A taxonomia do Backoffice espelha a taxonomia canónica de catalog_categories.
+    cur.execute("SELECT id,name FROM catalog_categories WHERE kind='category' AND active IS DISTINCT FROM FALSE ORDER BY id")
+    catalog_cats=cur.fetchall()
+    for ccid,cname in catalog_cats:
+        cur.execute("INSERT INTO mm_categories(name,display_order) VALUES(%s,(SELECT COALESCE(MAX(display_order),0)+1 FROM mm_categories)) ON CONFLICT(name) DO UPDATE SET active=TRUE",(cname,))
+    # Desativar categorias/subcategorias/famílias legacy que já não existem na taxonomia canónica.
+    cur.execute("UPDATE mm_categories m SET active=FALSE WHERE NOT EXISTS (SELECT 1 FROM catalog_categories c WHERE c.kind='category' AND c.active IS DISTINCT FROM FALSE AND lower(c.name)=lower(m.name))")
     cur.execute("SELECT id,name FROM mm_categories")
-    cats={n:i for i,n in cur.fetchall()}
-    cur.execute("SELECT DISTINCT NULLIF(BTRIM(category),''),NULLIF(BTRIM(subcategory),'') FROM catalog_products WHERE NULLIF(BTRIM(category),'') IS NOT NULL AND NULLIF(BTRIM(subcategory),'') IS NOT NULL")
-    for c,s in cur.fetchall():
-        cur.execute("INSERT INTO mm_subcategories(category_id,name,display_order) VALUES(%s,%s,(SELECT COALESCE(MAX(display_order),0)+1 FROM mm_subcategories WHERE category_id=%s)) ON CONFLICT(category_id,name) DO NOTHING",(cats[c],s,cats[c]))
-    cur.execute("SELECT DISTINCT NULLIF(BTRIM(category),''),NULLIF(BTRIM(subcategory),''),NULLIF(BTRIM(COALESCE(attributes->>'family','')),'') FROM catalog_products WHERE NULLIF(BTRIM(category),'') IS NOT NULL AND NULLIF(BTRIM(COALESCE(attributes->>'family','')),'') IS NOT NULL")
-    for c,s,f in cur.fetchall():
-        sid=None
-        if s:
-            cur.execute("SELECT id FROM mm_subcategories WHERE category_id=%s AND name=%s",(cats[c],s))
-            z=cur.fetchone(); sid=z[0] if z else None
-        cur.execute("INSERT INTO mm_families(category_id,subcategory_id,name,display_order) VALUES(%s,%s,%s,(SELECT COALESCE(MAX(display_order),0)+1 FROM mm_families WHERE category_id=%s)) ON CONFLICT(category_id,name) DO UPDATE SET subcategory_id=COALESCE(EXCLUDED.subcategory_id,mm_families.subcategory_id)",(cats[c],sid,f,cats[c]))
+    mm_by_name={n:i for i,n in cur.fetchall()}
+    cur.execute("SELECT id,name,parent_id FROM catalog_categories WHERE kind='subcategory' AND active IS DISTINCT FROM FALSE ORDER BY id")
+    catalog_subs=cur.fetchall()
+    for sid,sname,parent_id in catalog_subs:
+        cur.execute("SELECT name FROM catalog_categories WHERE id=%s",(parent_id,))
+        z=cur.fetchone(); cname=z[0] if z else None
+        if cname not in mm_by_name: continue
+        mcid=mm_by_name[cname]
+        cur.execute("INSERT INTO mm_subcategories(category_id,name,display_order,active) VALUES(%s,%s,(SELECT COALESCE(MAX(display_order),0)+1 FROM mm_subcategories WHERE category_id=%s),TRUE) ON CONFLICT(category_id,name) DO UPDATE SET active=TRUE",(mcid,sname,mcid))
+    cur.execute("UPDATE mm_subcategories m SET active=FALSE WHERE NOT EXISTS (SELECT 1 FROM catalog_categories c JOIN mm_categories mc ON mc.id=m.category_id WHERE c.kind='subcategory' AND c.active IS DISTINCT FROM FALSE AND c.parent_id IS NOT NULL AND lower(c.name)=lower(m.name) AND c.parent_id=(SELECT id FROM catalog_categories cc WHERE cc.kind='category' AND lower(cc.name)=lower(mc.name) LIMIT 1))")
+    cur.execute("SELECT id,name,category_id FROM mm_subcategories")
+    mm_sub_by_name={(cid,n):sid for sid,n,cid in cur.fetchall()}
+    cur.execute("SELECT id,name,parent_id FROM catalog_categories WHERE kind='family' AND active IS DISTINCT FROM FALSE ORDER BY id")
+    catalog_fams=cur.fetchall()
+    for fid,fname,parent_sid in catalog_fams:
+        cur.execute("SELECT s.name,c.name FROM catalog_categories s JOIN catalog_categories c ON c.id=s.parent_id WHERE s.id=%s",(parent_sid,))
+        z=cur.fetchone()
+        if not z: continue
+        sname,cname=z
+        mcid=mm_by_name.get(cname); msid=mm_sub_by_name.get((mcid,sname)) if mcid else None
+        if not mcid: continue
+        cur.execute("INSERT INTO mm_families(category_id,subcategory_id,name,display_order,active) VALUES(%s,%s,%s,(SELECT COALESCE(MAX(display_order),0)+1 FROM mm_families WHERE category_id=%s),TRUE) ON CONFLICT(category_id,name) DO UPDATE SET subcategory_id=EXCLUDED.subcategory_id,active=TRUE",(mcid,msid,fname,mcid))
+    cur.execute("UPDATE mm_families m SET active=FALSE WHERE NOT EXISTS (SELECT 1 FROM catalog_categories f JOIN catalog_categories s ON s.id=f.parent_id JOIN catalog_categories c ON c.id=s.parent_id JOIN mm_categories mc ON lower(mc.name)=lower(c.name) WHERE f.kind='family' AND f.active IS DISTINCT FROM FALSE AND lower(f.name)=lower(m.name) AND mc.id=m.category_id)")
+    # Garantia adicional: a antiga estrutura RIDA não volta a ser criada a partir de produtos legacy.
+    cur.execute("UPDATE mm_subcategories SET active=FALSE WHERE category_id=(SELECT id FROM mm_categories WHERE lower(name)='rida') AND lower(name) IN ('berbequins e aparafusadoras','rebarbadoras','serras','baterias e carregadores')")
 
 def handle_get(path,query,send_json):
     if path!='/api/taxonomy': return False
@@ -57,20 +75,24 @@ def handle_get(path,query,send_json):
                 by[r[1]]['families'].append({'id':r[0],'categoryId':r[1],'subcategoryId':r[2],'name':r[3],'active':r[4],'order':r[5],'products':0})
             # Contagens comerciais/RIDA vêm da mesma fonte de classificação usada pelo editor.
             cur.execute("""
-                SELECT pc.classification_type, pc.category_id, pc.subcategory_id, pc.family_id, COUNT(*)
+                SELECT pc.classification_type, cc.name, cs.name, cf.name, COUNT(*)
                 FROM mm_product_classifications pc
                 JOIN catalog_products p ON p.id=pc.product_id
+                LEFT JOIN catalog_categories cc ON cc.id=pc.category_id
+                LEFT JOIN catalog_categories cs ON cs.id=pc.subcategory_id
+                LEFT JOIN catalog_categories cf ON cf.id=pc.family_id
                 WHERE p.active IS DISTINCT FROM FALSE
                 GROUP BY 1,2,3,4
             """)
-            for typ,cid,sid,fid,n in cur.fetchall():
-                cat=by.get(cid)
+            for typ,cname,sname,fname,n in cur.fetchall():
+                if typ not in ('commercial','rida'): continue
+                cat=next((x for x in cats if x['name']==cname),None)
                 if not cat: continue
                 cat['products']+=n
                 for x in cat['subcategories']:
-                    if x['id']==sid: x['products']+=n
+                    if x['name']==sname: x['products']+=n
                 for x in cat['families']:
-                    if x['id']==fid: x['products']+=n
+                    if x['name']==fname: x['products']+=n
             # Produtos ainda sem classificação mantêm a contagem legacy da categoria principal.
             cur.execute("""
                 SELECT p.category,p.subcategory,p.attributes->>'family',COUNT(*)
