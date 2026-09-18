@@ -14,9 +14,10 @@ def ensure(cur):
         DELETE FROM catalog_products
         WHERE sku IN ('DEMO-VAR-SILICONE','DEMO-VAR-RIDA-KIT','DEMO-VAR-CAIXA')
     """)
-    cur.execute("CREATE TABLE IF NOT EXISTS mm_categories (id BIGSERIAL PRIMARY KEY,name TEXT NOT NULL UNIQUE,description TEXT NOT NULL DEFAULT '',icon TEXT NOT NULL DEFAULT '',active BOOLEAN NOT NULL DEFAULT TRUE,display_order INTEGER,created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())")
+    cur.execute("CREATE TABLE IF NOT EXISTS mm_categories (id BIGSERIAL PRIMARY KEY,name TEXT NOT NULL UNIQUE,description TEXT NOT NULL DEFAULT '',icon TEXT NOT NULL DEFAULT '',image TEXT NOT NULL DEFAULT '',active BOOLEAN NOT NULL DEFAULT TRUE,display_order INTEGER,created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())")
     cur.execute("CREATE TABLE IF NOT EXISTS mm_subcategories (id BIGSERIAL PRIMARY KEY,category_id BIGINT NOT NULL REFERENCES mm_categories(id) ON DELETE CASCADE,name TEXT NOT NULL,active BOOLEAN NOT NULL DEFAULT TRUE,display_order INTEGER,created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),UNIQUE(category_id,name))")
     cur.execute("CREATE TABLE IF NOT EXISTS mm_families (id BIGSERIAL PRIMARY KEY,category_id BIGINT NOT NULL REFERENCES mm_categories(id) ON DELETE CASCADE,subcategory_id BIGINT REFERENCES mm_subcategories(id) ON DELETE SET NULL,name TEXT NOT NULL,active BOOLEAN NOT NULL DEFAULT TRUE,display_order INTEGER,created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),UNIQUE(category_id,name))")
+    cur.execute("ALTER TABLE mm_categories ADD COLUMN IF NOT EXISTS image TEXT NOT NULL DEFAULT ''")
     cur.execute("ALTER TABLE mm_categories ADD COLUMN IF NOT EXISTS display_order INTEGER")
     cur.execute("ALTER TABLE mm_subcategories ADD COLUMN IF NOT EXISTS display_order INTEGER")
     cur.execute("ALTER TABLE mm_families ADD COLUMN IF NOT EXISTS display_order INTEGER")
@@ -81,8 +82,8 @@ def handle_get(path,query,send_json):
     try:
         with db() as conn,conn.cursor() as cur:
             ensure(cur);conn.commit()
-            cur.execute("SELECT id,name,description,icon,active,display_order FROM mm_categories ORDER BY COALESCE(display_order,2147483647),name")
-            cats=[{'id':r[0],'name':r[1],'description':r[2],'icon':r[3],'active':r[4],'order':r[5],'products':0,'subcategories':[],'families':[]} for r in cur.fetchall()]
+            cur.execute("SELECT id,name,description,icon,image,active,display_order FROM mm_categories ORDER BY COALESCE(display_order,2147483647),name")
+            cats=[{'id':r[0],'name':r[1],'description':r[2],'icon':r[3],'image':r[4],'active':r[5],'order':r[6],'products':0,'subcategories':[],'families':[]} for r in cur.fetchall()]
             by={x['id']:x for x in cats}
             cur.execute("SELECT id,category_id,name,active,display_order FROM mm_subcategories ORDER BY category_id,COALESCE(display_order,2147483647),name")
             for r in cur.fetchall():
@@ -143,7 +144,7 @@ def handle_post(path,body,send_json):
         with db() as conn,conn.cursor() as cur:
             ensure(cur)
             if kind=='category':
-                cur.execute("INSERT INTO mm_categories(name,description,icon,active,display_order) VALUES(%s,%s,%s,%s,(SELECT COALESCE(MAX(display_order),0)+1 FROM mm_categories)) RETURNING id",(name,clean(body.get('description')),clean(body.get('icon')),bool(body.get('active',True))))
+                cur.execute("INSERT INTO mm_categories(name,description,icon,image,active,display_order) VALUES(%s,%s,%s,%s,%s,(SELECT COALESCE(MAX(display_order),0)+1 FROM mm_categories)) RETURNING id",(name,clean(body.get('description')),clean(body.get('icon')),clean(body.get('image')),bool(body.get('active',True))))
             elif kind=='subcategory':
                 if not cid: raise ValueError('Categoria obrigatória')
                 cur.execute("INSERT INTO mm_subcategories(category_id,name,active,display_order) VALUES(%s,%s,%s,(SELECT COALESCE(MAX(display_order),0)+1 FROM mm_subcategories WHERE category_id=%s)) RETURNING id",(cid,name,bool(body.get('active',True)),cid))
@@ -176,7 +177,7 @@ def handle_patch(path,body,send_json):
         with db() as conn,conn.cursor() as cur:
             ensure(cur)
             if kind=='category':
-                cur.execute("UPDATE mm_categories SET name=%s,description=%s,icon=%s,active=%s,updated_at=NOW() WHERE id=%s",(name,clean(body.get('description')),clean(body.get('icon')),active,rid))
+                cur.execute("UPDATE mm_categories SET name=%s,description=%s,icon=%s,image=%s,active=%s,updated_at=NOW() WHERE id=%s",(name,clean(body.get('description')),clean(body.get('icon')),clean(body.get('image')),active,rid))
             elif kind=='subcategory':
                 cur.execute("UPDATE mm_subcategories SET name=%s,active=%s,updated_at=NOW() WHERE id=%s",(name,active,rid))
             else:
