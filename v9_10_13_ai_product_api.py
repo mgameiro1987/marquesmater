@@ -26,11 +26,12 @@ def handle_post(body, send_json):
 
     product = body.get('product') or {}
     task = _clean(body.get('task') or 'all', 40).lower()
-    allowed = {'all', 'description', 'characteristics', 'specifications', 'applications'}
+    allowed = {'all', 'description', 'characteristics', 'specifications', 'applications', 'chat'}
     if task not in allowed:
         task = 'all'
 
     image = _image_url(product.get('imageUrl') or product.get('image'))
+    question = _clean(body.get('question'), 4000)
     context = {
         'sku': _clean(product.get('sku'), 200),
         'ean': _clean(product.get('ean'), 200),
@@ -49,12 +50,16 @@ def handle_post(body, send_json):
         'existing_applications': _clean(product.get('applications'), 4000),
     }
     task_instruction = {
+        'chat': 'Responde à pergunta do administrador sobre este produto de forma direta, factual e útil. Não alteres nenhum campo do produto.',
         'all': 'Preenche os quatro campos: descrição, características, especificações e aplicações.',
         'description': 'Concentra-te na descrição comercial profissional.',
         'characteristics': 'Concentra-te nas características objetivas do produto.',
         'specifications': 'Concentra-te nas especificações técnicas confirmáveis.',
         'applications': 'Concentra-te nas aplicações e utilizações adequadas.'
     }[task]
+    if task == 'chat' and not question:
+        send_json(400, {'ok': False, 'error': 'Escreve uma pergunta para a IA.'})
+        return True
     instructions = (
         'És o assistente de conteúdos do backoffice MarquesMater. Escreve em português de Portugal. '
         'Analisa a imagem quando fornecida e usa também os dados estruturados. Profissional, claro e adequado a uma loja online. '
@@ -63,7 +68,7 @@ def handle_post(body, send_json):
         'Quando algo técnico não puder ser confirmado, deixa o campo vazio ou indica que deve ser confirmado. '
         'Não uses alegações de desempenho não suportadas. ' + task_instruction
     )
-    content = [{'type': 'input_text', 'text': 'Dados do produto:\n' + json.dumps(context, ensure_ascii=False) + '\n\nGera o conteúdo solicitado.'}]
+    content = [{'type': 'input_text', 'text': 'Dados do produto:\n' + json.dumps(context, ensure_ascii=False) + ('\n\nPergunta do administrador:\n' + question if task == 'chat' else '\n\nGera o conteúdo solicitado.')} ]
     if image:
         content.append({'type': 'input_image', 'image_url': image, 'detail': 'high'})
     schema = {
@@ -73,9 +78,10 @@ def handle_post(body, send_json):
             'characteristics': {'type': 'string'},
             'specifications': {'type': 'string'},
             'applications': {'type': 'string'},
-            'notes': {'type': 'string'}
+            'notes': {'type': 'string'},
+            'answer': {'type': 'string'}
         },
-        'required': ['description', 'characteristics', 'specifications', 'applications', 'notes'],
+        'required': ['description', 'characteristics', 'specifications', 'applications', 'notes', 'answer'],
         'additionalProperties': False
     }
     payload = {
@@ -104,6 +110,8 @@ def handle_post(body, send_json):
                 if raw:
                     break
         result = json.loads(raw or '{}')
+        if task == 'chat':
+            result = {'answer': _clean(result.get('answer') or result.get('notes'), 8000), 'description': '', 'characteristics': '', 'specifications': '', 'applications': '', 'notes': ''}
         send_json(200, {'ok': True, 'model': MODEL, 'content': result})
         return True
     except Exception as e:
