@@ -1,4 +1,6 @@
 import os
+import base64
+import re
 import psycopg
 from datetime import datetime, timezone
 from urllib.parse import parse_qs
@@ -7,7 +9,7 @@ def _db():
     url=os.environ.get('DATABASE_URL')
     if not url: raise RuntimeError('DATABASE_URL não configurado no Render')
     return psycopg.connect(url)
-SCHEMA='''CREATE TABLE IF NOT EXISTS mm_marketing_coupons (id BIGSERIAL PRIMARY KEY, code TEXT UNIQUE NOT NULL, name TEXT NOT NULL, discount_type TEXT NOT NULL, discount_value NUMERIC(12,2) NOT NULL, min_order NUMERIC(12,2) NOT NULL DEFAULT 0, max_uses INTEGER, used_count INTEGER NOT NULL DEFAULT 0, starts_at TIMESTAMPTZ, ends_at TIMESTAMPTZ, active BOOLEAN NOT NULL DEFAULT TRUE, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()); CREATE TABLE IF NOT EXISTS mm_marketing_promotions (id BIGSERIAL PRIMARY KEY, name TEXT NOT NULL, discount_type TEXT NOT NULL, discount_value NUMERIC(12,2) NOT NULL, scope TEXT NOT NULL DEFAULT 'all', scope_value TEXT, starts_at TIMESTAMPTZ, ends_at TIMESTAMPTZ, active BOOLEAN NOT NULL DEFAULT TRUE, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()); CREATE TABLE IF NOT EXISTS mm_heroes (id BIGSERIAL PRIMARY KEY, title TEXT NOT NULL, subtitle TEXT, description TEXT, button_text TEXT, button_url TEXT, image_desktop TEXT NOT NULL, image_mobile TEXT, position INTEGER NOT NULL DEFAULT 1, active BOOLEAN NOT NULL DEFAULT TRUE, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW());'''
+SCHEMA='''CREATE TABLE IF NOT EXISTS mm_marketing_coupons (id BIGSERIAL PRIMARY KEY, code TEXT UNIQUE NOT NULL, name TEXT NOT NULL, discount_type TEXT NOT NULL, discount_value NUMERIC(12,2) NOT NULL, min_order NUMERIC(12,2) NOT NULL DEFAULT 0, max_uses INTEGER, used_count INTEGER NOT NULL DEFAULT 0, starts_at TIMESTAMPTZ, ends_at TIMESTAMPTZ, active BOOLEAN NOT NULL DEFAULT TRUE, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()); CREATE TABLE IF NOT EXISTS mm_marketing_promotions (id BIGSERIAL PRIMARY KEY, name TEXT NOT NULL, discount_type TEXT NOT NULL, discount_value NUMERIC(12,2) NOT NULL, scope TEXT NOT NULL DEFAULT 'all', scope_value TEXT, starts_at TIMESTAMPTZ, ends_at TIMESTAMPTZ, active BOOLEAN NOT NULL DEFAULT TRUE, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()); CREATE TABLE IF NOT EXISTS mm_heroes (id BIGSERIAL PRIMARY KEY, title TEXT NOT NULL, subtitle TEXT, description TEXT, button_text TEXT, button_url TEXT, image_desktop TEXT NOT NULL, image_mobile TEXT, position INTEGER NOT NULL DEFAULT 1, active BOOLEAN NOT NULL DEFAULT TRUE, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()); CREATE TABLE IF NOT EXISTS mm_hero_assets (id BIGSERIAL PRIMARY KEY, filename TEXT NOT NULL, mime_type TEXT NOT NULL, data BYTEA NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW());'''
 def ensure():
     with _db() as c:
         with c.cursor() as x:
@@ -54,6 +56,48 @@ def _heroes_get(send_json):
         x.execute('SELECT id,title,subtitle,description,button_text,button_url,image_desktop,image_mobile,position,active FROM mm_heroes ORDER BY position ASC,id ASC')
         allh=[_hero(r) for r in x.fetchall()]
     send_json(200,{'ok':True,'heroes':allh}); return True
+def _extract_multipart(handler):
+    length=int(handler.headers.get('Content-Length','0') or 0)
+    if length<=0 or length>8*1024*1024: raise ValueError('Imagem inválida ou superior a 8 MB.')
+    raw=handler.rfile.read(length)
+    ctype=handler.headers.get('Content-Type','')
+    m=re.search(r'boundary=(?:"([^"]+)"|([^;]+))',ctype)
+    if not m: raise ValueError('Upload inválido: boundary em falta')
+    boundary=(m.group(1) or m.group(2)).encode()
+    for part in raw.split(b'--'+boundary):
+        if b'filename=' not in part: continue
+        head,sep,body=part.partition(b'\\r\\n\\r\\n')
+        if not sep: continue
+        hm=re.search(br'filename="([^"]*)"',head)
+        filename=(hm.group(1).decode('utf-8','replace') if hm else 'hero.jpg')
+        return filename,body.rstrip(b'\\r\\n-')
+    raise ValueError('Nenhuma imagem encontrada.')
+
+def hero_upload(handler,send_json):
+    filename,data=_extract_multipart(handler)
+    ext=os.path.splitext(filename.lower())[1]
+    mime={'.jpg':'image/jpeg','.jpeg':'image/jpeg','.png':'image/png','.webp':'image/webp'}.get(ext)
+    if not mime: raise ValueError('Formato de imagem não suportado. Use JPG, PNG ou WebP.')
+    if not data: raise ValueError('A imagem está vazia.')
+    with _db() as c,c.cursor() as x:
+        x.execute('INSERT INTO mm_hero_assets(filename,mime_type,data) VALUES(%s,%s,%s) RETURNING id',(filename,mime,psycopg.Binary(data)))
+        ident=x.fetchone()[0]; c.commit()
+    send_json(200,{'ok':True,'imageUrl':f'/api/marketing/hero-image?id={ident}','filename':filename,'bytes':len(data)})
+    return True
+
+def hero_image(query,send_binary):
+    q=parse_qs(query or '')
+    try: ident=int((q.get('id') or ['0'])[0])
+    except Exception: ident=0
+    if ident<=0: return False
+    with _db() as c,c.cursor() as x:
+        x.execute('SELECT mime_type,data FROM mm_hero_assets WHERE id=%s LIMIT 1',(ident,))
+        row=x.fetchone()
+    if not row: return False
+    mime,data=row
+    send_binary(200,mime,bytes(data),max_age=31536000)
+    return True
+
 def _hero_write(body,send_json):
     action=str(body.get('action') or 'create'); title=str(body.get('title') or '').strip(); image=str(body.get('imageDesktop') or '').strip()
     if not title or not image: raise ValueError('Título e imagem Desktop são obrigatórios.')
