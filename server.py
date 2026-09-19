@@ -19,9 +19,16 @@ class Handler(SimpleHTTPRequestHandler):
     extensions_map={**SimpleHTTPRequestHandler.extensions_map,'.svg':'image/svg+xml','.js':'application/javascript','.css':'text/css'}
     def send_json(self,status,payload):
         data=json.dumps(payload,ensure_ascii=False,default=str).encode();self.send_response(status);self.send_header('Content-Type','application/json; charset=utf-8');self.send_header('Cache-Control','no-store');self.send_header('Access-Control-Allow-Origin','*');self.send_header('Access-Control-Allow-Headers','Content-Type');self.send_header('Access-Control-Allow-Methods','GET,POST,PATCH,DELETE,OPTIONS');self.send_header('Content-Length',str(len(data)));self.end_headers();self.wfile.write(data)
+    def send_binary(self,status,mime,data,max_age=0):
+        self.send_response(status);self.send_header('Content-Type',mime);self.send_header('Cache-Control',f'public,max-age={int(max_age)}' if max_age else 'no-store');self.send_header('Content-Length',str(len(data)));self.end_headers();self.wfile.write(data)
     def do_OPTIONS(self): self.send_json(204,{})
     def do_GET(self):
         path=urlsplit(self.path).path;query=parse_qs(urlsplit(self.path).query)
+        if path=='/api/marketing/hero-image':
+            try:
+                from v9_10_11_marketing_api import hero_image
+                if hero_image(self.path.split('?',1)[1] if '?' in self.path else '',self.send_binary): return
+            except Exception as e:self.send_json(503,{'ok':False,'error':str(e)});return
         if path=='/api/marketing':
             try:
                 from v9_10_11_marketing_api import get
@@ -117,6 +124,12 @@ class Handler(SimpleHTTPRequestHandler):
             try:
                 from v9_10_11_marketing_api import validate
                 if validate(read_json(self),self.send_json): return
+            except ValueError as e:self.send_json(400,{'ok':False,'error':str(e)});return
+            except Exception as e:self.send_json(503,{'ok':False,'error':str(e)});return
+        if path=='/api/marketing/hero-upload':
+            try:
+                from v9_10_11_marketing_api import hero_upload
+                if hero_upload(self,self.send_json): return
             except ValueError as e:self.send_json(400,{'ok':False,'error':str(e)});return
             except Exception as e:self.send_json(503,{'ok':False,'error':str(e)});return
         if path in ('/api/marketing/coupon','/api/marketing/promotion'):
