@@ -26,71 +26,66 @@ SCHEMA='''CREATE TABLE IF NOT EXISTS mm_product_classifications (
 def ensure(cur): cur.execute(SCHEMA)
 
 def normalize_rida_commercial(cur):
-    # Organização comercial RIDA:
-    # - Ferramentas -> Ferramentas a bateria: máquinas/ferramentas RIDA
-    # - Ferramentas -> Baterias e carregadores: baterias/carregadores
-    # - Ferramentas -> Acessórios: malas BMC
-    # - Jardim & Agricultura: apenas máquinas/produtos de jardim, em subcategorias comerciais simples.
+    # Organização comercial RIDA.
     cur.execute("SELECT id FROM catalog_categories WHERE kind='category' AND lower(name)=lower('Ferramentas') AND active=true LIMIT 1")
     tools=cur.fetchone()
     cur.execute("SELECT id FROM catalog_categories WHERE kind='category' AND lower(name)=lower('Jardim & Agricultura') AND active=true LIMIT 1")
     garden=cur.fetchone()
     if not tools or not garden:
         return
-
     tools_id=tools[0]; garden_id=garden[0]
 
     def get_or_create_subcategory(parent_id,name):
         cur.execute("SELECT id FROM catalog_categories WHERE kind='subcategory' AND parent_id=%s AND lower(name)=lower(%s) AND active=true LIMIT 1",(parent_id,name))
         row=cur.fetchone()
-        if row:
-            return row[0]
+        if row: return row[0]
         cur.execute("""INSERT INTO catalog_categories(name,kind,parent_id,active)
                        VALUES(%s,'subcategory',%s,true) RETURNING id""",(name,parent_id))
         return cur.fetchone()[0]
 
-    tools_battery=get_or_create_subcategory(tools_id,'Ferramentas a bateria')
-    batteries=get_or_create_subcategory(tools_id,'Baterias e carregadores')
-    accessories=get_or_create_subcategory(tools_id,'Acessórios')
+    # Ferramentas: estrutura comercial definitiva.
+    tool_subs={}
+    for name in ('Berbequins e Aparafusadoras','Rebarbadoras','Martelos Perfuradores','Serras','Lixadoras','Ferramentas Especiais','Baterias e Carregadores','Acessórios'):
+        tool_subs[name]=get_or_create_subcategory(tools_id,name)
 
-    # Estrutura comercial definitiva de Jardim & Agricultura.
+    # Jardim: estrutura já alinhada.
     garden_subs={}
     for name in ('Motosserras','Podas e Corte','Roçadoras e Aparadores','Sopradores'):
         garden_subs[name]=get_or_create_subcategory(garden_id,name)
 
     garden_skus={
-        'RGT11280','RGT11280-C12',
-        'RHT09025','RHT09025-C12',
+        'RGT11280','RGT11280-C12','RHT09025','RHT09025-C12',
         'RCS03V016','RCS03V016-C24','RCS06006','RCS06006-C12',
-        'RBL06650','RBL06650-C22',
-        'RBP01040','RBP01040-C12',
+        'RBL06650','RBL06650-C22','RBP01040','RBP01040-C12',
         'JARD-SERRA-001','REP16245'
     }
-    battery_skus={'RB2020','RB2040','RFC24','RDC30'}
-    accessory_skus={'BMCB75','000000','Mala BMC'}
+    batteries={'RB2020','RB2040','RFC24','RDC30'}
+    accessories={'BMCB75','000000','Mala BMC'}
+
+    def tool_sub(sku):
+        if sku in batteries: return tool_subs['Baterias e Carregadores']
+        if sku in accessories: return tool_subs['Acessórios']
+        if sku.startswith('RHD'): return tool_subs['Berbequins e Aparafusadoras']
+        if sku.startswith('RCG'): return tool_subs['Rebarbadoras']
+        if sku.startswith('RCH'): return tool_subs['Martelos Perfuradores']
+        if sku.startswith(('RCC','RCJ','RCR')): return tool_subs['Serras']
+        if sku.startswith('RCO'): return tool_subs['Lixadoras']
+        return tool_subs['Ferramentas Especiais']
 
     cur.execute("SELECT id,sku,name FROM catalog_products WHERE upper(brand)='RIDA' AND active IS DISTINCT FROM FALSE")
     for pid,sku,name in cur.fetchall():
         sku=str(sku or '')
         lname=str(name or '').lower()
-        if sku in battery_skus:
-            save_one(cur,pid,'commercial',{'categoryId':tools_id,'subcategoryId':batteries,'familyId':None})
-        elif sku in accessory_skus or 'mala bmc' in lname:
-            save_one(cur,pid,'commercial',{'categoryId':tools_id,'subcategoryId':accessories,'familyId':None})
-        elif sku in garden_skus:
-            if sku.startswith('RCS'):
-                sid=garden_subs['Motosserras']
-            elif sku in ('RBP01040','RBP01040-C12','JARD-SERRA-001','REP16245'):
-                sid=garden_subs['Podas e Corte']
-            elif sku.startswith('RGT') or sku.startswith('RHT'):
-                sid=garden_subs['Roçadoras e Aparadores']
-            elif sku.startswith('RBL'):
-                sid=garden_subs['Sopradores']
-            else:
-                sid=garden_subs['Podas e Corte']
+        if sku in garden_skus:
+            if sku.startswith('RCS'): sid=garden_subs['Motosserras']
+            elif sku in ('RBP01040','RBP01040-C12','JARD-SERRA-001','REP16245'): sid=garden_subs['Podas e Corte']
+            elif sku.startswith(('RGT','RHT')): sid=garden_subs['Roçadoras e Aparadores']
+            elif sku.startswith('RBL'): sid=garden_subs['Sopradores']
+            else: sid=garden_subs['Podas e Corte']
             save_one(cur,pid,'commercial',{'categoryId':garden_id,'subcategoryId':sid,'familyId':None})
         else:
-            save_one(cur,pid,'commercial',{'categoryId':tools_id,'subcategoryId':tools_battery,'familyId':None})
+            sid=tool_sub(sku)
+            save_one(cur,pid,'commercial',{'categoryId':tools_id,'subcategoryId':sid,'familyId':None})
 
 def normalize_rida_construction_items(cur):
     # Correção pontual e idempotente: luz de trabalho e coluna RIDA pertencem à estrutura de Construção.
