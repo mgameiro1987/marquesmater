@@ -90,7 +90,7 @@ def _hero_image_dimensions(data,mime):
             ln=int.from_bytes(data[i:i+2],'big')
             if ln<2 or i+ln>len(data): break
             if marker in list(range(0xC0,0xC4))+list(range(0xC5,0xC8))+list(range(0xC9,0xCC))+list(range(0xCD,0xD0)):
-                if i+7<=len(data): return int.from_bytes(data[i+3:i+5],'big'),int.from_bytes(data[i+5:i+7],'big')
+                if i+7<=len(data): return int.from_bytes(data[i+5:i+7],'big'),int.from_bytes(data[i+3:i+5],'big')
             i+=ln
     if mime=='image/webp' and data[:4]==b'RIFF' and data[8:12]==b'WEBP':
         if data[12:16]==b'VP8X' and len(data)>=30:
