@@ -162,10 +162,14 @@ def handle_get(path,query,send_json):
                                         if typ==ctype and cid==ccid and sid==csid)
 
                 for fam in cat['families']:
+                    mm_sub_id=fam.get('subcategoryId')
+                    mm_sub=next((s for s in cat['subcategories'] if s['id']==mm_sub_id),None)
+                    if not mm_sub: continue
+                    csid=next((i for i,(nm,k,parent) in canonical.items()
+                               if k=='subcategory' and parent==ccid and nm.lower()==mm_sub['name'].lower()),None)
+                    if csid is None: continue
                     cfid=next((i for i,(nm,k,parent) in canonical.items()
-                               if k=='family' and nm.lower()==fam['name'].lower()
-                               and any(sk=='subcategory' and sp==parent and sn.lower()==fam['name'].lower()
-                                       for _,(sn,sk,sp) in canonical.items() if sk=='subcategory')),None)
+                               if k=='family' and parent==csid and nm.lower()==fam['name'].lower()),None)
                     if cfid is None: continue
                     fam['products']=sum(n for (typ,cid,sid,fid),n in counts.items()
                                         if typ==ctype and cid==ccid and fid==cfid)
