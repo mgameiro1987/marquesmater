@@ -132,7 +132,17 @@ def handle_get(path,query,send_json):
     qs=parse_qs(query or '')
     try:
         with db() as conn,conn.cursor() as cur:
-            ensure(cur);normalize_rida_commercial(cur);normalize_rida_construction_items(cur);conn.commit()
+            ensure(cur)
+            # A normalização comercial é protegida: se a BD não tiver alguma estrutura esperada,
+            # a API de classificações continua a devolver os dados existentes em vez de bloquear o catálogo.
+            try:
+                cur.execute('SAVEPOINT rida_normalize')
+                normalize_rida_commercial(cur);normalize_rida_construction_items(cur)
+                cur.execute('RELEASE SAVEPOINT rida_normalize')
+            except Exception:
+                cur.execute('ROLLBACK TO SAVEPOINT rida_normalize')
+                cur.execute('RELEASE SAVEPOINT rida_normalize')
+            conn.commit()
             if (qs.get('options') or [''])[0]=='1':
                 send_json(200,{'ok':True,'options':get_options(cur)});return True
             if (qs.get('all') or [''])[0]=='1':
