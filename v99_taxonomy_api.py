@@ -142,8 +142,8 @@ def handle_get(path,query,send_json):
             for typ,cid,sid,fid,n in cur.fetchall():
                 counts[(typ,cid,sid,fid)]=int(n or 0)
 
-            cur.execute("SELECT id,name,kind FROM catalog_categories")
-            canonical={r[0]:(r[1],r[2]) for r in cur.fetchall()}
+            cur.execute("SELECT id,name,kind,parent_id FROM catalog_categories")
+            canonical={r[0]:(r[1],r[2],r[3]) for r in cur.fetchall()}
 
             for cat in cats:
                 cur.execute("SELECT id,name FROM catalog_categories WHERE kind='category' AND lower(name)=lower(%s) LIMIT 1",(cat['name'],))
@@ -155,15 +155,17 @@ def handle_get(path,query,send_json):
                                     if typ==ctype and cid==ccid)
 
                 for sub in cat['subcategories']:
-                    csid=next((i for i,(nm,k) in canonical.items()
-                               if k=='subcategory' and nm.lower()==sub['name'].lower()),None)
+                    csid=next((i for i,(nm,k,parent) in canonical.items()
+                               if k=='subcategory' and parent==ccid and nm.lower()==sub['name'].lower()),None)
                     if csid is None: continue
                     sub['products']=sum(n for (typ,cid,sid,fid),n in counts.items()
                                         if typ==ctype and cid==ccid and sid==csid)
 
                 for fam in cat['families']:
-                    cfid=next((i for i,(nm,k) in canonical.items()
-                               if k=='family' and nm.lower()==fam['name'].lower()),None)
+                    cfid=next((i for i,(nm,k,parent) in canonical.items()
+                               if k=='family' and nm.lower()==fam['name'].lower()
+                               and any(sk=='subcategory' and sp==parent and sn.lower()==fam['name'].lower()
+                                       for _,(sn,sk,sp) in canonical.items() if sk=='subcategory')),None)
                     if cfid is None: continue
                     fam['products']=sum(n for (typ,cid,sid,fid),n in counts.items()
                                         if typ==ctype and cid==ccid and fid==cfid)
