@@ -67,6 +67,25 @@ def _resolve_taxonomy(cur,body):
         x=cur.fetchone(); brand_id=x[0] if x else None
     return category_id,subcategory_id,family_id,brand_id
 
+def handle_image(query,send_binary):
+    qs=parse_qs(query or '')
+    sku=_clean((qs.get('sku') or [''])[0])
+    if not sku:return False
+    try:
+        with db() as conn,conn.cursor() as cur:
+            cur.execute("SELECT image FROM catalog_products WHERE sku=%s LIMIT 1",(sku,))
+            row=cur.fetchone()
+        image=_clean(row[0] if row else '')
+        if not image.lower().startswith('data:image/') or ';base64,' not in image.lower():return False
+        header,data=image.split(',',1)
+        mime=header[5:].split(';',1)[0].lower()
+        import base64
+        raw=base64.b64decode(data,validate=False)
+        send_binary(200,mime,raw,max_age=31536000)
+        return True
+    except Exception:
+        return False
+
 def handle_get(path,query,send_json):
     if path!='/api/catalog/products':return False
     try:
