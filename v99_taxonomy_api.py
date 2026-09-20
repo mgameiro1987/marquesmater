@@ -114,8 +114,9 @@ def handle_get(path,query,send_json):
     if path!='/api/taxonomy': return False
     try:
         with db() as conn,conn.cursor() as cur:
-            # GET é apenas leitura: não executa a sincronização pesada da taxonomia.
-            # A sincronização fica reservada às operações de escrita/reordenação.
+            # Ao abrir Categorias, garantir que o espelho do Backoffice está alinhado
+            # com a taxonomia canónica usada pelo Frontoffice/classificações.
+            ensure(cur)
             cur.execute("SELECT id,name,description,icon,image,active,display_order FROM mm_categories ORDER BY COALESCE(display_order,2147483647),name")
             cats=[{'id':r[0],'name':r[1],'description':r[2],'icon':r[3],'image':r[4],'active':r[5],'order':r[6],'products':0,'subcategories':[],'families':[]} for r in cur.fetchall()]
             by={x['id']:x for x in cats}
@@ -125,8 +126,48 @@ def handle_get(path,query,send_json):
             cur.execute("SELECT id,category_id,subcategory_id,name,active,display_order FROM mm_families ORDER BY category_id,COALESCE(display_order,2147483647),name")
             for r in cur.fetchall():
                 by[r[1]]['families'].append({'id':r[0],'categoryId':r[1],'subcategoryId':r[2],'name':r[3],'active':r[4],'order':r[5],'products':0})
-            # GET estabilizado: a abertura do gestor depende apenas da árvore estrutural.
-            # As contagens de produtos não podem bloquear a entrada em Categorias.
+
+            # Contagens reais por classificação. RIDA usa a classificação RIDA;
+            # as restantes categorias usam a classificação comercial.
+            cur.execute("""
+                SELECT pc.classification_type,pc.category_id,pc.subcategory_id,pc.family_id,
+                       COUNT(DISTINCT pc.product_id)
+                FROM mm_product_classifications pc
+                JOIN catalog_products p ON p.id=pc.product_id
+                WHERE p.active IS DISTINCT FROM FALSE
+                  AND pc.classification_type IN ('commercial','rida')
+                GROUP BY pc.classification_type,pc.category_id,pc.subcategory_id,pc.family_id
+            """)
+            counts={}
+            for typ,cid,sid,fid,n in cur.fetchall():
+                counts[(typ,cid,sid,fid)]=int(n or 0)
+
+            cur.execute("SELECT id,name,kind FROM catalog_categories")
+            canonical={r[0]:(r[1],r[2]) for r in cur.fetchall()}
+
+            for cat in cats:
+                cur.execute("SELECT id,name FROM catalog_categories WHERE kind='category' AND lower(name)=lower(%s) LIMIT 1",(cat['name'],))
+                cc=cur.fetchone()
+                if not cc: continue
+                ctype='rida' if cat['name'].strip().lower()=='rida' else 'commercial'
+                ccid=cc[0]
+                cat['products']=sum(n for (typ,cid,sid,fid),n in counts.items()
+                                    if typ==ctype and cid==ccid)
+
+                for sub in cat['subcategories']:
+                    csid=next((i for i,(nm,k) in canonical.items()
+                               if k=='subcategory' and nm.lower()==sub['name'].lower()),None)
+                    if csid is None: continue
+                    sub['products']=sum(n for (typ,cid,sid,fid),n in counts.items()
+                                        if typ==ctype and cid==ccid and sid==csid)
+
+                for fam in cat['families']:
+                    cfid=next((i for i,(nm,k) in canonical.items()
+                               if k=='family' and nm.lower()==fam['name'].lower()),None)
+                    if cfid is None: continue
+                    fam['products']=sum(n for (typ,cid,sid,fid),n in counts.items()
+                                        if typ==ctype and cid==ccid and fid==cfid)
+
             send_json(200,{'ok':True,'categories':cats,'count':len(cats)});return True
     except Exception as e:
         send_json(503,{'ok':False,'error':f'API taxonomia: {e}'});return True
