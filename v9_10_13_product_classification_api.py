@@ -31,6 +31,11 @@ def normalize_rida_construction_items(cur):
     for (pid,) in cur.fetchall():
         save_one(cur,pid,'rida',{'categoryId':11,'subcategoryId':16602,'familyId':16603})
 
+    # Jardim: serra de poda e respetiva vara extensível.
+    cur.execute("""SELECT id FROM catalog_products WHERE sku IN ('JARD-SERRA-001','REP16245')""")
+    for (pid,) in cur.fetchall():
+        save_one(cur,pid,'rida',{'categoryId':11,'subcategoryId':16602,'familyId':16604})
+
 def valid_node(cur,rid,kind):
     if not rid: return None
     cur.execute('SELECT id FROM catalog_categories WHERE id=%s AND kind=%s AND active=true',(rid,kind))
