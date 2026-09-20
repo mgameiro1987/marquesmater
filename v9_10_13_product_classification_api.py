@@ -25,6 +25,12 @@ SCHEMA='''CREATE TABLE IF NOT EXISTS mm_product_classifications (
 
 def ensure(cur): cur.execute(SCHEMA)
 
+def normalize_rida_construction_items(cur):
+    # Correção pontual e idempotente: luz de trabalho e coluna RIDA pertencem à estrutura de Construção.
+    cur.execute("""SELECT id FROM catalog_products WHERE sku IN ('RCL1250H','RCL1250H-C12','RJR12000')""")
+    for (pid,) in cur.fetchall():
+        save_one(cur,pid,'rida',{'categoryId':11,'subcategoryId':16602,'familyId':16603})
+
 def valid_node(cur,rid,kind):
     if not rid: return None
     cur.execute('SELECT id FROM catalog_categories WHERE id=%s AND kind=%s AND active=true',(rid,kind))
@@ -53,7 +59,7 @@ def handle_get(path,query,send_json):
     qs=parse_qs(query or '')
     try:
         with db() as conn,conn.cursor() as cur:
-            ensure(cur);conn.commit()
+            ensure(cur);normalize_rida_construction_items(cur);conn.commit()
             if (qs.get('options') or [''])[0]=='1':
                 send_json(200,{'ok':True,'options':get_options(cur)});return True
             if (qs.get('all') or [''])[0]=='1':
