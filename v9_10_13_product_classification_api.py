@@ -132,7 +132,7 @@ def handle_get(path,query,send_json):
     qs=parse_qs(query or '')
     try:
         with db() as conn,conn.cursor() as cur:
-            ensure(cur);normalize_rida_construction_items(cur);conn.commit()
+            ensure(cur);normalize_rida_commercial(cur);normalize_rida_construction_items(cur);conn.commit()
             if (qs.get('options') or [''])[0]=='1':
                 send_json(200,{'ok':True,'options':get_options(cur)});return True
             if (qs.get('all') or [''])[0]=='1':
