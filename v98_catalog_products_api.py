@@ -91,6 +91,17 @@ def handle_get(path,query,send_json):
     try:
         qs=parse_qs(query or '');sku=_clean((qs.get('sku') or [''])[0])
         with db() as conn,conn.cursor() as cur:
+            if not sku and qs.get('brands'):
+                cur.execute("""
+                    SELECT COALESCE(NULLIF(TRIM(p.brand),''),'Sem marca') AS brand,
+                           COUNT(*)::int
+                    FROM catalog_products p
+                    WHERE p.active IS DISTINCT FROM FALSE
+                    GROUP BY COALESCE(NULLIF(TRIM(p.brand),''),'Sem marca')
+                    ORDER BY LOWER(COALESCE(NULLIF(TRIM(p.brand),''),'Sem marca'))
+                """)
+                items=[{'brand':r[0],'count':r[1]} for r in cur.fetchall()]
+                send_json(200,{'ok':True,'items':items,'count':len(items)});return True
             if sku:
                 cur.execute(SELECT+' WHERE p.sku=%s LIMIT 1',(sku,));row=cur.fetchone()
                 if not row:send_json(404,{'ok':False,'error':'Produto não encontrado'});return True
