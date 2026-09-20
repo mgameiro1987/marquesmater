@@ -114,9 +114,11 @@ def handle_get(path,query,send_json):
     if path!='/api/taxonomy': return False
     try:
         with db() as conn,conn.cursor() as cur:
-            # Ao abrir Categorias, garantir que o espelho do Backoffice está alinhado
-            # com a taxonomia canónica usada pelo Frontoffice/classificações.
-            ensure(cur)
+            # A sincronização estrutural é feita apenas no carregamento final da
+            # página de Categorias. Os restantes GET são estritamente de leitura,
+            # evitando locks/escritas desnecessárias e tornando o Backoffice mais rápido.
+            if 'final=1' in (query or ''):
+                ensure(cur)
             cur.execute("SELECT id,name,description,icon,image,active,display_order FROM mm_categories ORDER BY COALESCE(display_order,2147483647),name")
             cats=[{'id':r[0],'name':r[1],'description':r[2],'icon':r[3],'image':r[4],'active':r[5],'order':r[6],'products':0,'subcategories':[],'families':[]} for r in cur.fetchall()]
             by={x['id']:x for x in cats}
