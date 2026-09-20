@@ -28,9 +28,9 @@ def ensure(cur): cur.execute(SCHEMA)
 def normalize_rida_commercial(cur):
     # Organização comercial RIDA:
     # - Ferramentas -> Ferramentas a bateria: máquinas/ferramentas RIDA
-    # - Jardim & Agricultura: máquinas especificamente de jardim
     # - Ferramentas -> Baterias e carregadores: baterias/carregadores
     # - Ferramentas -> Acessórios: malas BMC
+    # - Jardim & Agricultura: apenas máquinas/produtos de jardim, em subcategorias comerciais simples.
     cur.execute("SELECT id FROM catalog_categories WHERE kind='category' AND lower(name)=lower('Ferramentas') AND active=true LIMIT 1")
     tools=cur.fetchone()
     cur.execute("SELECT id FROM catalog_categories WHERE kind='category' AND lower(name)=lower('Jardim & Agricultura') AND active=true LIMIT 1")
@@ -53,8 +53,9 @@ def normalize_rida_commercial(cur):
     batteries=get_or_create_subcategory(tools_id,'Baterias e carregadores')
     accessories=get_or_create_subcategory(tools_id,'Acessórios')
 
+    # Estrutura comercial definitiva de Jardim & Agricultura.
     garden_subs={}
-    for name in ('Aparadores de relva','Corta-sebes','Motosserras','Sopradores','Serras de Poda','Ferramentas de Jardim','Acessórios de jardim'):
+    for name in ('Motosserras','Podas e Corte','Roçadoras e Aparadores','Sopradores'):
         garden_subs[name]=get_or_create_subcategory(garden_id,name)
 
     garden_skus={
@@ -77,18 +78,16 @@ def normalize_rida_commercial(cur):
         elif sku in accessory_skus or 'mala bmc' in lname:
             save_one(cur,pid,'commercial',{'categoryId':tools_id,'subcategoryId':accessories,'familyId':None})
         elif sku in garden_skus:
-            if sku.startswith('RGT'):
-                sid=garden_subs['Aparadores de relva']
-            elif sku.startswith('RHT'):
-                sid=garden_subs['Corta-sebes']
-            elif sku.startswith('RCS') or sku=='JARD-SERRA-001':
-                sid=garden_subs['Motosserras'] if sku.startswith('RCS') else garden_subs['Serras de Poda']
+            if sku.startswith('RCS'):
+                sid=garden_subs['Motosserras']
+            elif sku in ('RBP01040','RBP01040-C12','JARD-SERRA-001','REP16245'):
+                sid=garden_subs['Podas e Corte']
+            elif sku.startswith('RGT') or sku.startswith('RHT'):
+                sid=garden_subs['Roçadoras e Aparadores']
             elif sku.startswith('RBL'):
                 sid=garden_subs['Sopradores']
-            elif sku.startswith('RBP') or sku=='REP16245':
-                sid=garden_subs['Ferramentas de Jardim']
             else:
-                sid=garden_subs['Ferramentas de Jardim']
+                sid=garden_subs['Podas e Corte']
             save_one(cur,pid,'commercial',{'categoryId':garden_id,'subcategoryId':sid,'familyId':None})
         else:
             save_one(cur,pid,'commercial',{'categoryId':tools_id,'subcategoryId':tools_battery,'familyId':None})
