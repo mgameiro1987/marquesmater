@@ -59,6 +59,11 @@ class Handler(SimpleHTTPRequestHandler):
                 from v96_account_api import handle_get
                 if handle_get(path,self.path.split('?',1)[1] if '?' in self.path else '',self.send_json): return
             except Exception as e:self.send_json(503,{'ok':False,'error':str(e)});return
+        if path=='/api/catalog/product-image':
+            try:
+                from v98_catalog_products_api import handle_image
+                if handle_image(self.path.split('?',1)[1] if '?' in self.path else '',self.send_binary): return
+            except Exception as e:self.send_json(503,{'ok':False,'error':str(e)});return
         if path=='/api/catalog/products':
             try:
                 from v98_catalog_products_api import handle_get
