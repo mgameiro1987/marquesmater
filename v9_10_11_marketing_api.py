@@ -73,16 +73,59 @@ def _extract_multipart(handler):
         return filename,body.rstrip(b'\\r\\n-')
     raise ValueError('Nenhuma imagem encontrada.')
 
+def _hero_image_dimensions(data,mime):
+    # Leitura leve das dimensões sem depender de Pillow.
+    if mime=='image/png' and len(data)>=24 and data[:8]==b'\\x89PNG\\r\\n\\x1a\\n':
+        import struct
+        return struct.unpack('>II',data[16:24])
+    if mime in ('image/jpeg',):
+        i=2
+        while i+9<=len(data):
+            if data[i]!=0xFF: i+=1; continue
+            while i<len(data) and data[i]==0xFF: i+=1
+            if i>=len(data): break
+            marker=data[i]; i+=1
+            if marker in (0xD8,0xD9): continue
+            if i+2>len(data): break
+            ln=int.from_bytes(data[i:i+2],'big')
+            if ln<2 or i+ln>len(data): break
+            if marker in list(range(0xC0,0xC4))+list(range(0xC5,0xC8))+list(range(0xC9,0xCC))+list(range(0xCD,0xD0)):
+                if i+7<=len(data): return int.from_bytes(data[i+3:i+5],'big'),int.from_bytes(data[i+5:i+7],'big')
+            i+=ln
+    if mime=='image/webp' and data[:4]==b'RIFF' and data[8:12]==b'WEBP':
+        if data[12:16]==b'VP8X' and len(data)>=30:
+            w=1+int.from_bytes(data[24:27],'little'); h=1+int.from_bytes(data[27:30],'little'); return w,h
+        if data[12:16]==b'VP8L' and len(data)>=25:
+            b=data[21:25]; w=1+((b[1]&0x3f)<<8|b[0]); h=1+((b[3]&0xf)<<10|b[2]<<2|((b[1]&0xc0)>>6)); return w,h
+    return None,None
+
 def hero_upload(handler,send_json):
     filename,data=_extract_multipart(handler)
     ext=os.path.splitext(filename.lower())[1]
     mime={'.jpg':'image/jpeg','.jpeg':'image/jpeg','.png':'image/png','.webp':'image/webp'}.get(ext)
     if not mime: raise ValueError('Formato de imagem não suportado. Use JPG, PNG ou WebP.')
     if not data: raise ValueError('A imagem está vazia.')
+    w,h=_hero_image_dimensions(data,mime)
+    slot=(parse_qs(getattr(handler,'path','').split('?',1)[1] if '?' in getattr(handler,'path','') else '').get('slot') or [''])[0].lower()
+    # O frontend envia o slot no multipart; quando ausente, aplicar a regra Desktop.
+    if slot not in ('desktop','mobile'): slot='desktop'
+    if slot=='desktop':
+        min_w,min_h,target_ratio=1600,467,1920/560
+        label='Desktop'
+    else:
+        min_w,min_h,target_ratio=900,508,1080/610
+        label='Mobile'
+    if not w or not h:
+        raise ValueError('Não foi possível ler as dimensões da imagem. Escolhe um JPG, PNG ou WebP válido.')
+    ratio=w/h
+    if w<min_w or h<min_h:
+        raise ValueError(f'Imagem {label} demasiado pequena: {w}×{h}px. Usa pelo menos {min_w}×{min_h}px (recomendado: '+('1920×560' if slot=='desktop' else '1080×610')+').')
+    if abs(ratio-target_ratio)>0.12:
+        raise ValueError(f'Proporção da imagem {label} incorreta: {w}×{h}px. Recomendado: '+('1920×560 px (24:7).' if slot=='desktop' else '1080×610 px (aprox. 16:9).'))
     with _db() as c,c.cursor() as x:
         x.execute('INSERT INTO mm_hero_assets(filename,mime_type,data) VALUES(%s,%s,%s) RETURNING id',(filename,mime,psycopg.Binary(data)))
         ident=x.fetchone()[0]; c.commit()
-    send_json(200,{'ok':True,'imageUrl':f'/api/marketing/hero-image?id={ident}','filename':filename,'bytes':len(data)})
+    send_json(200,{'ok':True,'imageUrl':f'/api/marketing/hero-image?id={ident}','filename':filename,'bytes':len(data),'width':w,'height':h,'slot':slot})
     return True
 
 def hero_image(query,send_binary):
