@@ -66,11 +66,11 @@ def _extract_multipart(handler):
     boundary=(m.group(1) or m.group(2)).encode()
     for part in raw.split(b'--'+boundary):
         if b'filename=' not in part: continue
-        head,sep,body=part.partition(b'\\r\\n\\r\\n')
+        head,sep,body=part.partition(b'\r\n\r\n')
         if not sep: continue
         hm=re.search(br'filename="([^"]*)"',head)
         filename=(hm.group(1).decode('utf-8','replace') if hm else 'hero.jpg')
-        return filename,body.rstrip(b'\\r\\n-')
+        return filename,body.rstrip(b'\r\n-')
     raise ValueError('Nenhuma imagem encontrada.')
 
 def _hero_image_dimensions(data,mime):
