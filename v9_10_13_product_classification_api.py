@@ -25,6 +25,22 @@ SCHEMA='''CREATE TABLE IF NOT EXISTS mm_product_classifications (
 
 def ensure(cur): cur.execute(SCHEMA)
 
+def normalize_rida_commercial(cur):
+    # Taxonomia comercial RIDA: todas as máquinas em Construção; baterias,
+    # carregadores e malas/acessórios de transporte em Ferramentas.
+    cur.execute("SELECT id FROM catalog_categories WHERE kind='category' AND lower(name)=lower('Construção') AND active=true LIMIT 1")
+    construction=cur.fetchone()
+    cur.execute("SELECT id FROM catalog_categories WHERE kind='category' AND lower(name)=lower('Ferramentas') AND active=true LIMIT 1")
+    tools=cur.fetchone()
+    if not construction or not tools:
+        return
+    construction_id=construction[0]; tools_id=tools[0]
+    tool_skus={'RB2020','RB2040','RFC24','RDC30','BMCB75','000000','Mala BMC'}
+    cur.execute("SELECT id,sku,name FROM catalog_products WHERE upper(brand)='RIDA' AND active IS DISTINCT FROM FALSE")
+    for pid,sku,name in cur.fetchall():
+        target=tools_id if str(sku) in tool_skus or 'mala bmc' in str(name or '').lower() else construction_id
+        save_one(cur,pid,'commercial',{'categoryId':target,'subcategoryId':None,'familyId':None})
+
 def normalize_rida_construction_items(cur):
     # Correção pontual e idempotente: luz de trabalho e coluna RIDA pertencem à estrutura de Construção.
     cur.execute("""SELECT id FROM catalog_products WHERE sku IN ('RCL1250H','RCL1250H-C12','RJR12000')""")
