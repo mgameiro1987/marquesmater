@@ -9,7 +9,7 @@ def _db():
     url=os.environ.get('DATABASE_URL')
     if not url: raise RuntimeError('DATABASE_URL não configurado no Render')
     return psycopg.connect(url)
-SCHEMA='''CREATE TABLE IF NOT EXISTS mm_marketing_coupons (id BIGSERIAL PRIMARY KEY, code TEXT UNIQUE NOT NULL, name TEXT NOT NULL, discount_type TEXT NOT NULL, discount_value NUMERIC(12,2) NOT NULL, min_order NUMERIC(12,2) NOT NULL DEFAULT 0, max_uses INTEGER, used_count INTEGER NOT NULL DEFAULT 0, starts_at TIMESTAMPTZ, ends_at TIMESTAMPTZ, active BOOLEAN NOT NULL DEFAULT TRUE, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()); CREATE TABLE IF NOT EXISTS mm_marketing_promotions (id BIGSERIAL PRIMARY KEY, name TEXT NOT NULL, discount_type TEXT NOT NULL, discount_value NUMERIC(12,2) NOT NULL, scope TEXT NOT NULL DEFAULT 'all', scope_value TEXT, starts_at TIMESTAMPTZ, ends_at TIMESTAMPTZ, active BOOLEAN NOT NULL DEFAULT TRUE, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()); CREATE TABLE IF NOT EXISTS mm_heroes (id BIGSERIAL PRIMARY KEY, title TEXT NOT NULL, subtitle TEXT, description TEXT, button_text TEXT, button_url TEXT, image_desktop TEXT NOT NULL, image_mobile TEXT, position INTEGER NOT NULL DEFAULT 1, active BOOLEAN NOT NULL DEFAULT TRUE, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()); CREATE TABLE IF NOT EXISTS mm_hero_assets (id BIGSERIAL PRIMARY KEY, filename TEXT NOT NULL, mime_type TEXT NOT NULL, data BYTEA NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW());'''
+SCHEMA='''CREATE TABLE IF NOT EXISTS mm_marketing_coupons (id BIGSERIAL PRIMARY KEY, code TEXT UNIQUE NOT NULL, name TEXT NOT NULL, discount_type TEXT NOT NULL, discount_value NUMERIC(12,2) NOT NULL, min_order NUMERIC(12,2) NOT NULL DEFAULT 0, max_uses INTEGER, used_count INTEGER NOT NULL DEFAULT 0, starts_at TIMESTAMPTZ, ends_at TIMESTAMPTZ, active BOOLEAN NOT NULL DEFAULT TRUE, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()); CREATE TABLE IF NOT EXISTS mm_marketing_promotions (id BIGSERIAL PRIMARY KEY, name TEXT NOT NULL, discount_type TEXT NOT NULL, discount_value NUMERIC(12,2) NOT NULL, scope TEXT NOT NULL DEFAULT 'all', scope_value TEXT, starts_at TIMESTAMPTZ, ends_at TIMESTAMPTZ, active BOOLEAN NOT NULL DEFAULT TRUE, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()); CREATE TABLE IF NOT EXISTS mm_heroes (id BIGSERIAL PRIMARY KEY, title TEXT NOT NULL, subtitle TEXT, description TEXT, button_text TEXT, button_url TEXT, image_desktop TEXT NOT NULL, image_mobile TEXT, position INTEGER NOT NULL DEFAULT 1, active BOOLEAN NOT NULL DEFAULT TRUE, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()); ALTER TABLE mm_heroes ADD COLUMN IF NOT EXISTS image_tablet TEXT; ALTER TABLE mm_heroes ADD COLUMN IF NOT EXISTS image_computer TEXT; CREATE TABLE IF NOT EXISTS mm_hero_assets (id BIGSERIAL PRIMARY KEY, filename TEXT NOT NULL, mime_type TEXT NOT NULL, data BYTEA NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW());'''
 def ensure():
     with _db() as c:
         with c.cursor() as x:
@@ -50,10 +50,10 @@ def calculate(cur,code,subtotal,items):
 def consume_coupon(cur,code):
     if code: cur.execute("UPDATE mm_marketing_coupons SET used_count=used_count+1 WHERE UPPER(code)=UPPER(%s)",(str(code).strip().upper(),))
 def _hero(row):
-    return {'id':row[0],'title':row[1],'subtitle':row[2] or '','description':row[3] or '','buttonText':row[4] or '','buttonUrl':row[5] or '','imageDesktop':row[6],'imageMobile':row[7] or row[6],'position':int(row[8] or 1),'active':bool(row[9])}
+    return {'id':row[0],'title':row[1],'subtitle':row[2] or '','description':row[3] or '','buttonText':row[4] or '','buttonUrl':row[5] or '','imageDesktop':row[6],'imageMobile':row[7] or row[6],'position':int(row[8] or 1),'active':bool(row[9]),'imageTablet':row[10] or row[6],'imageComputer':row[11] or row[6]}
 def _heroes_get(send_json):
     with _db() as c,c.cursor() as x:
-        x.execute('SELECT id,title,subtitle,description,button_text,button_url,image_desktop,image_mobile,position,active FROM mm_heroes ORDER BY position ASC,id ASC')
+        x.execute('SELECT id,title,subtitle,description,button_text,button_url,image_desktop,image_mobile,position,active,image_tablet,image_computer FROM mm_heroes ORDER BY position ASC,id ASC')
         allh=[_hero(r) for r in x.fetchall()]
     send_json(200,{'ok':True,'heroes':allh}); return True
 def _extract_multipart(handler):
@@ -108,20 +108,22 @@ def hero_upload(handler,send_json):
     w,h=_hero_image_dimensions(data,mime)
     slot=(parse_qs(getattr(handler,'path','').split('?',1)[1] if '?' in getattr(handler,'path','') else '').get('slot') or [''])[0].lower()
     # O frontend envia o slot no multipart; quando ausente, aplicar a regra Desktop.
-    if slot not in ('desktop','mobile'): slot='desktop'
+    if slot not in ('desktop','tablet','mobile','computer'): slot='desktop'
     if slot=='desktop':
-        min_w,min_h,target_ratio=1600,467,1920/560
-        label='Desktop'
+        min_w,min_h,target_ratio=1600,467,1920/560; label='Desktop'; recommended='1920×560'
+    elif slot=='tablet':
+        min_w,min_h,target_ratio=1200,450,1440/540; label='Tablet'; recommended='1440×540'
+    elif slot=='computer':
+        min_w,min_h,target_ratio=1600,467,1920/560; label='Vista computador'; recommended='1920×560'
     else:
-        min_w,min_h,target_ratio=900,508,1080/610
-        label='Mobile'
+        min_w,min_h,target_ratio=900,508,1080/610; label='Mobile'; recommended='1080×610'
     if not w or not h:
         raise ValueError('Não foi possível ler as dimensões da imagem. Escolhe um JPG, PNG ou WebP válido.')
     ratio=w/h
     if w<min_w or h<min_h:
-        raise ValueError(f'Imagem {label} demasiado pequena: {w}×{h}px. Usa pelo menos {min_w}×{min_h}px (recomendado: '+('1920×560' if slot=='desktop' else '1080×610')+').')
+        raise ValueError(f'Imagem {label} demasiado pequena: {w}×{h}px. Usa pelo menos {min_w}×{min_h}px (recomendado: '+recommended+').')
     if abs(ratio-target_ratio)>0.12:
-        raise ValueError(f'Proporção da imagem {label} incorreta: {w}×{h}px. Recomendado: '+('1920×560 px (24:7).' if slot=='desktop' else '1080×610 px (aprox. 16:9).'))
+        raise ValueError(f'Proporção da imagem {label} incorreta: {w}×{h}px. Recomendado: '+recommended+' px.')
     with _db() as c,c.cursor() as x:
         x.execute('INSERT INTO mm_hero_assets(filename,mime_type,data) VALUES(%s,%s,%s) RETURNING id',(filename,mime,psycopg.Binary(data)))
         ident=x.fetchone()[0]; c.commit()
@@ -144,13 +146,13 @@ def hero_image(query,send_binary):
 def _hero_write(body,send_json):
     action=str(body.get('action') or 'create'); title=str(body.get('title') or '').strip(); image=str(body.get('imageDesktop') or '').strip()
     if not title or not image: raise ValueError('Título e imagem Desktop são obrigatórios.')
-    subtitle=str(body.get('subtitle') or '').strip(); description=str(body.get('description') or '').strip(); bt=str(body.get('buttonText') or '').strip(); bu=str(body.get('buttonUrl') or '').strip(); mobile=str(body.get('imageMobile') or image).strip(); pos=max(1,int(body.get('position') or 1)); active=bool(body.get('active',True)); ident=int(body.get('id') or 0)
+    subtitle=str(body.get('subtitle') or '').strip(); description=str(body.get('description') or '').strip(); bt=str(body.get('buttonText') or '').strip(); bu=str(body.get('buttonUrl') or '').strip(); mobile=str(body.get('imageMobile') or image).strip(); tablet=str(body.get('imageTablet') or image).strip(); computer=str(body.get('imageComputer') or image).strip(); pos=max(1,int(body.get('position') or 1)); active=bool(body.get('active',True)); ident=int(body.get('id') or 0)
     with _db() as c,c.cursor() as x:
         if action=='update' and ident:
-            x.execute('UPDATE mm_heroes SET title=%s,subtitle=%s,description=%s,button_text=%s,button_url=%s,image_desktop=%s,image_mobile=%s,position=%s,active=%s,updated_at=NOW() WHERE id=%s',(title,subtitle,description,bt,bu,image,mobile,pos,active,ident))
+            x.execute('UPDATE mm_heroes SET title=%s,subtitle=%s,description=%s,button_text=%s,button_url=%s,image_desktop=%s,image_mobile=%s,image_tablet=%s,image_computer=%s,position=%s,active=%s,updated_at=NOW() WHERE id=%s',(title,subtitle,description,bt,bu,image,mobile,tablet,computer,pos,active,ident))
             if x.rowcount==0: raise ValueError('Hero não encontrado.')
         else:
-            x.execute('INSERT INTO mm_heroes(title,subtitle,description,button_text,button_url,image_desktop,image_mobile,position,active) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s)',(title,subtitle,description,bt,bu,image,mobile,pos,active))
+            x.execute('INSERT INTO mm_heroes(title,subtitle,description,button_text,button_url,image_desktop,image_mobile,image_tablet,image_computer,position,active) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)',(title,subtitle,description,bt,bu,image,mobile,tablet,computer,pos,active))
         c.commit()
     send_json(200,{'ok':True}); return True
 def _hero_delete(body,send_json):
