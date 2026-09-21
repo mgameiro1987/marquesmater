@@ -175,6 +175,14 @@ def validate(body,send_json):
     send_json(200,{'ok':True,'result':result}); return True
 def post(body,send_json):
     ensure(); kind=str(body.get('kind') or 'coupon')
+    if kind=='hero' and str(body.get('action') or '')=='delete':
+        ident=int(body.get('id') or 0)
+        if ident<=0: raise ValueError('Hero inválido.')
+        with _db() as c,c.cursor() as x:
+            x.execute('DELETE FROM mm_heroes WHERE id=%s',(ident,))
+            if x.rowcount==0: raise ValueError('Hero não encontrado.')
+            c.commit()
+        send_json(200,{'ok':True}); return True
     if kind=='hero': return _hero_write(body,send_json)
     with _db() as c,c.cursor() as x:
         if kind=='coupon':
