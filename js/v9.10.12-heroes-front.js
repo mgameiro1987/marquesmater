@@ -17,12 +17,28 @@ let heroes=fallback,index=0,timer=null,raf=null,duration=6000,start=0,paused=fal
 function stop(){if(timer){clearTimeout(timer);timer=null}if(raf){cancelAnimationFrame(raf);raf=null}}
 function startClock(){stop();if(heroes.length<=1)return;start=performance.now();const bar=root.querySelector('.mm1012-progress span');if(bar)bar.style.width='0%';const frame=now=>{if(paused)return;if(!bar)return;const elapsed=now-start;bar.style.width=Math.min(100,elapsed/duration*100)+'%';if(elapsed<duration)raf=requestAnimationFrame(frame);else raf=null};raf=requestAnimationFrame(frame);timer=setTimeout(()=>{timer=null;show(index+1)},duration)}
 function show(i){const slides=[...root.querySelectorAll('.mm1012-slide')],dots=[...root.querySelectorAll('.mm1012-dots button')],bar=root.querySelector('.mm1012-progress span');if(!slides.length)return;index=(i+slides.length)%slides.length;slides.forEach((s,k)=>s.classList.toggle('active',k===index));dots.forEach((d,k)=>d.classList.toggle('active',k===index));if(bar)bar.style.width='0%';if(!paused)startClock()}
+function fitCopyText(){
+ const copies=[...root.querySelectorAll('.mm1012-copy')];
+ copies.forEach(copy=>{
+   const h=copy.querySelector('h1'), p=copy.querySelector('p');
+   if(!h||!p)return;
+   h.style.fontSize=''; p.style.fontSize='';
+   const minH=24,minP=12;
+   let guard=0;
+   while(copy.scrollHeight>copy.clientHeight && guard++<40){
+     const hs=parseFloat(getComputedStyle(h).fontSize), ps=parseFloat(getComputedStyle(p).fontSize);
+     if(hs>minH) h.style.fontSize=(hs-1)+'px';
+     else if(ps>minP) p.style.fontSize=(ps-1)+'px';
+     else break;
+   }
+ });
+}
 function render(){
  stop();heroes=[...heroes].filter(h=>h&&h.title&&h.active!==false).sort((a,b)=>(Number(a.position)||0)-(Number(b.position)||0));if(!heroes.length)heroes=fallback;
  root.innerHTML='<div class="mm1012-slides" role="region" aria-label="Destaques MarquesMater">'+heroes.map((h,i)=>'<article class="mm1012-slide '+(i===0?'active':'')+'"><div class="mm1012-bg desktop" style="background-image:url(\''+esc(h.imageDesktop||h.imageTablet||h.imageMobile)+'\')"></div><div class="mm1012-bg tablet" style="background-image:url(\''+esc(h.imageTablet||h.imageDesktop||h.imageMobile)+'\')"></div><div class="mm1012-bg mobile" style="background-image:url(\''+esc(h.imageMobile||h.imageTablet||h.imageDesktop)+'\')"></div><div class="mm1012-overlay"></div><div class="mm1012-copy"><div class="mm1012-sub">'+esc(h.subtitle||'')+'</div><h1>'+esc(h.title)+'</h1><p>'+esc(h.description||'')+'</p><div class="mm1012-cta-slot">'+(h.buttonText?'<a class="btn orange mm1012-cta" href="'+esc(h.buttonUrl||'#')+'">'+esc(h.buttonText)+'</a>':'')+'</div></div></article>').join('')+'</div><button type="button" class="mm1012-arrow prev" aria-label="Hero anterior">‹</button><button type="button" class="mm1012-arrow next" aria-label="Hero seguinte">›</button><div class="mm1012-bottom"><div class="mm1012-dots">'+heroes.map((_,i)=>'<button type="button" data-i="'+i+'" aria-label="Hero '+(i+1)+'" class="'+(i===0?'active':'')+'"></button>').join('')+'</div><div class="mm1012-progress"><span></span></div></div>';
  index=Math.min(index,Math.max(0,heroes.length-1));root.querySelector('.prev').onclick=()=>show(index-1);root.querySelector('.next').onclick=()=>show(index+1);root.querySelectorAll('.mm1012-dots button').forEach((d,i)=>d.onclick=()=>show(i));
  let sx=0,sy=0;root.ontouchstart=e=>{const t=e.touches[0];sx=t.clientX;sy=t.clientY};root.ontouchend=e=>{const t=e.changedTouches[0],dx=t.clientX-sx,dy=t.clientY-sy;if(Math.abs(dx)>40&&Math.abs(dx)>Math.abs(dy)*1.15)show(index+(dx<0?1:-1))};
- root.onmouseenter=()=>{if(timer){clearTimeout(timer);timer=null}if(raf){cancelAnimationFrame(raf);raf=null}paused=true};root.onmouseleave=()=>{paused=false;startClock()};root.style.visibility='visible';show(index)
+ root.onmouseenter=()=>{if(timer){clearTimeout(timer);timer=null}if(raf){cancelAnimationFrame(raf);raf=null}paused=true};root.onmouseleave=()=>{paused=false;startClock()};fitCopyText();root.style.visibility='visible';show(index)
 }
 
 const style=document.createElement('style');style.textContent=`
@@ -32,3 +48,4 @@ const style=document.createElement('style');style.textContent=`
 @media(max-width:380px){.mm1012-hero #mmHeroRoot,.mm1012-slides,.mm1012-slide{height:570px;min-height:570px}.mm1012-copy{height:100%;min-height:100%;padding:26px 18px 78px}.mm1012-copy h1{font-size:27px;height:auto;flex-basis:auto}.mm1012-copy p{font-size:13px;height:auto;flex-basis:auto}.mm1012-cta-slot,.mm1012-cta{height:48px;min-height:48px;flex-basis:48px}.mm1012-cta{width:210px;min-width:210px;max-width:210px}.mm1012-arrow{width:34px;height:34px}}
 `;document.head.appendChild(style);root.style.visibility='hidden';fetch('/api/marketing?resource=heroes',{cache:'no-store'}).then(r=>r.json()).then(j=>{if(j&&j.ok&&Array.isArray(j.heroes)&&j.heroes.length){heroes=j.heroes.map(h=>{const x={...h,imageDesktop:h.imageDesktop||h.imageMobile,imageMobile:h.imageMobile||h.imageDesktop,imageTablet:h.imageTablet||h.imageDesktop||h.imageMobile};if(/^RIDA\b/i.test(String(h.title||''))){x.imageDesktop='images/rida-hero.jpg';x.imageTablet='images/rida-hero.jpg';x.imageMobile='images/rida-hero.jpg'}return x});index=0;render()}else{render()}}).catch(()=>{render()});
 })();
+window.addEventListener('resize',()=>{if(root.offsetParent)fitCopyText()},{passive:true});
